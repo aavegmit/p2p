@@ -3,6 +3,63 @@
 
 void *write_thread(void *args){
 	long sockfd = (long)args ;
+	struct Message mes ;
+	unsigned char header[HEADER_SIZE] ;
+	unsigned char *buffer ;
+	uint32_t len = 0 ;
+
+	while(!shutDown){
+		if(connectionMap[sockfd].MessageQ.size() <= 0){
+			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
+			pthread_cond_wait(&connectionMap[sockfd].mesQCv, &connectionMap[sockfd].mesQLock) ;
+			mes = connectionMap[sockfd].MessageQ.front() ;
+			connectionMap[sockfd].MessageQ.pop_front() ;
+			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
+
+		}
+		else{
+			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
+			mes = connectionMap[sockfd].MessageQ.front() ;
+			connectionMap[sockfd].MessageQ.pop_front() ;
+			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
+		}
+
+		memset(header, 0, HEADER_SIZE) ;
+
+		// Message of type Hello
+		if (mes.type == 0xfa){
+			printf("Sending Hello Message\n") ;
+			header[0] = 0xfa;
+			header[21] = '1' ;
+			char host[256] ;
+			len = strlen(host) + 2 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+			gethostname(host, 256) ;
+			host[255] = '\0' ;
+			buffer = (unsigned char *)malloc(strlen(host) + 2) ;
+			memset(buffer, '\0', strlen(host)+2) ;
+			memcpy((char *)buffer, &(myInfo->portNo), 2) ;
+			sprintf((char *)&buffer[2], "%s",  host);
+			
+		}
+
+		int return_code = (int)write(sockfd, header, HEADER_SIZE) ;
+		if (return_code != HEADER_SIZE){
+			fprintf(stderr, "Socket Write Error") ;
+		}
+
+		return_code = (int)write(sockfd, buffer, len) ;
+		if (return_code != len){
+			fprintf(stderr, "Socket Write Error") ;
+		}
+
+
+
+	free(buffer) ;
+
+	}
+
 	return 0;
 }
 

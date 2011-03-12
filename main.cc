@@ -13,6 +13,8 @@ int resetFlag = 0;
 bool shutDown = 0 ;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
+map<int, struct connectionNode> connectionMap;
+map<struct node, int> nodeConnectionMap;
 
 int usage()
 {
@@ -65,39 +67,39 @@ int main(int argc, char *argv[])
 {
 	if(!processCommandLine(argc, argv))
 		exit(0);
-	
+
 	populatemyInfo();
 	parseINIfile(fileName);
 	free(fileName) ;
-//	printmyInfo();
-			
+	//	printmyInfo();
+
 	void *thread_result ;
 
 	// Call INI parser here - returns a structure
 
 	// Populate the structure manually for testing
-	myInfo = (struct myStartInfo *)malloc(sizeof(struct myStartInfo)) ;
-	myInfo->myBeaconList = new list<struct beaconList *> ;
+	//	myInfo = (struct myStartInfo *)malloc(sizeof(struct myStartInfo)) ;
+	//	myInfo->myBeaconList = new list<struct beaconList *> ;
 
 	myInfo->isBeacon = true ;
-	myInfo->portNo = 12347 ;
-	myInfo->retry = 4 ;
-
-	struct beaconList *b1;
-	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	strcpy((char *)b1->hostName, "localhost") ;
-	b1->portNo = 12345 ;
-	myInfo->myBeaconList->push_front(b1) ;
-
-	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	strcpy((char *)b1->hostName, "localhost") ;
-	b1->portNo = 12346 ;
-	myInfo->myBeaconList->push_front(b1) ;
-
-	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	strcpy((char *)b1->hostName, "localhost") ;
-	b1->portNo = 12347 ;
-	myInfo->myBeaconList->push_front(b1) ;
+	//	myInfo->portNo = 12347 ;
+	//	myInfo->retry = 4 ;
+	//
+	//	struct beaconList *b1;
+	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
+	//	strcpy((char *)b1->hostName, "localhost") ;
+	//	b1->portNo = 12345 ;
+	//	myInfo->myBeaconList->push_front(b1) ;
+	//
+	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
+	//	strcpy((char *)b1->hostName, "localhost") ;
+	//	b1->portNo = 12346 ;
+	//	myInfo->myBeaconList->push_front(b1) ;
+	//
+	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
+	//	strcpy((char *)b1->hostName, "localhost") ;
+	//	b1->portNo = 12347 ;
+	//	myInfo->myBeaconList->push_front(b1) ;
 
 	// -------------------------------------------
 
@@ -126,7 +128,7 @@ int main(int argc, char *argv[])
 				strncpy((char *)b2->hostName, const_cast<char *>((char *)(*it)->hostName), 256) ;
 				b2->portNo = (*it)->portNo ;
 				tempBeaconList->push_front(b2) ;
-				
+
 
 			}
 
@@ -135,16 +137,48 @@ int main(int argc, char *argv[])
 		while(tempBeaconList->size() > 0){
 			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end(); it++){
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
-				int res = connectTo((*it)->hostName, (*it)->portNo) ; 
-				if (res == -1 ){
+				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if (resSock == -1 ){
 					// Connection could not be established
 				}
 				else{
+					struct connectionNode cn ;
+					struct node n;
+					n.portNo = (*it)->portNo ;
+					strcpy(n.hostname, (const char *)(*it)->hostName) ;
 					it = tempBeaconList->erase(it) ;
 					--it ;
-					// Create a read thread for this connection
-					// Create a write thread
+					nodeConnectionMap[n] = resSock ;
+
+					int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
+					if (mres != 0){
+						perror("Mutex initialization failed");
+						
+					}
+					int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
+					if (cres != 0){
+						perror("CV initialization failed") ;
+					}
+
+					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
+					pushMessageinQ(resSock, 0xfa) ;
+
+					// Create a read thread for this connection
+					pthread_t re_thread ;
+					res = pthread_create(&re_thread, NULL, read_thread , (void *)resSock);
+					if (res != 0) {
+						perror("Thread creation failed");
+						exit(EXIT_FAILURE);
+					}
+
+					// Create a write thread
+					pthread_t wr_thread ;
+					res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
+					if (res != 0) {
+						perror("Thread creation failed");
+						exit(EXIT_FAILURE);
+					}
 				}
 			}
 			// Wait for 'retry' time before making the connections again

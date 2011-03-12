@@ -32,7 +32,7 @@ void populatemyInfo()
 	myInfo->storeProb = 0.1;
 	myInfo->neighborStoreProb = 0.2;
 	myInfo->cacheSize = 500;
-	myInfo->retry = 30;
+	myInfo->retry = 3;
 
 }
 
@@ -415,7 +415,7 @@ void parseINIfile(unsigned char *fileName)
 						value=(unsigned char *)strtok(NULL,":");
 						beaconNode->portNo = (unsigned int)atoi((char *)value);
 						myInfo->myBeaconList->push_back(beaconNode);
-						//printf("Host name is : %s\tHost Port no: %d\n", beaconNode->hostName, beaconNode->portNo);
+//						printf("Host name is : %s\tHost Port no: %d\n", beaconNode->hostName, beaconNode->portNo);
 					}
 
 				}

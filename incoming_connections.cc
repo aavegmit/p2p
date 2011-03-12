@@ -85,6 +85,21 @@ void *accept_connectionsT(void *){
 		else {
 			printf("\n I got a connection from (%s , %d)", inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port));
 
+			// Populate connectionMap for this sockfd
+			struct connectionNode cn ;
+
+			int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
+			if (mres != 0){
+				perror("Mutex initialization failed");
+
+			}
+			int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
+			if (cres != 0){
+				perror("CV initialization failed") ;
+			}
+
+			connectionMap[newsockfd] = cn ;
+
 
 			int res ;
 			pthread_t re_thread ;
@@ -111,6 +126,36 @@ void *accept_connectionsT(void *){
 
 
 	return 0;
+}
+
+void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned char *uoid, unsigned char *buffer){
+	// Hello message received
+	if (type == 0xfa){
+		printf("Hello message received\n") ;
+		// Break the Tie now
+		struct node n ;
+		memcpy(&n.portNo, buffer, 2) ;
+		strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
+		if (!nodeConnectionMap[n])
+			nodeConnectionMap[n] = sockfd ;
+		else{
+			// break one connection
+			if (myInfo->portNo < n.portNo){
+				// dissconect this connection
+				close(sockfd) ;
+				printf("Have to break jj one connection\n") ;
+			}
+			else if(myInfo->portNo > n.portNo){
+				close(nodeConnectionMap[n]) ;
+				printf("Have to break one connection\n") ;
+			}
+			else{
+				// Compare the hostname here
+			}
+		}
+		
+
+	}
 }
 
 
@@ -148,8 +193,8 @@ void *read_thread(void *args){
 		}
 		buffer[data_len] = '\0' ;
 
-		printf("Message received %s\n", buffer) ;
-		
+
+		process_received_message(nSocket, message_type, ttl,uoid, buffer) ;
 
 		free(buffer) ;
 	}
@@ -158,4 +203,16 @@ void *read_thread(void *args){
 
 
 	return 0;
+}
+
+void pushMessageinQ(int sockfd, uint8_t id){
+
+	struct Message mes;
+	mes.type = id ;
+	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
+	(connectionMap[sockfd]).MessageQ.push_back(mes) ;
+	pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
+	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
+	
+
 }
