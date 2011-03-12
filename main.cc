@@ -10,6 +10,7 @@
 #include "iniParser.h"
 
 int resetFlag = 0;
+bool shutDown = 0 ;
 struct myStartInfo *myInfo ;
 
 int usage()
@@ -50,11 +51,14 @@ int processCommandLine(int argc, char *argv[])
 }
 
 
+
+
+
 int main(int argc, char *argv[])
 {
 	if(!processCommandLine(argc, argv))
 		exit(0);
-		
+
 	void *thread_result ;
 
 	// Call INI parser here - returns a structure
@@ -64,7 +68,8 @@ int main(int argc, char *argv[])
 	myInfo->myBeaconList = new list<struct beaconList *> ;
 
 	myInfo->isBeacon = true ;
-	myInfo->portNo = 12345 ;
+	myInfo->portNo = 12347 ;
+	myInfo->retry = 4 ;
 
 	struct beaconList *b1;
 	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
@@ -96,6 +101,42 @@ int main(int argc, char *argv[])
 		if (res != 0) {
 			perror("Thread creation failed");
 			exit(EXIT_FAILURE);
+		}
+
+
+		// Connect to other beacon nodes
+		list<struct beaconList *> *tempBeaconList ;
+		tempBeaconList = new list<struct beaconList *> ;
+		struct beaconList *b2;
+		for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+			if ( (*it)->portNo != myInfo->portNo){
+				b2 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
+				strncpy((char *)b2->hostName, const_cast<char *>((char *)(*it)->hostName), 256) ;
+				b2->portNo = (*it)->portNo ;
+				tempBeaconList->push_front(b2) ;
+				
+
+			}
+
+		}
+
+		while(tempBeaconList->size() > 0){
+			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end(); it++){
+				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
+				int res = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if (res == -1 ){
+					// Connection could not be established
+				}
+				else{
+					it = tempBeaconList->erase(it) ;
+					--it ;
+					// Create a read thread for this connection
+					// Create a write thread
+					// Push a Hello type message in the writing queue
+				}
+			}
+			// Wait for 'retry' time before making the connections again
+			sleep(myInfo->retry) ;
 		}
 
 

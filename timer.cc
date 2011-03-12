@@ -5,11 +5,11 @@
 #include <stdlib.h>
 
 void *timer_thread(void *arg){
-	while(1){
-		sleep(1) ;
-		printf("Timer out..\n") ;
-
-	}
+//	while(1){
+//		sleep(1) ;
+//		printf("Timer out..\n") ;
+//
+//	}
 
 	return 0;
 

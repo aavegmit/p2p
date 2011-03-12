@@ -31,7 +31,8 @@ struct myStartInfo
 	unsigned int cacheSize;
 	list<struct beaconList *> *myBeaconList;
 	
-	bool isBeacon;		// to check if the current node is beacon or not
+	bool isBeacon;						// to check if the current node is beacon or not
+	unsigned int retry;
 };
 
 extern struct myStartInfo *myInfo;
