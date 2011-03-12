@@ -13,7 +13,7 @@ struct beaconList
 struct myStartInfo
 {
 	unsigned int portNo;
-	unsigned int location;
+	unsigned long int location;
 	unsigned char homeDir[512];
 	unsigned char logFileName[256];
 	unsigned int autoShutDown;
@@ -29,6 +29,7 @@ struct myStartInfo
 	double storeProb;
 	double neighborStoreProb;
 	unsigned int cacheSize;
+	unsigned int retry;
 	list<struct beaconList *> *myBeaconList;
 	
 	bool isBeacon;		// to check if the current node is beacon or not
@@ -36,6 +37,8 @@ struct myStartInfo
 
 extern struct myStartInfo *myInfo;
 
-extern struct myStartInfo* parseINIfile(unsigned char *fileName);
+extern void parseINIfile(unsigned char *fileName);
 
+extern void populatemyInfo();
 
+void printmyInfo();

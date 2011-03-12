@@ -10,6 +10,7 @@
 #include "iniParser.h"
 
 int resetFlag = 0;
+unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 
 int usage()
@@ -40,7 +41,13 @@ int processCommandLine(int argc, char *argv[])
 			if(strstr(*argv, ".ini")==NULL)
 				return usage();
 			else
+			{
+				int len = strlen(*argv);
+				fileName = (unsigned char *)malloc(sizeof(unsigned char)*(len+1));
+				strncpy((char *)fileName, (char *)*argv, len);
+				fileName[len+1]='\0';
 				iniFlag = 1;
+			}
 		}
 	}
 	if(iniFlag!=1)
@@ -54,7 +61,12 @@ int main(int argc, char *argv[])
 {
 	if(!processCommandLine(argc, argv))
 		exit(0);
-		
+	
+	populatemyInfo();
+	parseINIfile(fileName);
+	printmyInfo();
+	exit(0);
+			
 	void *thread_result ;
 
 	// Call INI parser here - returns a structure
