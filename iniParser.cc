@@ -5,5 +5,6 @@
 
 struct myStartInfo* parseINIfile(unsigned char *fileName)
 {
+
 		
 } 

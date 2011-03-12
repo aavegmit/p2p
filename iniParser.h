@@ -30,6 +30,8 @@ struct myStartInfo
 	double neighborStoreProb;
 	unsigned int cacheSize;
 	list<struct beaconList *> *myBeaconList;
+	
+	bool isBeacon;		// to check if the current node is beacon or not
 };
 
 extern struct myStartInfo *myInfo;
