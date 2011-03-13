@@ -71,7 +71,8 @@ int main(int argc, char *argv[])
 	populatemyInfo();
 	parseINIfile(fileName);
 	free(fileName) ;
-	//	printmyInfo();
+	printmyInfo();
+	exit(0);
 	
 	void *thread_result ;
 
@@ -238,16 +239,17 @@ int main(int argc, char *argv[])
 		if(tempNeighborsList->size() != myInfo->minNeighbor)
 		{
 			printf("Not enough neighbors alive\n");
+			// need to exit thread and do soft restart
 			exit(EXIT_FAILURE);
 		}
 		
 
-		while(tempNeighborsList->size() > 0){
 			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end(); it++){
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
 				if (resSock == -1 ){
 					// Connection could not be established
+					// now we have to reset the network, call JOIN
 				}
 				else{
 					struct connectionNode cn ;
@@ -289,10 +291,6 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
-			// Wait for 'retry' time before making the connections again
-			sleep(myInfo->retry) ;
-		}
-
 
 		// Join the accept connections thread
 

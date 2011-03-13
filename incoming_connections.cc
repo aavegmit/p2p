@@ -135,17 +135,24 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		// Break the Tie now
 		struct node n ;
 		memcpy(&n.portNo, buffer, 2) ;
-		strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
+		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
+		memcpy(n.hostname, buffer+2, strlen((char *)buffer)-2) ;
+		//strncpy(n.hostname, ((char *)buffer+2), strlen((char *)buffer));
+		printf("YAHAHANA: %s\n", n.hostname);
 		if (!nodeConnectionMap[n])
 		{
 			nodeConnectionMap[n] = sockfd ;
 			int ret = isBeaconNode(n);
 			if(!ret)
 			{
+				printf("Hello\n");
 				pushMessageinQ(sockfd, 0xfa);
 			}
 		}
 		else{
+		
+			if(nodeConnectionMap[n]==sockfd)
+				return;
 			// break one connection
 			if (myInfo->portNo < n.portNo){
 				// dissconect this connection
@@ -200,7 +207,6 @@ void *read_thread(void *args){
 		}
 		buffer[data_len] = '\0' ;
 
-
 		process_received_message(nSocket, message_type, ttl,uoid, buffer) ;
 
 		free(buffer) ;
@@ -226,7 +232,9 @@ void pushMessageinQ(int sockfd, uint8_t id){
 
 int isBeaconNode(struct node n)
 {
+	//printf("1. hostname: %s, portno: %d\n", n.hostname,n.portNo);
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+	//printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
 		if((strcmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}

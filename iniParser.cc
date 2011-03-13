@@ -6,6 +6,7 @@
 #include<list>
 
 #include "iniParser.h"
+#include "main.h"
 
 using namespace std;
 
@@ -15,6 +16,7 @@ void populatemyInfo()
 	myInfo = (struct myStartInfo *)malloc(sizeof(myStartInfo));
 	myInfo->myBeaconList = new list<struct beaconList *> ;
 	myInfo->portNo = 0;
+	gethostname((char *)myInfo->hostName, 256);
 	myInfo->location = 0;
 	memset(myInfo->homeDir, '\0', 512);
 	strncpy((char *)myInfo->logFileName, "servant.log", strlen("servant.log"));
@@ -33,6 +35,8 @@ void populatemyInfo()
 	myInfo->neighborStoreProb = 0.2;
 	myInfo->cacheSize = 500;
 	myInfo->retry = 3;
+	myInfo->isBeacon = false;
+	
 
 }
 
@@ -42,6 +46,7 @@ void printmyInfo()
 	printf("Value for myInfo is:--\n\n");
 
 	printf("Port No: %d\n",myInfo->portNo);
+	printf("hostName: %s\n",myInfo->hostName);
 	printf("Location: %ld\n",myInfo->location);
 	printf("HomeDir: %s\n",myInfo->homeDir);
 	printf("logFileName: %s\n",myInfo->logFileName);
@@ -59,6 +64,7 @@ void printmyInfo()
 	printf("neighborStoreProb: %lf\n",myInfo->neighborStoreProb);
 	printf("cacheSize: %d\n",myInfo->cacheSize);
 	printf("retry: %d\n",myInfo->retry);
+	printf("isBeacon: %d\n",myInfo->isBeacon);
 
 }
 

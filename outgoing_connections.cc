@@ -40,7 +40,8 @@ void *write_thread(void *args){
 			buffer = (unsigned char *)malloc(strlen(host) + 2) ;
 			memset(buffer, '\0', strlen(host)+2) ;
 			memcpy((char *)buffer, &(myInfo->portNo), 2) ;
-			sprintf((char *)&buffer[2], "%s",  host);
+			memcpy((char *)(buffer+2), host, strlen(host)) ;
+			//sprintf((char *)&buffer[2], "%s",  host);
 			
 		}
 
