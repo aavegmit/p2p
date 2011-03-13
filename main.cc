@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	parseINIfile(fileName);
 	free(fileName) ;
 	//	printmyInfo();
-
+	
 	void *thread_result ;
 
 	// Call INI parser here - returns a structure
@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
 	//	myInfo->myBeaconList = new list<struct beaconList *> ;
 
 	myInfo->isBeacon = true ;
+	//myInfo->isBeacon = false ;
 	//	myInfo->portNo = 12347 ;
 	//	myInfo->retry = 4 ;
 	//
@@ -190,7 +191,113 @@ int main(int argc, char *argv[])
 
 	}
 	else{
+		char nodeName[256];
 		printf("A regular node coming up...\n") ;
+		
+		//checking if the init_neighbor_list exsits or not
+		
+		FILE *f=fopen("init_neighbor_list", "r");
+		if(f==NULL)
+		{
+			printf("Neighbor List does not exist...Joining the network\n");
+			exit(EXIT_FAILURE);
+			// Need to Join the network
+		}
+		
+
+		// Call the Accept thread
+		// Thread creation and join code taken from WROX Publications book
+		pthread_t accept_thread ;
+		int res ;
+		res = pthread_create(&accept_thread, NULL, accept_connectionsT , (void *)NULL);
+		if (res != 0) {
+			perror("Thread creation failed");
+			exit(EXIT_FAILURE);
+		}
+
+
+		// Connect to neighbors in the list
+		// File exist, now say "Hello"
+		list<struct beaconList *> *tempNeighborsList ;
+		tempNeighborsList = new list<struct beaconList *>;
+		struct beaconList *b2;		
+		for(unsigned int i=0;i < myInfo->minNeighbor; i++)
+		{
+			fgets(nodeName, 255, f);
+			char *hostName = strtok(nodeName, ":");
+			char *portNo = strtok(NULL, ":");
+
+			b2 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
+			strncpy((char *)b2->hostName, const_cast<char *>(hostName), strlen(hostName)) ;
+			b2->hostName[strlen(hostName)]='\0';
+			b2->portNo = atoi(portNo);
+			tempNeighborsList->push_front(b2) ;
+
+		}
+		
+		if(tempNeighborsList->size() != myInfo->minNeighbor)
+		{
+			printf("Not enough neighbors alive\n");
+			exit(EXIT_FAILURE);
+		}
+		
+
+		while(tempNeighborsList->size() > 0){
+			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end(); it++){
+				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
+				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if (resSock == -1 ){
+					// Connection could not be established
+				}
+				else{
+					struct connectionNode cn ;
+					struct node n;
+					n.portNo = (*it)->portNo ;
+					strcpy(n.hostname, (const char *)(*it)->hostName) ;
+					it = tempNeighborsList->erase(it) ;
+					--it ;
+					nodeConnectionMap[n] = resSock ;
+
+					int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
+					if (mres != 0){
+						perror("Mutex initialization failed");
+						
+					}
+					int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
+					if (cres != 0){
+						perror("CV initialization failed") ;
+					}
+
+					connectionMap[resSock] = cn ;
+					// Push a Hello type message in the writing queue
+					pushMessageinQ(resSock, 0xfa) ;
+
+					// Create a read thread for this connection
+					pthread_t re_thread ;
+					res = pthread_create(&re_thread, NULL, read_thread , (void *)resSock);
+					if (res != 0) {
+						perror("Thread creation failed");
+						exit(EXIT_FAILURE);
+					}
+
+					// Create a write thread
+					pthread_t wr_thread ;
+					res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
+					if (res != 0) {
+						perror("Thread creation failed");
+						exit(EXIT_FAILURE);
+					}
+				}
+			}
+			// Wait for 'retry' time before making the connections again
+			sleep(myInfo->retry) ;
+		}
+
+
+		// Join the accept connections thread
+
+
+		fclose(f);
 	}
 
 

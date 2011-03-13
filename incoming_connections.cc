@@ -137,7 +137,14 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		memcpy(&n.portNo, buffer, 2) ;
 		strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
 		if (!nodeConnectionMap[n])
+		{
 			nodeConnectionMap[n] = sockfd ;
+			int ret = isBeaconNode(n);
+			if(!ret)
+			{
+				pushMessageinQ(sockfd, 0xfa);
+			}
+		}
 		else{
 			// break one connection
 			if (myInfo->portNo < n.portNo){
@@ -187,7 +194,7 @@ void *read_thread(void *args){
 		buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
 		memset(buffer, 0, data_len) ;
 		return_code=(int)read(nSocket, buffer, data_len);
-		if (return_code != data_len){
+		if (return_code != (int)data_len){
 			printf("Socket Read error...\n") ;
 			return 0;
 		}
@@ -215,4 +222,13 @@ void pushMessageinQ(int sockfd, uint8_t id){
 	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
 	
 
+}
+
+int isBeaconNode(struct node n)
+{
+	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+		if((strcmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
+			return true;
+	}
+return false;
 }

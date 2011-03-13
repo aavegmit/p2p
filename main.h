@@ -56,6 +56,6 @@ void *read_thread(void *) ;
 void *write_thread(void *) ;
 
 
-
+int isBeaconNode(struct node n);
 int connectTo(unsigned char *, unsigned int) ;
 void pushMessageinQ(int, uint8_t) ;

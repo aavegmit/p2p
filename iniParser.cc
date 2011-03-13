@@ -107,7 +107,7 @@ void parseINIfile(unsigned char *fileName)
 	FILE *f=fopen((char *)fileName,"r");
 	int initFlag=0, beaconFlag=0;
 	int visitedFlag[20];
-	memset(&visitedFlag, 0, 20);
+	memset(&visitedFlag, 0, sizeof(visitedFlag));
 
 	if(f==NULL)
 	{
@@ -126,7 +126,7 @@ void parseINIfile(unsigned char *fileName)
 		removeSpaces(readLine);
 		if(!(*readLine))
 			continue;
-		//printf("2. readLine is: %s\n\n", readLine);
+		//printf("2. readLine is: %s\n", readLine);
 
 		if(strcasestr((char *)readLine, "[init]")!=NULL)
 		{
@@ -402,7 +402,9 @@ void parseINIfile(unsigned char *fileName)
 							visitedFlag[19]=1;
 						}
 						else
+						{
 							continue;
+						}
 						value=(unsigned char *)strtok(NULL, "=");
 						myInfo->retry=atoi((char *)value);
 					}
