@@ -1,6 +1,13 @@
 #include "main.h"
 #include "iniParser.h"
 
+#ifndef min
+#define min(A,B) (((A)>(B)) ? (B) : (A))
+#endif /* ~min */
+
+unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, unsigned int uoid_buf_sz) ;
+map<unsigned char *, struct Packet> MessageDB ;
+
 void *write_thread(void *args){
 	long sockfd = (long)args ;
 	struct Message mes ;
@@ -47,6 +54,38 @@ void *write_thread(void *args){
 			sprintf((char *)&buffer[2], "%s",  host);
 
 		}
+		else if (mes.type == 0xfc){
+			printf("Sending JOIN request\n") ;
+
+			char host[256] ;
+			gethostname(host, 256) ;
+			host[255] = '\0' ;
+			len = strlen(host) + 20 ;
+			buffer = (unsigned char *)malloc(len) ;
+			memset(buffer, '\0', len) ;
+			memcpy((char *)buffer, &(myInfo->location), 4) ;
+			memcpy((char *)&buffer[4], &(myInfo->portNo), 2) ;
+			sprintf((char *)&buffer[6], "%s",  host);
+			len = strlen((const char *)buffer) ;
+
+			header[0] = 0xfc;
+			printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
+
+			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
+			struct Packet pk ;
+			pk.status = 0;
+			MessageDB[uoid] = pk ;
+
+			memcpy((char *)&header[1], uoid, 20) ;
+			memcpy((char *)&header[21], &(myInfo->ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
+		else if (mes.type == 0xfb){
+			printf("Sending JOIN Response..\n") ;
+
+		}
 
 		int return_code = (int)write(sockfd, header, HEADER_SIZE) ;
 		if (return_code != HEADER_SIZE){
@@ -54,7 +93,7 @@ void *write_thread(void *args){
 		}
 
 		return_code = (int)write(sockfd, buffer, len) ;
-		if (return_code != len){
+		if (return_code != (int)len){
 			fprintf(stderr, "Socket Write Error") ;
 		}
 
@@ -77,6 +116,10 @@ int connectTo(unsigned char *hostName, unsigned int portN ) {
 	int nSocket = 0, status;
 
 	host = gethostbyname(const_cast<char *> ((char *)hostName)) ;
+	if (host == NULL){
+		fprintf(stderr, "Unknown host\n") ;
+		return -1 ;
+	}
 
 
 	// Creating the new server
@@ -101,5 +144,95 @@ int connectTo(unsigned char *hostName, unsigned int portN ) {
 
 	}
 
+
+}
+
+unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, unsigned int uoid_buf_sz){
+	static unsigned long seq_no=(unsigned long)1;
+	unsigned char sha1_buf[SHA_DIGEST_LENGTH], str_buf[104];
+
+	snprintf((char *)str_buf, sizeof(str_buf), "%s_%s_%1ld", myInfo->node_instance_id, obj_type, (long)seq_no++);
+	SHA1(str_buf, strlen((const char *)str_buf), sha1_buf);
+	memset(uoid_buf, 0, uoid_buf_sz);
+	memcpy(uoid_buf, sha1_buf,min(uoid_buf_sz,sizeof(sha1_buf)));
+	return uoid_buf;
+
+}
+
+
+
+// Method to join the network
+// Case when then init_neighbor file is not present
+void joinNetwork(){
+	printf("In join network method\n") ;
+	int resSock = -1 ;
+	pthread_t re_thread ;
+	void *thread_result ;
+
+	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+		printf("Trying to connect to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
+		resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+		if (resSock == -1 ){
+			// Connection could not be established
+		}
+		else{
+			struct connectionNode cn ;
+			struct node n;
+			n.portNo = (*it)->portNo ;
+			strcpy(n.hostname, (const char *)(*it)->hostName) ;
+			nodeConnectionMap[n] = resSock ;
+
+			int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
+			if (mres != 0){
+				perror("Mutex initialization failed");
+
+			}
+			int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
+			if (cres != 0){
+				perror("CV initialization failed") ;
+			}
+
+			cn.shutDown = 0 ;
+
+			connectionMap[resSock] = cn ;
+			// Push a Join Req type message in the writing queue
+			struct Message m ;
+			m.type = 0xfc ;
+			pushMessageinQ(resSock, m) ;
+
+			// Create a read thread for this connection
+			int res = pthread_create(&re_thread, NULL, read_thread , (void *)resSock);
+			if (res != 0) {
+				perror("Thread creation failed");
+				exit(EXIT_FAILURE);
+			}
+
+			// Create a write thread
+			pthread_t wr_thread ;
+			res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
+			if (res != 0) {
+				perror("Thread creation failed");
+				exit(EXIT_FAILURE);
+			}
+
+			break ;
+		}
+	}
+
+	if (resSock == -1){
+		fprintf(stderr,"No Beacon node up\n") ;
+		exit(0) ;
+	}
+
+
+	// Join the read thread here
+	// Thread Join code taken from WROX Publications
+	int res = pthread_join(re_thread, &thread_result);
+	if (res != 0) {
+		perror("Thread join failed");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Join process exiting..\n") ;
 
 }

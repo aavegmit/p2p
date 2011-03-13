@@ -88,15 +88,29 @@ int main(int argc, char *argv[])
 	free(fileName) ;
 	//	printmyInfo();
 	
+	// Assign a node ID and node instance id to this node
+	{
+		char host1[256] ;
+		memset(host1, '\0', 256) ;
+		gethostname(host1, 256) ;
+		host1[255] = '\0' ;
+		sprintf((char *)myInfo->node_id, "%s_%d", host1, myInfo->portNo) ;
+		printf("My node ID: %s\n", myInfo->node_id) ;
+		setNodeInstanceId() ;
+	}
+
+	
 	void *thread_result ;
 
-	// Call INI parser here - returns a structure
 
 	// Populate the structure manually for testing
 	//	myInfo = (struct myStartInfo *)malloc(sizeof(struct myStartInfo)) ;
 	//	myInfo->myBeaconList = new list<struct beaconList *> ;
 
-	myInfo->isBeacon = true ;
+	if (myInfo->portNo == 12318)
+		myInfo->isBeacon = false;
+	else
+		myInfo->isBeacon = true ;
 	//myInfo->isBeacon = false ;
 	//	myInfo->portNo = 12347 ;
 	//	myInfo->retry = 4 ;
@@ -180,7 +194,9 @@ int main(int argc, char *argv[])
 
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
-					pushMessageinQ(resSock, 0xfa) ;
+					struct Message m ; 
+					m.type = 0xfa ;
+					pushMessageinQ(resSock, m) ;
 
 					// Create a read thread for this connection
 					pthread_t re_thread ;
@@ -217,8 +233,11 @@ int main(int argc, char *argv[])
 		if(f==NULL)
 		{
 			printf("Neighbor List does not exist...Joining the network\n");
-			exit(EXIT_FAILURE);
+//			exit(EXIT_FAILURE);
 			// Need to Join the network
+			joinNetwork() ;
+			// Open the file again
+			exit(EXIT_FAILURE);
 		}
 		
 
@@ -287,7 +306,10 @@ int main(int argc, char *argv[])
 
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
-					pushMessageinQ(resSock, 0xfa) ;
+					struct Message m ; 
+					m.type = 0xfa ;
+					pushMessageinQ(resSock, m) ;
+//					pushMessageinQ(resSock, 0xfa) ;
 
 					// Create a read thread for this connection
 					pthread_t re_thread ;
