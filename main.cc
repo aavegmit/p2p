@@ -60,6 +60,21 @@ int processCommandLine(int argc, char *argv[])
 }
 
 
+void closeConnection(int sockfd){
+
+	// Set the shurdown flag for this connection
+	(connectionMap[sockfd]).shutDown = 1 ;
+	
+	// Signal the write thread
+	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
+	pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
+	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
+
+	// Finally, close the socket
+	close(sockfd) ;
+
+}
+
 
 
 
@@ -160,6 +175,8 @@ int main(int argc, char *argv[])
 					if (cres != 0){
 						perror("CV initialization failed") ;
 					}
+
+					cn.shutDown = 0 ;
 
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue

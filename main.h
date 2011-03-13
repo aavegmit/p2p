@@ -40,6 +40,7 @@ struct connectionNode{
 	list<struct Message> MessageQ ;
 	pthread_mutex_t mesQLock ;
 	pthread_cond_t mesQCv ;
+	int shutDown  ;
 
 };
 
@@ -59,3 +60,4 @@ void *write_thread(void *) ;
 int isBeaconNode(struct node n);
 int connectTo(unsigned char *, unsigned int) ;
 void pushMessageinQ(int, uint8_t) ;
+void closeConnection(int) ;
