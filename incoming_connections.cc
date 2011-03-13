@@ -98,6 +98,7 @@ void *accept_connectionsT(void *){
 				perror("CV initialization failed") ;
 			}
 
+			cn.shutDown = 0 ;
 			connectionMap[newsockfd] = cn ;
 
 
@@ -156,12 +157,12 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			// break one connection
 			if (myInfo->portNo < n.portNo){
 				// dissconect this connection
-				close(sockfd) ;
+				closeConnection(sockfd) ;
 				printf("Have to break jj one connection\n") ;
 			}
 			else if(myInfo->portNo > n.portNo){
-				close(nodeConnectionMap[n]) ;
-				printf("Have to break one connection\n") ;
+				closeConnection(nodeConnectionMap[n]) ;
+				printf("Have to break one connection with %d\n", n.portNo) ;
 			}
 			else{
 				// Compare the hostname here
@@ -184,13 +185,13 @@ void *read_thread(void *args){
 	uint32_t data_len=0;
 	unsigned char uoid[20] ;
 
-	while(!shutDown){
+	while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
 		memset(header, 0, HEADER_SIZE) ;
 		memset(uoid, 0, 20) ;
 
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
 		if (return_code != HEADER_SIZE){
-			printf("Socket Read error...\n") ;
+			printf("Socket Read error...from header\n") ;
 			return 0;
 		}
 		memcpy(&message_type, header, 1);
@@ -198,11 +199,12 @@ void *read_thread(void *args){
 		memcpy(&ttl,       header+21, 1);
 		memcpy(&data_len,  header+23, 4);
 
+
 		buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
 		memset(buffer, 0, data_len) ;
 		return_code=(int)read(nSocket, buffer, data_len);
 		if (return_code != (int)data_len){
-			printf("Socket Read error...\n") ;
+			printf("Socket Read error...from data\n") ;
 			return 0;
 		}
 		buffer[data_len] = '\0' ;
@@ -214,6 +216,7 @@ void *read_thread(void *args){
 
 
 
+	printf("Read thread exiting..\n") ;
 
 	return 0;
 }

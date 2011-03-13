@@ -8,10 +8,12 @@ void *write_thread(void *args){
 	unsigned char *buffer ;
 	uint32_t len = 0 ;
 
-	while(!shutDown){
+	while(!shutDown && !(connectionMap[sockfd].shutDown)){
 		if(connectionMap[sockfd].MessageQ.size() <= 0){
 			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 			pthread_cond_wait(&connectionMap[sockfd].mesQCv, &connectionMap[sockfd].mesQLock) ;
+			if (connectionMap[sockfd].shutDown)
+				break ;
 			mes = connectionMap[sockfd].MessageQ.front() ;
 			connectionMap[sockfd].MessageQ.pop_front() ;
 			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
@@ -23,6 +25,8 @@ void *write_thread(void *args){
 			connectionMap[sockfd].MessageQ.pop_front() ;
 			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
 		}
+		if (connectionMap[sockfd].shutDown)
+			break ;
 
 		memset(header, 0, HEADER_SIZE) ;
 
@@ -32,17 +36,22 @@ void *write_thread(void *args){
 			header[0] = 0xfa;
 			header[21] = '1' ;
 			char host[256] ;
+			gethostname(host, 256) ;
+			host[255] = '\0' ;
 			len = strlen(host) + 2 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 
-			gethostname(host, 256) ;
-			host[255] = '\0' ;
-			buffer = (unsigned char *)malloc(strlen(host) + 2) ;
-			memset(buffer, '\0', strlen(host)+2) ;
+			buffer = (unsigned char *)malloc(len) ;
+			memset(buffer, '\0', len) ;
 			memcpy((char *)buffer, &(myInfo->portNo), 2) ;
-			memcpy((char *)(buffer+2), host, strlen(host)) ;
-			//sprintf((char *)&buffer[2], "%s",  host);
-			
+
+
+
+
+
+			sprintf((char *)&buffer[2], "%s",  host);
+
+
 		}
 
 		int return_code = (int)write(sockfd, header, HEADER_SIZE) ;
@@ -57,9 +66,11 @@ void *write_thread(void *args){
 
 
 
-	free(buffer) ;
+		free(buffer) ;
 
 	}
+
+	printf("Write Thread exiting...\n") ;
 
 	return 0;
 }
