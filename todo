@@ -1,3 +1,2 @@
 - improve code for "non-beacon" node so as to soft restart the shit
-- gethostname ko correct karna hai
-- isBeaconNode ka flag true or false
+- test for non-beacon node connections with each other

@@ -139,7 +139,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
 		memcpy(n.hostname, buffer+2, strlen((char *)buffer)-2) ;
 		//strncpy(n.hostname, ((char *)buffer+2), strlen((char *)buffer));
-		printf("YAHAHANA: %s\n", n.hostname);
+		printf("YAHAHANA: %s, %d\n", n.hostname, n.portNo);
 		if (!nodeConnectionMap[n])
 		{
 			nodeConnectionMap[n] = sockfd ;
@@ -235,9 +235,9 @@ void pushMessageinQ(int sockfd, uint8_t id){
 
 int isBeaconNode(struct node n)
 {
-	//printf("1. hostname: %s, portno: %d\n", n.hostname,n.portNo);
+	printf("1. hostname: %s, portno: %d\n", n.hostname,n.portNo);
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-	//printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
+	printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
 		if((strcmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}

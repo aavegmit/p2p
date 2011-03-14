@@ -36,8 +36,6 @@ void populatemyInfo()
 	myInfo->cacheSize = 500;
 	myInfo->retry = 3;
 	myInfo->isBeacon = false;
-	
-
 }
 
 //printing the values of myInfo

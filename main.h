@@ -45,6 +45,7 @@ struct connectionNode{
 };
 
 extern bool shutDown ;
+extern int accept_pid;
 extern map<int, struct connectionNode> connectionMap ;
 
 

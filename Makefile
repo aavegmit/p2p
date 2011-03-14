@@ -2,7 +2,7 @@
 
 CC = g++
 CFLAGS = -g -Wall -D_REENTRANT
-OBJ = main.o keyboard.o timer.o iniParser.o incoming_connections.o outgoing_connections.o
+OBJ = main.o keyboard.o timer.o iniParser.o incoming_connections.o outgoing_connections.o signalHandler.o
 LIBS = -lcrypto -lpthread 
 INC = 
 #LIBS = -L/home.scf-22/csci551b/openssl/lib -lcrypto -lnsl -lsocket -lresolv
@@ -32,3 +32,6 @@ incoming_connections.o: incoming_connections.cc
 	$(CC) $(CFLAGS) -c incoming_connections.cc $(INC)
 outgoing_connections.o: outgoing_connections.cc
 	$(CC) $(CFLAGS) -c outgoing_connections.cc $(INC)
+signalHandler.o: signalHandler.cc
+	$(CC) $(CFLAGS) -c signalHandler.cc $(INC)
+	

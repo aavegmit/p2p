@@ -8,13 +8,17 @@
 #include <signal.h>
 #include "main.h"
 #include "iniParser.h"
+#include "signalHandler.h"
 
 int resetFlag = 0;
 bool shutDown = 0 ;
+int accept_pid;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
+
+void my_handler(int nSig);
 
 int usage()
 {
@@ -86,8 +90,15 @@ int main(int argc, char *argv[])
 	populatemyInfo();
 	parseINIfile(fileName);
 	free(fileName) ;
-	printmyInfo();
-	exit(0);
+
+	//Checks if the node is beacon or not
+	struct node n;
+	strcpy(n.hostname, (char *)myInfo->hostName);
+	n.portNo=myInfo->portNo;
+	myInfo->isBeacon = isBeaconNode(n);
+	
+	//printmyInfo();
+	//exit(0);
 	
 	void *thread_result ;
 
@@ -97,7 +108,7 @@ int main(int argc, char *argv[])
 	//	myInfo = (struct myStartInfo *)malloc(sizeof(struct myStartInfo)) ;
 	//	myInfo->myBeaconList = new list<struct beaconList *> ;
 
-	myInfo->isBeacon = true ;
+	//myInfo->isBeacon = true ;
 	//myInfo->isBeacon = false ;
 	//	myInfo->portNo = 12347 ;
 	//	myInfo->retry = 4 ;
@@ -233,7 +244,10 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 
-
+		//Adding Signal Handler for USR1 signal
+		accept_pid=getpid();
+		signal(SIGUSR1, my_handler);
+		
 		// Connect to neighbors in the list
 		// File exist, now say "Hello"
 		list<struct beaconList *> *tempNeighborsList ;
