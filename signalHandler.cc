@@ -6,7 +6,6 @@
 #include "main.h"
 #include "iniParser.h"
 #include "signalHandler.h"
-
 /* Signal Handler */
 void my_handler(int nSig)
 {
@@ -25,9 +24,13 @@ void my_handler(int nSig)
 	} 
 */	/* Signal raised by Parent for Child */
 	if (nSig == SIGUSR1) {
-	
 		printf("Signal Handling Success!!!!!\n");
-		//exit(1);
+		if(myInfo->joinTimeOut == 0)
+		{
+			joinTimeOutFlag = 1;
+			myInfo->joinTimeOut--;
+		}
+		pthread_exit(0);
 	}
 }
 

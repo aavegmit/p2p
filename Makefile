@@ -2,7 +2,7 @@
 
 CC = g++
 CFLAGS = -g -Wall -D_REENTRANT
-OBJ = main.o keyboard.o timer.o iniParser.o incoming_connections.o outgoing_connections.o signalHandler.o
+OBJ = main.o keyboard.o timer.o iniParser.o incoming_connections.o outgoing_connections.o signalHandler.o keepAliveTimer.o
 LIBS = -lcrypto -lpthread 
 INC = 
 #LIBS = -L/home.scf-22/csci551b/openssl/lib -lcrypto -lnsl -lsocket -lresolv
@@ -16,6 +16,8 @@ sv_node: $(OBJ)
 	cp sv_node bnode1/
 	cp sv_node bnode2/
 	cp sv_node bnode3/
+	cp sv_node nonbnode1/
+	cp sv_node nonbnode2/	
 
 clean:
 	rm -rf *.o sv_node 
@@ -34,4 +36,6 @@ outgoing_connections.o: outgoing_connections.cc
 	$(CC) $(CFLAGS) -c outgoing_connections.cc $(INC)
 signalHandler.o: signalHandler.cc
 	$(CC) $(CFLAGS) -c signalHandler.cc $(INC)
+keepAliveTimer.o: keepAliveTimer.cc
+	$(CC) $(CFLAGS) -c keepAliveTimer.cc $(INC)
 	

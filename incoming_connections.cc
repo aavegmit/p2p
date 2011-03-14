@@ -6,7 +6,7 @@ using namespace std ;
 
 void *accept_connectionsT(void *){
 	struct addrinfo hints, *servinfo, *p;
-	int nSocket=0, portGiven = 0 , portNum = 0;
+	int nSocket=0 ; // , portGiven = 0 , portNum = 0;
 	char portBuf[10] ;
 	memset(portBuf, '\0', 10) ;
 
@@ -62,7 +62,7 @@ void *accept_connectionsT(void *){
 		// Wait for another nodes to connect
 		printf("Node waiting for a connection..\n") ;
 		newsockfd = accept(nSocket, (struct sockaddr *)&cli_addr, (socklen_t *)&cli_len ) ;
-		int erroac = errno ;
+		//		int erroac = errno ;
 
 
 		if (newsockfd < 0){
@@ -130,16 +130,16 @@ void *accept_connectionsT(void *){
 }
 
 void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned char *uoid, unsigned char *buffer){
+
+
 	// Hello message received
 	if (type == 0xfa){
 		printf("Hello message received\n") ;
 		// Break the Tie now
 		struct node n ;
-		memcpy(&n.portNo, buffer, 2) ;
-		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
-		memcpy(n.hostname, buffer+2, strlen((char *)buffer)-2) ;
-		//strncpy(n.hostname, ((char *)buffer+2), strlen((char *)buffer));
-		printf("YAHAHANA: %s, %d\n", n.hostname, n.portNo);
+		n.portNo = 0 ;
+		memcpy((unsigned int *)&n.portNo, buffer, 2) ;
+		strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
 		if (!nodeConnectionMap[n])
 		{
 			nodeConnectionMap[n] = sockfd ;
@@ -147,7 +147,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			if(!ret)
 			{
 				printf("Hello\n");
-				pushMessageinQ(sockfd, 0xfa);
+				struct Message m ;
+				m.type = 0xfa ;
+				pushMessageinQ(sockfd, m);
 			}
 		}
 		else{
@@ -166,11 +168,77 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			}
 			else{
 				// Compare the hostname here
+				char host[256] ;
+				gethostname(host, 256) ;
+				host[255] = '\0' ;
+				//				if (strcmp() > 0){
+				//				}
+				//				else if(strcmp() < 0){
+				//				}
 			}
 		}
-		
+
 
 	}
+	// Join Request received
+	else if(type == 0xfc){
+		printf("Join request received\n") ;
+
+		// Check if the message has already been received or not
+		if (MessageDB.find(uoid) != MessageDB.end()){
+			printf("Message has already been received.\n") ;
+			return ;
+		}
+		struct Packet pk;
+		pk.status = 1 ;
+
+		struct node n ;
+		n.portNo = 0 ;
+		memcpy((unsigned int *)&n.portNo, &buffer[4], 2) ;
+		strcpy(n.hostname, const_cast<char *> ((char *)buffer+6)) ;
+
+		unsigned long int location = 0 ;
+		memcpy((unsigned int *)&location, buffer, 4) ;
+
+		pk.receivedFrom = n ;
+		MessageDB[uoid] = pk ;
+
+		// Respond the sender with the join responce
+		struct Message m ;
+		m.type = 0xfb ;
+		//		pushMessageinQ(sockfd, 0xfb, (myInfo->location - location) ) ;
+
+		// Push the request message in neighbors queue
+		for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+			struct Message m ;
+			m.type = 0xfb ;
+			//			pushMessageinQ((*it).second, 0xfc) ;
+		}
+
+	}
+	else if (type == 0xfb){
+		printf("JOIN response received\n") ;
+		if (MessageDB.find(uoid) == MessageDB.end()){
+			printf("Message was never forwarded from this node.\n") ;
+			return ;
+		}
+		if (MessageDB[uoid].status == 0){
+			// Message was originally sent from this node
+		}
+		else if(MessageDB[uoid].status == 1){
+			// Message was forwarded from this node, see the receivedFrom member
+		}
+	}
+	else if(type == 0xf8)
+		printf("Keep Alive Message Received from : %d\n", sockfd);
+//KeepAlive message recieved
+//Resst the keepAliveTimer for this connection
+map<int, struct connectionNode>::iterator found = connectionMap.find(sockfd);
+if(connectionMap.find(sockfd)!=connectionMap.end())
+	//	if(connectionMap[sockfd].keepAliveTimer!=0)
+		connectionMap[sockfd].keepAliveTimeOut = myInfo->keepAliveTimeOut;
+
+
 }
 
 
@@ -189,7 +257,16 @@ void *read_thread(void *args){
 		memset(header, 0, HEADER_SIZE) ;
 		memset(uoid, 0, 20) ;
 
+		//Check for the JoinTimeOutFlag
+		if(joinTimeOutFlag)
+			pthread_exit(0);
+
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
+		
+		//Check for the JoinTimeOutFlag
+		if(joinTimeOutFlag)
+			pthread_exit(0);
+		
 		if (return_code != HEADER_SIZE){
 			printf("Socket Read error...from header\n") ;
 			return 0;
@@ -202,7 +279,17 @@ void *read_thread(void *args){
 
 		buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
 		memset(buffer, 0, data_len) ;
+
+		//Check for the JoinTimeOutFlag
+		if(joinTimeOutFlag)
+			pthread_exit(0);
+
 		return_code=(int)read(nSocket, buffer, data_len);
+
+		//Check for the JoinTimeOutFlag
+		if(joinTimeOutFlag)
+			pthread_exit(0);
+		
 		if (return_code != (int)data_len){
 			printf("Socket Read error...from data\n") ;
 			return 0;
@@ -221,25 +308,23 @@ void *read_thread(void *args){
 	return 0;
 }
 
-void pushMessageinQ(int sockfd, uint8_t id){
+void pushMessageinQ(int sockfd, struct Message mes){
 
-	struct Message mes;
-	mes.type = id ;
 	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 	(connectionMap[sockfd]).MessageQ.push_back(mes) ;
 	pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
 	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
-	
+
 
 }
 
 int isBeaconNode(struct node n)
 {
-	printf("1. hostname: %s, portno: %d\n", n.hostname,n.portNo);
+	//printf("1. hostname: %s, portno: %d\n", n.hostname,n.portNo);
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-	printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
+	//printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
 		if((strcmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}
-return false;
+	return false;
 }

@@ -34,6 +34,8 @@ struct myStartInfo
 	list<struct beaconList *> *myBeaconList;
 	
 	bool isBeacon;						// to check if the current node is beacon or not
+	unsigned char node_id[265] ;					// To store the unique node ID of this node
+	unsigned char node_instance_id[300];				// To store the node instance ID, node_id + time when node started
 };
 
 extern struct myStartInfo *myInfo;
@@ -43,3 +45,6 @@ extern void parseINIfile(unsigned char *fileName);
 extern void populatemyInfo();
 
 void printmyInfo();
+
+extern void setNodeInstanceId() ;
+

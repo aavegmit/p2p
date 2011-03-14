@@ -4,11 +4,23 @@
 #include<string.h>
 #include<math.h>
 #include<list>
+#include <time.h>
 
 #include "iniParser.h"
 #include "main.h"
 
 using namespace std;
+
+
+void setNodeInstanceId(){
+	// Should be called once node_id of the node is set
+	time_t sec;
+	sec = time (NULL) ;
+	sprintf((char *)myInfo->node_instance_id, "%s_%ld", myInfo->node_id, (long)sec) ;
+	printf("%s\n", myInfo->node_instance_id) ;
+}
+
+
 
 //Initilaizing default values for myInfo
 void populatemyInfo()
@@ -34,8 +46,11 @@ void populatemyInfo()
 	myInfo->storeProb = 0.1;
 	myInfo->neighborStoreProb = 0.2;
 	myInfo->cacheSize = 500;
-	myInfo->retry = 3;
 	myInfo->isBeacon = false;
+	myInfo->retry = 30;
+	memset(myInfo->node_id, '\0', 265) ;
+	memset(myInfo->node_instance_id, '\0', 300) ;
+
 }
 
 //printing the values of myInfo
@@ -421,7 +436,7 @@ void parseINIfile(unsigned char *fileName)
 						value=(unsigned char *)strtok(NULL,":");
 						beaconNode->portNo = (unsigned int)atoi((char *)value);
 						myInfo->myBeaconList->push_back(beaconNode);
-//						printf("Host name is : %s\tHost Port no: %d\n", beaconNode->hostName, beaconNode->portNo);
+						//						printf("Host name is : %s\tHost Port no: %d\n", beaconNode->hostName, beaconNode->portNo);
 					}
 
 				}

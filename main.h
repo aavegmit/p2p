@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <map>
+#include <openssl/sha.h>
 
 #define HEADER_SIZE 27
 
@@ -33,6 +34,7 @@ extern map<struct node, int> nodeConnectionMap ;
 
 struct Message{
 	uint8_t type;
+	unsigned long int location ;
 
 } ;
 
@@ -41,16 +43,25 @@ struct connectionNode{
 	pthread_mutex_t mesQLock ;
 	pthread_cond_t mesQCv ;
 	int shutDown  ;
-
+	unsigned int keepAliveTimer;
+	unsigned int keepAliveTimeOut;	
 };
 
 extern bool shutDown ;
 extern int accept_pid;
+extern int joinTimeOutFlag;
 extern map<int, struct connectionNode> connectionMap ;
 
+struct Packet{
+
+	struct node receivedFrom ;
+	int status;			//  0 - Sent, 1 - Forwarded, else -1
+};
+
+extern map<unsigned char *, struct Packet> MessageDB ;
 
 
-// Function declarations
+// Thread function declarations
 void *keyboard_thread(void *) ;
 void *timer_thread(void *) ;
 void *accept_connectionsT(void *);	// Waits for other nodes to connect
@@ -58,7 +69,13 @@ void *read_thread(void *) ;
 void *write_thread(void *) ;
 
 
+// Function declarations
 int isBeaconNode(struct node n);
 int connectTo(unsigned char *, unsigned int) ;
-void pushMessageinQ(int, uint8_t) ;
+//void pushMessageinQ(int, uint8_t, unsigned long int) ;
+void pushMessageinQ(int, struct Message ) ;
 void closeConnection(int) ;
+void joinNetwork() ;
+extern unsigned char *GetUOID(char *, unsigned char *, int) ;
+
+

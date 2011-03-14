@@ -9,10 +9,12 @@
 #include "main.h"
 #include "iniParser.h"
 #include "signalHandler.h"
+#include "keepAliveTimer.h"
 
 int resetFlag = 0;
 bool shutDown = 0 ;
 int accept_pid;
+int joinTimeOutFlag = 0;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
@@ -90,6 +92,7 @@ int main(int argc, char *argv[])
 	populatemyInfo();
 	parseINIfile(fileName);
 	free(fileName) ;
+	memset(&accept_pid, 0, sizeof(accept_pid));
 
 	//Checks if the node is beacon or not
 	struct node n;
@@ -100,15 +103,34 @@ int main(int argc, char *argv[])
 	//printmyInfo();
 	//exit(0);
 	
+	// Assign a node ID and node instance id to this node
+	{
+		char host1[256] ;
+		memset(host1, '\0', 256) ;
+		gethostname(host1, 256) ;
+		host1[255] = '\0' ;
+		sprintf((char *)myInfo->node_id, "%s_%d", host1, myInfo->portNo) ;
+		printf("My node ID: %s\n", myInfo->node_id) ;
+		setNodeInstanceId() ;
+	}
+
+	
 	void *thread_result ;
 
-	// Call INI parser here - returns a structure
 
 	// Populate the structure manually for testing
 	//	myInfo = (struct myStartInfo *)malloc(sizeof(struct myStartInfo)) ;
 	//	myInfo->myBeaconList = new list<struct beaconList *> ;
 
 	//myInfo->isBeacon = true ;
+
+	//Added by Aaveg, Commented by Manu
+	/*
+	if (myInfo->portNo == 12318)
+		myInfo->isBeacon = false;
+	else
+		myInfo->isBeacon = true ;
+	*/
 	//myInfo->isBeacon = false ;
 	//	myInfo->portNo = 12347 ;
 	//	myInfo->retry = 4 ;
@@ -189,10 +211,14 @@ int main(int argc, char *argv[])
 					}
 
 					cn.shutDown = 0 ;
-
+					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;					
+					
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
-					pushMessageinQ(resSock, 0xfa) ;
+					struct Message m ; 
+					m.type = 0xfa ;
+					pushMessageinQ(resSock, m) ;
 
 					// Create a read thread for this connection
 					pthread_t re_thread ;
@@ -226,14 +252,29 @@ int main(int argc, char *argv[])
 		//checking if the init_neighbor_list exsits or not
 		
 		FILE *f=fopen("init_neighbor_list", "r");
+		sigset_t new_t;
 		if(f==NULL)
 		{
 			printf("Neighbor List does not exist...Joining the network\n");
-			exit(EXIT_FAILURE);
-			// Need to Join the network
-		}
-		
+//			exit(EXIT_FAILURE);
+	
+	
+			//Adding Signal Handler for USR1 signal
+			accept_pid=getpid();
+			signal(SIGUSR1, my_handler);
+			
 
+			// Need to Join the network
+			joinNetwork() ;
+			
+			// Open the file again
+			exit(EXIT_FAILURE);
+		}
+		myInfo->joinTimeOut = -1;
+		sigemptyset(&new_t);
+		sigaddset(&new_t, SIGUSR1);
+		pthread_sigmask(SIG_BLOCK, &new_t, NULL);
+		
 		// Call the Accept thread
 		// Thread creation and join code taken from WROX Publications book
 		pthread_t accept_thread ;
@@ -244,15 +285,12 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 
-		//Adding Signal Handler for USR1 signal
-		accept_pid=getpid();
-		signal(SIGUSR1, my_handler);
-		
+
 		// Connect to neighbors in the list
 		// File exist, now say "Hello"
 		list<struct beaconList *> *tempNeighborsList ;
 		tempNeighborsList = new list<struct beaconList *>;
-		struct beaconList *b2;		
+		struct beaconList *b2;
 		for(unsigned int i=0;i < myInfo->minNeighbor; i++)
 		{
 			fgets(nodeName, 255, f);
@@ -300,10 +338,17 @@ int main(int argc, char *argv[])
 					if (cres != 0){
 						perror("CV initialization failed") ;
 					}
-
+					//Shutdown initilazed to zero
+					cn.shutDown = 0 ;
+					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+										
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
-					pushMessageinQ(resSock, 0xfa) ;
+					struct Message m ; 
+					m.type = 0xfa ;
+					pushMessageinQ(resSock, m) ;
+//					pushMessageinQ(resSock, 0xfa) ;
 
 					// Create a read thread for this connection
 					pthread_t re_thread ;
@@ -341,12 +386,18 @@ int main(int argc, char *argv[])
 
 
 
-
-
+	//KeepAlive Timer Thread, Sends KeepAlive Messages
+	pthread_t keepAlive_thread ;
+	int res ;
+	res = pthread_create(&keepAlive_thread, NULL, keepAliveTimer_thread , (void *)NULL);
+	if (res != 0) {
+		perror("Thread creation failed");
+		exit(EXIT_FAILURE);
+	}
+	
 	// Call the Keyboard thread
 	// Thread creation and join code taken from WROX Publications book
 	pthread_t k_thread ;
-	int res ;
 	res = pthread_create(&k_thread, NULL, keyboard_thread , (void *)NULL);
 	if (res != 0) {
 		perror("Thread creation failed");
