@@ -12,8 +12,8 @@ struct beaconList
 
 struct myStartInfo
 {
-	unsigned int portNo;
 	unsigned char hostName[256];
+	unsigned short int portNo;
 	unsigned long int location;
 	unsigned char homeDir[512];
 	unsigned char logFileName[256];
