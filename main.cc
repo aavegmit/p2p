@@ -64,7 +64,7 @@ void closeConnection(int sockfd){
 
 	// Set the shurdown flag for this connection
 	(connectionMap[sockfd]).shutDown = 1 ;
-	
+
 	// Signal the write thread
 	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 	pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 	parseINIfile(fileName);
 	free(fileName) ;
 	//	printmyInfo();
-	
+
 	// Assign a node ID and node instance id to this node
 	{
 		char host1[256] ;
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 		setNodeInstanceId() ;
 	}
 
-	
+
 	void *thread_result ;
 
 
@@ -166,6 +166,14 @@ int main(int argc, char *argv[])
 
 		while(tempBeaconList->size() > 0){
 			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end(); it++){
+				struct node n;
+				n.portNo = (*it)->portNo ;
+				strcpy(n.hostname, (const char *)(*it)->hostName) ;
+				if (nodeConnectionMap[n]){
+					it = tempBeaconList->erase(it) ;
+					--it ;
+					continue ;
+				}
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
 				if (resSock == -1 ){
@@ -178,12 +186,12 @@ int main(int argc, char *argv[])
 					strcpy(n.hostname, (const char *)(*it)->hostName) ;
 					it = tempBeaconList->erase(it) ;
 					--it ;
-					nodeConnectionMap[n] = resSock ;
+//					nodeConnectionMap[n] = resSock ;
 
 					int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
 					if (mres != 0){
 						perror("Mutex initialization failed");
-						
+
 					}
 					int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
 					if (cres != 0){
@@ -196,6 +204,8 @@ int main(int argc, char *argv[])
 					// Push a Hello type message in the writing queue
 					struct Message m ; 
 					m.type = 0xfa ;
+					m.status = 0 ;
+					m.fromConnect = 1 ;
 					pushMessageinQ(resSock, m) ;
 
 					// Create a read thread for this connection
@@ -226,20 +236,20 @@ int main(int argc, char *argv[])
 	else{
 		char nodeName[256];
 		printf("A regular node coming up...\n") ;
-		
+
 		//checking if the init_neighbor_list exsits or not
-		
+
 		FILE *f=fopen("init_neighbor_list", "r");
 		if(f==NULL)
 		{
 			printf("Neighbor List does not exist...Joining the network\n");
-//			exit(EXIT_FAILURE);
+			//			exit(EXIT_FAILURE);
 			// Need to Join the network
 			joinNetwork() ;
 			// Open the file again
 			exit(EXIT_FAILURE);
 		}
-		
+
 
 		// Call the Accept thread
 		// Thread creation and join code taken from WROX Publications book
@@ -270,16 +280,25 @@ int main(int argc, char *argv[])
 			tempNeighborsList->push_front(b2) ;
 
 		}
-		
+
 		if(tempNeighborsList->size() != myInfo->minNeighbor)
 		{
 			printf("Not enough neighbors alive\n");
 			exit(EXIT_FAILURE);
 		}
-		
+
 
 		while(tempNeighborsList->size() > 0){
 			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end(); it++){
+				struct node n;
+				n.portNo = (*it)->portNo ;
+				strcpy(n.hostname, (const char *)(*it)->hostName) ;
+				if (nodeConnectionMap[n]){
+					it = tempNeighborsList->erase(it) ;
+					--it ;
+					continue ;
+				}
+
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
 				if (resSock == -1 ){
@@ -292,24 +311,27 @@ int main(int argc, char *argv[])
 					strcpy(n.hostname, (const char *)(*it)->hostName) ;
 					it = tempNeighborsList->erase(it) ;
 					--it ;
-					nodeConnectionMap[n] = resSock ;
+//					nodeConnectionMap[n] = resSock ;
 
 					int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
 					if (mres != 0){
 						perror("Mutex initialization failed");
-						
+
 					}
 					int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
 					if (cres != 0){
 						perror("CV initialization failed") ;
 					}
 
+					cn.shutDown = 0 ;
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
 					struct Message m ; 
 					m.type = 0xfa ;
+					m.status = 0 ;
+					m.fromConnect = 1 ;
 					pushMessageinQ(resSock, m) ;
-//					pushMessageinQ(resSock, 0xfa) ;
+					//					pushMessageinQ(resSock, 0xfa) ;
 
 					// Create a read thread for this connection
 					pthread_t re_thread ;

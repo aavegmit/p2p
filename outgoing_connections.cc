@@ -5,8 +5,8 @@
 #define min(A,B) (((A)>(B)) ? (B) : (A))
 #endif /* ~min */
 
-unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, unsigned int uoid_buf_sz) ;
-map<unsigned char *, struct Packet> MessageDB ;
+unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, long unsigned int uoid_buf_sz) ;
+map<string, struct Packet> MessageDB ;
 
 void *write_thread(void *args){
 	long sockfd = (long)args ;
@@ -37,11 +37,30 @@ void *write_thread(void *args){
 
 		memset(header, 0, HEADER_SIZE) ;
 
+		// Message originated from here
+		if (mes.status == 0){
+			unsigned char uoid[SHA_DIGEST_LENGTH] ;
+			GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+//			memcpy((char *)&header[1], uoid, 20) ;
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				header[1+i] = uoid[i] ;
+			struct Packet pk;
+			pk.status = 0 ;
+			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+		} 
+		// Copy the uoid from the structure into the header
+		else if (mes.status == 1){
+//			memcpy((char *)&header[1], mes.uoid, 20) ;
+			//pk.status = 1 ;
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				header[1+i] = mes.uoid[i] ;
+		}
+
 		// Message of type Hello
 		if (mes.type == 0xfa){
 			printf("Sending Hello Message\n") ;
 			header[0] = 0xfa;
-			header[21] = '1' ;
+			header[21] = 0x01 ;
 			char host[256] ;
 			gethostname(host, 256) ;
 			host[255] = '\0' ;
@@ -57,27 +76,30 @@ void *write_thread(void *args){
 		else if (mes.type == 0xfc){
 			printf("Sending JOIN request\n") ;
 
-			char host[256] ;
-			gethostname(host, 256) ;
-			host[255] = '\0' ;
-			len = strlen(host) + 20 ;
-			buffer = (unsigned char *)malloc(len) ;
-			memset(buffer, '\0', len) ;
-			memcpy((char *)buffer, &(myInfo->location), 4) ;
-			memcpy((char *)&buffer[4], &(myInfo->portNo), 2) ;
-			sprintf((char *)&buffer[6], "%s",  host);
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+			}
+			else{
+				char host[256] ;
+				gethostname(host, 256) ;
+				host[255] = '\0' ;
+				len = strlen(host) + 20 ;
+				buffer = (unsigned char *)malloc(len) ;
+				memset(buffer, '\0', len) ;
+				memcpy((char *)buffer, &(myInfo->location), 4) ;
+				memcpy((char *)&buffer[4], &(myInfo->portNo), 2) ;
+				sprintf((char *)&buffer[6], "%s",  host);
+			}
+
 			len = strlen((const char *)buffer) ;
 
 			header[0] = 0xfc;
-			printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
 
-			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
-			struct Packet pk ;
-			pk.status = 0;
-			MessageDB[uoid] = pk ;
+			//			struct Packet pk ;
+			//			pk.status = 0;
+			//			MessageDB[uoid] = pk ;
 
-			memcpy((char *)&header[1], uoid, 20) ;
-			memcpy((char *)&header[21], &(myInfo->ttl), 1) ;
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 
@@ -85,6 +107,28 @@ void *write_thread(void *args){
 		else if (mes.type == 0xfb){
 			printf("Sending JOIN Response..\n") ;
 
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+			len = strlen((const char *)buffer) ;
+			}
+			else{
+				char host[256] ;
+				gethostname(host, 256) ;
+				host[255] = '\0' ;
+				len = strlen(host) + 28 ;
+				buffer = (unsigned char *)malloc(len) ;
+				memset(buffer, 0, len) ;
+				memcpy(buffer, mes.uoid, 20) ;
+				memcpy(&buffer[20], &(mes.location), 4) ;
+				memcpy(&buffer[24], &(myInfo->portNo), 2) ;
+				sprintf((char *)&buffer[26], "%s",  host);
+			}
+
+
+			header[0] = 0xfb;
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
 		}
 
 		int return_code = (int)write(sockfd, header, HEADER_SIZE) ;
@@ -147,7 +191,7 @@ int connectTo(unsigned char *hostName, unsigned int portN ) {
 
 }
 
-unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, unsigned int uoid_buf_sz){
+unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, long unsigned int uoid_buf_sz){
 	static unsigned long seq_no=(unsigned long)1;
 	unsigned char sha1_buf[SHA_DIGEST_LENGTH], str_buf[104];
 
@@ -180,7 +224,7 @@ void joinNetwork(){
 			struct node n;
 			n.portNo = (*it)->portNo ;
 			strcpy(n.hostname, (const char *)(*it)->hostName) ;
-			nodeConnectionMap[n] = resSock ;
+			//			nodeConnectionMap[n] = resSock ;
 
 			int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
 			if (mres != 0){
@@ -198,6 +242,8 @@ void joinNetwork(){
 			// Push a Join Req type message in the writing queue
 			struct Message m ;
 			m.type = 0xfc ;
+			m.status = 0 ;
+			m.ttl = myInfo->ttl ;
 			pushMessageinQ(resSock, m) ;
 
 			// Create a read thread for this connection
