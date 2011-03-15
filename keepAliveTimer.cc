@@ -18,7 +18,7 @@ while(1)
 			(*it).second.keepAliveTimer--;
 		else
 		{
-			if((*it).second.keepAliveTimeOut!=-1)
+			if((*it).second.keepAliveTimeOut!=-1 && (*it).second.isReady==2)
 			{
 				struct Message mes;
 				mes.type = 0xf8;

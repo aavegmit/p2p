@@ -30,7 +30,7 @@ void my_handler(int nSig)
 			joinTimeOutFlag = 1;
 			myInfo->joinTimeOut--;
 		}
-		pthread_exit(0);
+		//pthread_exit(0);
 	}
 
 	if (nSig == SIGUSR2) {

@@ -99,6 +99,9 @@ void *accept_connectionsT(void *){
 			}
 
 			cn.shutDown = 0 ;
+			cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+			cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+			cn.isReady = 0;
 			connectionMap[newsockfd] = cn ;
 
 			// Send a HELLO message
@@ -145,6 +148,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		// Break the Tie now
 		struct node n ;
 		n.portNo = 0 ;
+		connectionMap[sockfd].isReady++;
 		memcpy((unsigned int *)&n.portNo, buffer, 2) ;
 		strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
 
@@ -347,7 +351,7 @@ void *read_thread(void *args){
 		//Check for the JoinTimeOutFlag
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
 		{
-			//closeConnection(nSocket);
+			closeConnection(nSocket);
 			break;
 		}
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
@@ -355,12 +359,12 @@ void *read_thread(void *args){
 		//Check for the JoinTimeOutFlag
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
 		{
-			//closeConnection(nSocket);
+			closeConnection(nSocket);
 			break;
 		}
 		if (return_code != HEADER_SIZE){
 			printf("Socket Read error...from header\n") ;
-			//closeConnection(nSocket);
+			closeConnection(nSocket);
 			//pthread_exit(0);
 			break;
 			//return 0;
@@ -377,7 +381,7 @@ void *read_thread(void *args){
 		//Check for the JoinTimeOutFlag
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
 		{
-			//closeConnection(nSocket);
+			closeConnection(nSocket);
 			break;
 		}
 		return_code=(int)read(nSocket, buffer, data_len);
@@ -385,13 +389,13 @@ void *read_thread(void *args){
 		//Check for the JoinTimeOutFlag
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
 		{
-			//closeConnection(nSocket);
+			closeConnection(nSocket);
 			break;
 		}
 		
 		if (return_code != (int)data_len){
 			printf("Socket Read error...from data\n") ;
-			//closeConnection(nSocket);
+			closeConnection(nSocket);
 			//pthread_exit(0);
 			//return 0;
 			break;
@@ -407,6 +411,7 @@ void *read_thread(void *args){
 
 	printf("Read thread exiting..\n") ;
 
+	pthread_exit(0);
 	return 0;
 }
 

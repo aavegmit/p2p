@@ -83,6 +83,8 @@ void *write_thread(void *args){
 
 
 			sprintf((char *)&buffer[2], "%s",  host);
+			//Incrementing Ready STatus
+			connectionMap[sockfd].isReady++;
 
 
 		}
@@ -104,7 +106,7 @@ void *write_thread(void *args){
 				memcpy((unsigned char *)&buffer[4], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[6], "%s",  host);
 				printf("Location: %ld    ", myInfo->location) ;
-				for (int i = 0 ; i < len ; ++i)
+				for (int i = 0 ; i < (int)len ; ++i)
 					printf("%02x-", buffer[i]) ;
 			}
 
@@ -126,7 +128,7 @@ void *write_thread(void *args){
 					buffer[i] = mes.buffer[i] ;
 			len = mes.buffer_len ;
 			printf("Outgoing: %d  ", mes.buffer_len) ;
-				for (int i = 0; i < len ; i++)
+				for (int i = 0; i < (int)len ; i++)
 					printf("%02x-", buffer[i]) ;
 				printf("\n") ;
 			}
@@ -150,7 +152,7 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
 		else if (mes.type == 0xf8){
-			printf("Sending KeepAlive request\n") ;
+			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
 
 			len = 0;
 			buffer = (unsigned char *)malloc(len+1) ;
@@ -176,8 +178,11 @@ void *write_thread(void *args){
 		//Resst the keepAliveTimer for this connection
 		//map<int, struct connectionNode>::iterator found = connectionMap.find(sockfd);
 		if(connectionMap.find(sockfd)!=connectionMap.end())
+		{
 			//	if(connectionMap[sockfd].keepAliveTimer!=0)
 				connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
+				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
+		}
 
 
 		int return_code = (int)write(sockfd, header, HEADER_SIZE) ;
@@ -198,6 +203,7 @@ void *write_thread(void *args){
 
 	printf("Write Thread exiting...\n") ;
 
+	pthread_exit(0);
 	return 0;
 }
 
@@ -318,11 +324,19 @@ void joinNetwork(){
 		fprintf(stderr,"No Beacon node up\n") ;
 		exit(0) ;
 	}
-
+	int res;
+	// Call the timer thread
+	// Thread creation and join code taken from WROX Publications book
+	pthread_t t_thread ;
+	res = pthread_create(&t_thread, NULL, timer_thread , (void *)NULL);
+	if (res != 0) {
+		perror("Thread creation failed");
+		exit(EXIT_FAILURE);
+	}
 
 	// Join the read thread here
 	// Thread Join code taken from WROX Publications
-	int res = pthread_join(re_thread, &thread_result);
+	res = pthread_join(re_thread, &thread_result);
 	if (res != 0) {
 		perror("Thread join failed");
 		exit(EXIT_FAILURE);

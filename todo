@@ -1,2 +1,4 @@
 - improve code for "non-beacon" node so as to soft restart the shit
-- test for non-beacon node connections with each other
+- check condition for min no of neighbors
+- sending keep alive messages on temporary netowrk, fix it...
+

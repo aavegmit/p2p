@@ -16,7 +16,7 @@ while(1){
 	sleep(1) ;
 	
 	//JoinTimeOut
-	if(!myInfo->isBeacon)
+	if(!myInfo->isBeacon && inJoinNetwork)
 	{
 		if(myInfo->joinTimeOut > 0)
 			myInfo->joinTimeOut--;
@@ -24,15 +24,16 @@ while(1){
 		{
 			if(myInfo->joinTimeOut==0)
 			{
-				printf("Timer out..: %d\n", (int)pthread_self()) ;
+				//printf("Timer out..: %d\n", (int)pthread_self()) ;
 				kill(accept_pid, SIGUSR1);
+				break;
 				//myInfo->joinTimeOut--;
 			}
 		}
 	}
 	
 	//KeepAliveTimeOut
-	if(!connectionMap.empty())
+	if(!connectionMap.empty() && !inJoinNetwork)
 	{
 	for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
 	
@@ -42,7 +43,7 @@ while(1){
 		{
 			if((*it).second.keepAliveTimeOut == 0)
 			{
-				//printf("Erasing entry from Map for : %d\n", (*it).first);
+				printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
 				(*it).second.keepAliveTimeOut=-1;
 				closeConnection((*it).first);
 				//close((*it).first);

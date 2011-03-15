@@ -58,6 +58,7 @@ struct connectionNode{
 	int keepAliveTimeOut;	
 	int myReadId;
 	int myWriteId;
+	int isReady;
 };
 
 extern bool shutDown ;
@@ -65,6 +66,7 @@ extern int accept_pid;
 extern int keepAlive_pid;
 extern int toBeClosed;
 extern int joinTimeOutFlag;
+extern int inJoinNetwork;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 
 struct Packet{

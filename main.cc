@@ -17,6 +17,7 @@ int accept_pid;
 int keepAlive_pid;
 int toBeClosed;
 int joinTimeOutFlag = 0;
+int inJoinNetwork = 0;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
@@ -83,7 +84,7 @@ void closeConnection(int sockfd){
 	close(sockfd) ;
 //	pthread_cancel(connectionMap[sockfd].myReadId);
 //	pthread_cancel(connectionMap[sockfd].myWriteId);
-//	printf("This socket has been closed: %d\n", sockfd);
+	printf("This socket has been closed: %d\n", sockfd);
 }
 
 
@@ -226,6 +227,7 @@ int main(int argc, char *argv[])
 					cn.shutDown = 0 ;
 					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+					cn.isReady = 0;
 					//signal(SIGUSR2, my_handler);
 										
 					connectionMap[resSock] = cn ;
@@ -279,12 +281,16 @@ int main(int argc, char *argv[])
 			//Adding Signal Handler for USR1 signal
 			accept_pid=getpid();
 			signal(SIGUSR1, my_handler);
-		
-			joinNetwork() ;	
 			
+			inJoinNetwork = 1;	
+			joinNetwork() ;	
+			inJoinNetwork = 0;
+			
+			printf("Joining success\n");
 			// Open the file again
 			exit(EXIT_FAILURE);
 		}
+
 		myInfo->joinTimeOut = -1;
 		sigemptyset(&new_t);
 		sigaddset(&new_t, SIGUSR1);
@@ -367,6 +373,7 @@ int main(int argc, char *argv[])
 					cn.shutDown = 0 ;
 					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+					cn.isReady = 0;
 					//signal(SIGUSR2, my_handler);
 					
 					connectionMap[resSock] = cn ;
@@ -415,17 +422,15 @@ int main(int argc, char *argv[])
 
 	int res ;
 
-/*
+
 
 	//KeepAlive Timer Thread, Sends KeepAlive Messages
 	pthread_t keepAlive_thread ;
-	int res ;
 	res = pthread_create(&keepAlive_thread, NULL, keepAliveTimer_thread , (void *)NULL);
 	if (res != 0) {
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-*/	
 	// Call the Keyboard thread
 	// Thread creation and join code taken from WROX Publications book
 	
@@ -436,7 +441,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-/*
+
 	// Call the timer thread
 	// Thread creation and join code taken from WROX Publications book
 	pthread_t t_thread ;
@@ -445,7 +450,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-*/
+
 
 	// Thread Join code taken from WROX Publications
 	res = pthread_join(k_thread, &thread_result);
