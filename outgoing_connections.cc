@@ -80,30 +80,30 @@ void *write_thread(void *args){
 
 		}
 		else if (mes.type == 0xfc){
-			printf("Sending JOIN request\n") ;
+//			printf("Sending JOIN request\n") ;
 
 			if (mes.status == 1){
 				buffer = mes.buffer ;
+			len = strlen((const char *)buffer) ;
 			}
 			else{
 				char host[256] ;
 				gethostname(host, 256) ;
 				host[255] = '\0' ;
-				len = strlen(host) + 20 ;
+				len = strlen(host) + 6 ;
 				buffer = (unsigned char *)malloc(len) ;
-				memset(buffer, '\0', len) ;
-				memcpy((char *)buffer, &(myInfo->location), 4) ;
-				memcpy((char *)&buffer[4], &(myInfo->portNo), 2) ;
+				memset(buffer, 0, len) ;
+				memcpy((unsigned char *)buffer, &(myInfo->location), 4) ;
+				memcpy((unsigned char *)&buffer[4], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[6], "%s",  host);
+				printf("Location: %ld    ", myInfo->location) ;
+				for (int i = 0 ; i < len ; ++i)
+					printf("%02x-", buffer[i]) ;
 			}
 
-			len = strlen((const char *)buffer) ;
 
 			header[0] = 0xfc;
 
-			//			struct Packet pk ;
-			//			pk.status = 0;
-			//			MessageDB[uoid] = pk ;
 
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
 			header[22] = 0x00 ;
@@ -114,14 +114,20 @@ void *write_thread(void *args){
 			printf("Sending JOIN Response..\n") ;
 
 			if (mes.status == 1){
-				buffer = mes.buffer ;
-			len = strlen((const char *)buffer) ;
+				buffer = (unsigned char *)malloc(mes.buffer_len) ;
+				for (int i = 0 ; i < mes.buffer_len ; i++)
+					buffer[i] = mes.buffer[i] ;
+			len = mes.buffer_len ;
+			printf("Outgoing: %d  ", mes.buffer_len) ;
+				for (int i = 0; i < len ; i++)
+					printf("%02x-", buffer[i]) ;
+				printf("\n") ;
 			}
 			else{
 				char host[256] ;
 				gethostname(host, 256) ;
 				host[255] = '\0' ;
-				len = strlen(host) + 28 ;
+				len = strlen(host) + 26 ;
 				buffer = (unsigned char *)malloc(len) ;
 				memset(buffer, 0, len) ;
 				memcpy(buffer, mes.uoid, 20) ;

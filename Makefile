@@ -21,6 +21,11 @@ sv_node: $(OBJ)
 
 clean:
 	rm -rf *.o sv_node 
+	rm bnode1/sv_node
+	rm bnode2/sv_node
+	rm bnode3/sv_node
+	rm nonbnode1/sv_node
+	rm nonbnode2/sv_node
 
 main.o: main.cc
 	$(CC) $(CFLAGS) -c main.cc $(INC)

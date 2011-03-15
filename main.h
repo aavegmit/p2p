@@ -45,6 +45,7 @@ struct Message{
 	unsigned char uoid[SHA_DIGEST_LENGTH] ;
 	bool fromConnect ;							// 1 - The message was created by the node which 
 										// initiated the connection
+	int buffer_len ;
 
 } ;
 
@@ -67,6 +68,7 @@ struct Packet{
 	struct node receivedFrom ;
 	int status;								//  0 - originally Sent from here, 
 										//  1 - Forwarded from here, route back, else -1
+	int sockfd ;
 };
 
 //extern map<unsigned char *, struct Packet> MessageDB ;			// Keeps a track of all the messages it sends/forwards
