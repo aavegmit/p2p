@@ -83,7 +83,7 @@ void *accept_connectionsT(void *){
 			//
 		} 
 		else {
-			printf("\n I got a connection from (%s , %d)", inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port));
+			printf("\n I got a connection from (%s , %d)", inet_ntoa(cli_addr.sin_addr),(cli_addr.sin_port));
 
 			// Populate connectionMap for this sockfd
 			struct connectionNode cn ;
@@ -136,7 +136,7 @@ void *accept_connectionsT(void *){
 	return 0;
 }
 
-void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned char *uoid, unsigned char *buffer){
+void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned char *uoid, unsigned char *buffer, unsigned int buf_len){
 
 
 	// Hello message received
@@ -153,7 +153,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			nodeConnectionMap[n] = sockfd ;
 		}
 		else{
-		
+
 			if(nodeConnectionMap[n]==sockfd)
 				return;
 			// break one connection
@@ -235,10 +235,11 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		strcpy(n.hostname, const_cast<char *> ((char *)buffer+6)) ;
 
 		unsigned long int location = 0 ;
-		memcpy((unsigned int *)&location, buffer, 4) ;
+		memcpy((unsigned long int *)&location, buffer, 4) ;
 
 		pk.receivedFrom = n ;
 		pk.status = 1 ;
+		pk.sockfd = sockfd ;
 		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
 
 		// Respond the sender with the join response
@@ -247,24 +248,28 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		m.status = 0;
 		m.ttl = 1 ;
 		strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
-		m.location = myInfo->location - location ;
+		printf("Location: %ld\n", location) ;
+		m.location = myInfo->location > location ?  myInfo->location - location : location - myInfo->location ;
+		printf("relative Location: %ld\n", m.location) ;
 		pushMessageinQ(sockfd, m ) ;
 
+		--ttl ;
 		// Push the request message in neighbors queue
-		if (ttl >= 1 && myInfo->portNo > 0){
+		if (ttl >= 1 && myInfo->ttl > 0){
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
-				if( !((*it).first == n)){
+				if( !((*it).second == sockfd)){
+					printf("Join req send to: %d\n", (*it).first.portNo) ;
 
 					struct Message m ;
 					m.type = 0xfc ;
-					m.ttl = (unsigned int)(ttl - 1) < (unsigned int)myInfo->portNo ? (ttl - 1) : myInfo->portNo  ;
+					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
 					m.location = location ;
 					m.buffer = (unsigned char *)malloc(sizeof(buffer)) ;
 					strncpy( (char *)m.buffer , (const char *)buffer , sizeof(buffer));
 					m.status = 1 ;
 					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
-//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
-//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
 					for (int i = 0 ; i < 20 ; i++)
 						m.uoid[i] = uoid[i] ;
 					pushMessageinQ((*it).second, m) ;
@@ -296,17 +301,18 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				printf("Hostname: %s, Port: %d, Distance: %ld\n", n.hostname, n.portNo, location) ;
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){
-				printf("Sending back the responce to %d\n" ,MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].receivedFrom.portNo) ;
+				printf("Sending back the response to %d\n" ,MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].receivedFrom.portNo) ;
 				// Message was forwarded from this node, see the receivedFrom member
 				struct Message m;
-				int return_sock = nodeConnectionMap[MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].receivedFrom] ;
-				printf("Return socket : %d\n", return_sock) ;
+				int return_sock = MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].sockfd ;
+
 				m.type = type ;
-				m.buffer = (unsigned char *)malloc(strlen((const char *)buffer)) ;
-				strncpy( (char *)m.buffer , (const char *)buffer , strlen((const char *)buffer));
-				for (int i = 0 ; i < (int)strlen((const char *)buffer) ; i++)
-					printf("%02x-", buffer[i]) ;
-				printf("\n") ;
+				m.buffer = (unsigned char *)malloc((buf_len + 1)) ;
+				m.buffer[buf_len] = '\0' ;
+				m.buffer_len = buf_len ;
+				for (int i = 0 ; i < buf_len; i++)
+					m.buffer[i] = buffer[i] ;
+//				strncpy( (char *)m.buffer , (const char *)buffer , buf_len);
 				m.ttl = 1 ;
 				m.status = 1 ;
 				pushMessageinQ(return_sock, m) ;
@@ -392,7 +398,7 @@ void *read_thread(void *args){
 		}
 		buffer[data_len] = '\0' ;
 
-		process_received_message(nSocket, message_type, ttl,uoid, buffer) ;
+		process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;
 
 		free(buffer) ;
 	}
@@ -418,7 +424,7 @@ int isBeaconNode(struct node n)
 {
 	//printf("1. hostname: %s, portno: %d\n", n.hostname,n.portNo);
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-	//printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
+		//printf("hostname: %s, portno: %d\n", (char *)(*it)->hostName,(*it)->portNo);
 		if((strcmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}

@@ -279,7 +279,8 @@ int main(int argc, char *argv[])
 			//Adding Signal Handler for USR1 signal
 			accept_pid=getpid();
 			signal(SIGUSR1, my_handler);
-			
+		
+			joinNetwork() ;	
 			
 			// Open the file again
 			exit(EXIT_FAILURE);
@@ -412,8 +413,9 @@ int main(int argc, char *argv[])
 
 
 
+	int res ;
 
-
+/*
 
 	//KeepAlive Timer Thread, Sends KeepAlive Messages
 	pthread_t keepAlive_thread ;
@@ -423,7 +425,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-	
+*/	
 	// Call the Keyboard thread
 	// Thread creation and join code taken from WROX Publications book
 	
@@ -434,7 +436,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-
+/*
 	// Call the timer thread
 	// Thread creation and join code taken from WROX Publications book
 	pthread_t t_thread ;
@@ -443,7 +445,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-
+*/
 
 	// Thread Join code taken from WROX Publications
 	res = pthread_join(k_thread, &thread_result);
