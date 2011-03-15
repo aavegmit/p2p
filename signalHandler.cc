@@ -32,5 +32,12 @@ void my_handler(int nSig)
 		}
 		pthread_exit(0);
 	}
+
+	if (nSig == SIGUSR2) {
+		printf("Signal Handling Success!!!!!\n");
+		//closeConnection(toBeClosed);
+		//pthread_exit(0);
+	}
+
 }
 

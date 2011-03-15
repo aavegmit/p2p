@@ -436,7 +436,7 @@ void parseINIfile(unsigned char *fileName)
 						value=(unsigned char *)strtok(NULL,":");
 						beaconNode->portNo = (unsigned int)atoi((char *)value);
 						myInfo->myBeaconList->push_back(beaconNode);
-						//						printf("Host name is : %s\tHost Port no: %d\n", beaconNode->hostName, beaconNode->portNo);
+						//printf("Host name is : %s\tHost Port no: %d\n", beaconNode->hostName, beaconNode->portNo);
 					}
 
 				}

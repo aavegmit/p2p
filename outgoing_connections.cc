@@ -14,13 +14,17 @@ void *write_thread(void *args){
 	unsigned char header[HEADER_SIZE] ;
 	unsigned char *buffer ;
 	uint32_t len = 0 ;
-
+	//connectionMap[sockfd].myWriteId = pthread_self();
+	
 	while(!shutDown && !(connectionMap[sockfd].shutDown)){
 		if(connectionMap[sockfd].MessageQ.size() <= 0){
 			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 			pthread_cond_wait(&connectionMap[sockfd].mesQCv, &connectionMap[sockfd].mesQLock) ;
 			if (connectionMap[sockfd].shutDown)
+			{
+				pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;	
 				break ;
+			}
 			mes = connectionMap[sockfd].MessageQ.front() ;
 			connectionMap[sockfd].MessageQ.pop_front() ;
 			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
@@ -33,7 +37,10 @@ void *write_thread(void *args){
 			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
 		}
 		if (connectionMap[sockfd].shutDown)
+		{
+			pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;	
 			break ;
+		}
 
 		memset(header, 0, HEADER_SIZE) ;
 
@@ -145,7 +152,7 @@ void *write_thread(void *args){
 			len = strlen((const char *)buffer) ;
 
 			header[0] = 0xf8;
-			printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
+			//printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
 
 			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
 			struct Packet pk ;
@@ -161,7 +168,7 @@ void *write_thread(void *args){
 
 		//KeepAlive message sending
 		//Resst the keepAliveTimer for this connection
-		map<int, struct connectionNode>::iterator found = connectionMap.find(sockfd);
+		//map<int, struct connectionNode>::iterator found = connectionMap.find(sockfd);
 		if(connectionMap.find(sockfd)!=connectionMap.end())
 			//	if(connectionMap[sockfd].keepAliveTimer!=0)
 				connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;

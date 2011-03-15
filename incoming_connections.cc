@@ -304,7 +304,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				m.type = type ;
 				m.buffer = (unsigned char *)malloc(strlen((const char *)buffer)) ;
 				strncpy( (char *)m.buffer , (const char *)buffer , strlen((const char *)buffer));
-				for (int i = 0 ; i < strlen((const char *)buffer) ; i++)
+				for (int i = 0 ; i < (int)strlen((const char *)buffer) ; i++)
 					printf("%02x-", buffer[i]) ;
 				printf("\n") ;
 				m.ttl = 1 ;
@@ -317,12 +317,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		printf("Keep Alive Message Received from : %d\n", sockfd);
 //KeepAlive message recieved
 //Resst the keepAliveTimer for this connection
-map<int, struct connectionNode>::iterator found = connectionMap.find(sockfd);
 if(connectionMap.find(sockfd)!=connectionMap.end())
 	//	if(connectionMap[sockfd].keepAliveTimer!=0)
 		connectionMap[sockfd].keepAliveTimeOut = myInfo->keepAliveTimeOut;
-
-
 }
 
 
@@ -336,24 +333,31 @@ void *read_thread(void *args){
 	uint8_t ttl=0;
 	uint32_t data_len=0;
 	unsigned char uoid[20] ;
-
+	//connectionMap[nSocket].myReadId = pthread_self();
 	while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
 		memset(header, 0, HEADER_SIZE) ;
 		memset(uoid, 0, 20) ;
 
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag)
-			pthread_exit(0);
-
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		{
+			//closeConnection(nSocket);
+			break;
+		}
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
-		
+		//printf("Reading Header on : %d\n", (int)nSocket);
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag)
-			pthread_exit(0);
-		
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		{
+			//closeConnection(nSocket);
+			break;
+		}
 		if (return_code != HEADER_SIZE){
 			printf("Socket Read error...from header\n") ;
-			return 0;
+			//closeConnection(nSocket);
+			//pthread_exit(0);
+			break;
+			//return 0;
 		}
 		memcpy(&message_type, header, 1);
 		memcpy(uoid,       header+1, 20);
@@ -365,18 +369,26 @@ void *read_thread(void *args){
 		memset(buffer, 0, data_len) ;
 
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag)
-			pthread_exit(0);
-
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		{
+			//closeConnection(nSocket);
+			break;
+		}
 		return_code=(int)read(nSocket, buffer, data_len);
-
+		//printf("Reading Buffer on : %d\n", (int)nSocket);		
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag)
-			pthread_exit(0);
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		{
+			//closeConnection(nSocket);
+			break;
+		}
 		
 		if (return_code != (int)data_len){
 			printf("Socket Read error...from data\n") ;
-			return 0;
+			//closeConnection(nSocket);
+			//pthread_exit(0);
+			//return 0;
+			break;
 		}
 		buffer[data_len] = '\0' ;
 

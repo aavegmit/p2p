@@ -18,10 +18,13 @@ while(1)
 			(*it).second.keepAliveTimer--;
 		else
 		{
-			struct Message mes;
-			mes.type = 0xf8;
-			printf("Sent Keep Alive Message to: %d\n", (*it).first);
-			pushMessageinQ((*it).first, mes);
+			if((*it).second.keepAliveTimeOut!=-1)
+			{
+				struct Message mes;
+				mes.type = 0xf8;
+				//printf("Sent Keep Alive Message to: %d\n", (*it).first);
+				pushMessageinQ((*it).first, mes);
+			}
 		}
 	}
 }

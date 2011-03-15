@@ -3,7 +3,7 @@
 CC = g++
 CFLAGS = -g -Wall -D_REENTRANT
 OBJ = main.o keyboard.o timer.o iniParser.o incoming_connections.o outgoing_connections.o signalHandler.o keepAliveTimer.o
-LIBS = -lcrypto -lpthread 
+LIBS = -lcrypto -lpthread
 INC = 
 #LIBS = -L/home.scf-22/csci551b/openssl/lib -lcrypto -lnsl -lsocket -lresolv
 #INC = -I/home/scf-22/csci551b/openssl/include

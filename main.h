@@ -54,11 +54,15 @@ struct connectionNode{
 	pthread_cond_t mesQCv ;
 	int shutDown  ;
 	unsigned int keepAliveTimer;
-	unsigned int keepAliveTimeOut;	
+	int keepAliveTimeOut;	
+	int myReadId;
+	int myWriteId;
 };
 
 extern bool shutDown ;
 extern int accept_pid;
+extern int keepAlive_pid;
+extern int toBeClosed;
 extern int joinTimeOutFlag;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 

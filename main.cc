@@ -14,6 +14,8 @@
 int resetFlag = 0;
 bool shutDown = 0 ;
 int accept_pid;
+int keepAlive_pid;
+int toBeClosed;
 int joinTimeOutFlag = 0;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
@@ -77,8 +79,11 @@ void closeConnection(int sockfd){
 	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
 
 	// Finally, close the socket
+	shutdown(sockfd, SHUT_RDWR);
 	close(sockfd) ;
-
+//	pthread_cancel(connectionMap[sockfd].myReadId);
+//	pthread_cancel(connectionMap[sockfd].myWriteId);
+//	printf("This socket has been closed: %d\n", sockfd);
 }
 
 
@@ -133,7 +138,7 @@ int main(int argc, char *argv[])
 	*/
 	//myInfo->isBeacon = false ;
 	//	myInfo->portNo = 12347 ;
-	//	myInfo->retry = 4 ;
+	//	myInfo->keepAliveTimeOut = 10 ;
 	//
 	//	struct beaconList *b1;
 	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
@@ -220,8 +225,9 @@ int main(int argc, char *argv[])
 
 					cn.shutDown = 0 ;
 					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
-					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;					
-					
+					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+					//signal(SIGUSR2, my_handler);
+										
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
 					struct Message m ; 
@@ -237,6 +243,7 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
+					connectionMap[resSock].myReadId = re_thread;
 
 					// Create a write thread
 					pthread_t wr_thread ;
@@ -245,6 +252,7 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
+					connectionMap[resSock].myReadId = wr_thread;
 				}
 			}
 			// Wait for 'retry' time before making the connections again
@@ -358,7 +366,8 @@ int main(int argc, char *argv[])
 					cn.shutDown = 0 ;
 					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
-										
+					//signal(SIGUSR2, my_handler);
+					
 					connectionMap[resSock] = cn ;
 					// Push a Hello type message in the writing queue
 					struct Message m ; 
@@ -375,7 +384,8 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
-
+					connectionMap[resSock].myReadId = re_thread;
+					
 					// Create a write thread
 					pthread_t wr_thread ;
 					res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
@@ -383,6 +393,7 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
+					connectionMap[resSock].myReadId = wr_thread;
 				}
 			}
 
@@ -415,6 +426,8 @@ int main(int argc, char *argv[])
 	
 	// Call the Keyboard thread
 	// Thread creation and join code taken from WROX Publications book
+	
+	keepAlive_pid = getpid();
 	pthread_t k_thread ;
 	res = pthread_create(&k_thread, NULL, keyboard_thread , (void *)NULL);
 	if (res != 0) {
