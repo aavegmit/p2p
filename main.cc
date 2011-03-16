@@ -292,8 +292,7 @@ int main(int argc, char *argv[])
 			inJoinNetwork = 0;
 			
 			printf("Joining success\n");
-			// Open the file again
-			exit(EXIT_FAILURE);
+			continue ;
 		}
 
 		myInfo->joinTimeOut = -1;
@@ -329,7 +328,7 @@ int main(int argc, char *argv[])
 			strncpy((char *)b2->hostName, const_cast<char *>(hostName), strlen(hostName)) ;
 			b2->hostName[strlen(hostName)]='\0';
 			b2->portNo = atoi(portNo);
-			tempNeighborsList->push_front(b2) ;
+			tempNeighborsList->push_back(b2) ;
 
 		}
 

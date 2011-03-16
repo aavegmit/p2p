@@ -344,6 +344,10 @@ void joinNetwork(){
 		fprintf(stderr, "Error in file open") ;
 	}
 	char tempPort[10] ;
+	if (joinResponse.size() < myInfo->initNeighbor){
+		fprintf(stderr, "Failed to locate minimum number of nodes") ;
+		exit(0) ;
+	}
 	for (map<unsigned long int, struct node>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
 		printf("Hostname: %s, Port: %d, location: %ld\n", (*it).second.hostname, (*it).second.portNo, (*it).first) ;
 		fputs((*it).second.hostname , fp) ;
@@ -356,5 +360,6 @@ void joinNetwork(){
 	}
 	fflush(fp) ;
 	fclose(fp) ;
+	nodeConnectionMap.erase(nodeConnectionMap.begin(), nodeConnectionMap.end()) ;
 
 }
