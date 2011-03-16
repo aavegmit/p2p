@@ -105,9 +105,6 @@ void *write_thread(void *args){
 				memcpy((unsigned char *)buffer, &(myInfo->location), 4) ;
 				memcpy((unsigned char *)&buffer[4], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[6], "%s",  host);
-				printf("Location: %ld    ", myInfo->location) ;
-				for (int i = 0 ; i < (int)len ; ++i)
-					printf("%02x-", buffer[i]) ;
 			}
 
 
@@ -127,10 +124,6 @@ void *write_thread(void *args){
 				for (int i = 0 ; i < mes.buffer_len ; i++)
 					buffer[i] = mes.buffer[i] ;
 			len = mes.buffer_len ;
-			printf("Outgoing: %d  ", mes.buffer_len) ;
-				for (int i = 0; i < (int)len ; i++)
-					printf("%02x-", buffer[i]) ;
-				printf("\n") ;
 			}
 			else{
 				char host[256] ;
@@ -344,5 +337,29 @@ void joinNetwork(){
 
 	joinTimeOutFlag = 0;
 	printf("Join process exiting..\n") ;
+
+	// Sort the output and write them in the file
+	FILE *fp = fopen("init_neighbor_list", "w") ;
+	if (fp==NULL){
+		fprintf(stderr, "Error in file open") ;
+	}
+	char tempPort[10] ;
+	if (joinResponse.size() < myInfo->initNeighbor){
+		fprintf(stderr, "Failed to locate minimum number of nodes") ;
+		exit(0) ;
+	}
+	for (map<unsigned long int, struct node>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
+		printf("Hostname: %s, Port: %d, location: %ld\n", (*it).second.hostname, (*it).second.portNo, (*it).first) ;
+		fputs((*it).second.hostname , fp) ;
+		fputs(":", fp) ;
+		sprintf(tempPort, "%d", (*it).second.portNo) ;
+		fputs(tempPort, fp) ;
+		fputs("\n", fp) ;
+	
+
+	}
+	fflush(fp) ;
+	fclose(fp) ;
+	nodeConnectionMap.erase(nodeConnectionMap.begin(), nodeConnectionMap.end()) ;
 
 }

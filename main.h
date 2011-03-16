@@ -15,11 +15,16 @@
 #include <ctype.h>
 #include <map>
 #include <openssl/sha.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define HEADER_SIZE 27
 #define SHA_DIGEST_LENGTH 20
 
 using namespace std ;
+
+extern map<unsigned long int, struct node> joinResponse ;
+
 
 struct node{
 	unsigned int portNo;

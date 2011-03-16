@@ -302,7 +302,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		else{
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
 				// Message was originally sent from this node
-				printf("Hostname: %s, Port: %d, Distance: %ld\n", n.hostname, n.portNo, location) ;
+//				printf("Hostname: %s, Port: %d, Distance: %ld\n", n.hostname, n.portNo, location) ;
+				joinResponse[location] = n ;
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){
 				printf("Sending back the response to %d\n" ,MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].receivedFrom.portNo) ;
