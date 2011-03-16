@@ -17,13 +17,14 @@
 #include <openssl/sha.h>
 #include <stdlib.h>
 #include <string.h>
+#include <set>
 
 #define HEADER_SIZE 27
 #define SHA_DIGEST_LENGTH 20
 
 using namespace std ;
 
-extern map<unsigned long int, struct node> joinResponse ;
+extern set<struct joinResNode> joinResponse ;
 
 
 struct node{
@@ -38,8 +39,21 @@ struct node{
 	}
 };
 
-extern map<struct node, int> nodeConnectionMap ;				// To store all the neighboring nodes
+struct joinResNode{
+	unsigned int portNo;
+	char hostname[256];
+	unsigned long int location ;
 
+	bool operator<(const struct joinResNode& node1) const{
+		return node1.location > location ;
+	}
+	bool operator==(const struct joinResNode& node1) const{
+		return ((node1.portNo == portNo) && !strcmp(node1.hostname, hostname) && (node1.location == location)) ;
+	}
+};
+
+extern map<struct node, int> nodeConnectionMap ;				// To store all the neighboring nodes
+extern pthread_mutex_t nodeConnectionMapLock ;
 
 struct Message{
 	uint8_t type;
@@ -76,6 +90,7 @@ extern int inJoinNetwork;
 extern int node_pid;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
+extern pthread_mutex_t connectionMapLock ;
 
 struct Packet{
 
@@ -85,9 +100,8 @@ struct Packet{
 	int sockfd ;
 };
 
-//extern map<unsigned char *, struct Packet> MessageDB ;			// Keeps a track of all the messages it sends/forwards
 extern map<string, struct Packet> MessageDB ;					// Keeps a track of all the messages it sends/forwards
-
+extern pthread_mutex_t MessageDBLock ;
 
 // Thread function declarations
 void *keyboard_thread(void *) ;

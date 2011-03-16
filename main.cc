@@ -24,8 +24,12 @@ unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
-map<unsigned long int, struct node> joinResponse ;
 list<pthread_t > childThreadList ;
+set<struct joinResNode> joinResponse ;
+
+pthread_mutex_t connectionMapLock ;
+pthread_mutex_t nodeConnectionMapLock ;
+pthread_mutex_t MessageDBLock ;
 
 void my_handler(int nSig);
 
@@ -76,7 +80,9 @@ int processCommandLine(int argc, char *argv[])
 void closeConnection(int sockfd){
 
 	// Set the shurdown flag for this connection
+	pthread_mutex_lock(&connectionMapLock) ;
 	(connectionMap[sockfd]).shutDown = 1 ;
+	pthread_mutex_unlock(&connectionMapLock) ;
 
 	// Signal the write thread
 	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
@@ -124,6 +130,22 @@ int main(int argc, char *argv[])
 		sprintf((char *)myInfo->node_id, "%s_%d", host1, myInfo->portNo) ;
 		printf("My node ID: %s\n", myInfo->node_id) ;
 		setNodeInstanceId() ;
+	}
+
+	// Initialize Locks
+	int lres = pthread_mutex_init(&connectionMapLock, NULL) ;
+	if (lres != 0){
+		perror("Mutex initialization failed") ;
+	}
+	
+	lres = pthread_mutex_init(&MessageDBLock, NULL) ;
+	if (lres != 0){
+		perror("Mutex initialization failed") ;
+	}
+	
+	lres = pthread_mutex_init(&nodeConnectionMapLock, NULL) ;
+	if (lres != 0){
+		perror("Mutex initialization failed") ;
 	}
 
 
@@ -202,11 +224,14 @@ int main(int argc, char *argv[])
 				struct node n;
 				n.portNo = (*it)->portNo ;
 				strcpy(n.hostname, (const char *)(*it)->hostName) ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
 				if (nodeConnectionMap[n]){
 					it = tempBeaconList->erase(it) ;
 					--it ;
+					pthread_mutex_unlock(&nodeConnectionMapLock) ;
 					continue ;
 				}
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 				if(shutDown)
 				{
@@ -249,8 +274,10 @@ int main(int argc, char *argv[])
 					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 					cn.isReady = 0;
 					//signal(SIGUSR2, my_handler);
-										
+					
+					pthread_mutex_lock(&connectionMapLock) ;				
 					connectionMap[resSock] = cn ;
+					pthread_mutex_unlock(&connectionMapLock) ;
 					// Push a Hello type message in the writing queue
 					struct Message m ; 
 					m.type = 0xfa ;
@@ -265,8 +292,10 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
+					pthread_mutex_lock(&connectionMapLock) ;
 					connectionMap[resSock].myReadId = re_thread;
 					childThreadList.push_front(re_thread);
+					pthread_mutex_unlock(&connectionMapLock) ;
 
 					// Create a write thread
 					pthread_t wr_thread ;
@@ -275,8 +304,10 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
-					connectionMap[resSock].myWriteId = wr_thread;
 					childThreadList.push_front(wr_thread);
+					pthread_mutex_lock(&connectionMapLock) ;
+					connectionMap[resSock].myReadId = wr_thread;
+					pthread_mutex_unlock(&connectionMapLock) ;
 				}
 			}
 			// Wait for 'retry' time before making the connections again
@@ -374,11 +405,14 @@ int main(int argc, char *argv[])
 				struct node n;
 				n.portNo = (*it)->portNo ;
 				strcpy(n.hostname, (const char *)(*it)->hostName) ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
 				if (nodeConnectionMap[n]){
 					it = tempNeighborsList->erase(it) ;
 					--it ;
+					pthread_mutex_unlock(&nodeConnectionMapLock) ;
 					continue ;
 				}
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 				if(shutDown)
@@ -423,8 +457,10 @@ int main(int argc, char *argv[])
 					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 					cn.isReady = 0;
 					//signal(SIGUSR2, my_handler);
-					
+				
+					pthread_mutex_lock(&connectionMapLock) ;
 					connectionMap[resSock] = cn ;
+					pthread_mutex_unlock(&connectionMapLock) ;
 					// Push a Hello type message in the writing queue
 					struct Message m ; 
 					m.type = 0xfa ;
@@ -440,8 +476,10 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
+					pthread_mutex_lock(&connectionMapLock) ;
 					connectionMap[resSock].myReadId = re_thread;
 					childThreadList.push_front(re_thread);
+					pthread_mutex_unlock(&connectionMapLock) ;
 					
 					// Create a write thread
 					pthread_t wr_thread ;
@@ -450,9 +488,11 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
-					connectionMap[resSock].myWriteId = wr_thread;
 					childThreadList.push_front(wr_thread);
-					
+					pthread_mutex_lock(&connectionMapLock) ;
+					connectionMap[resSock].myReadId = wr_thread;
+					pthread_mutex_unlock(&connectionMapLock) ;
+				
 					nodeConnected++;
 				}
 				if(nodeConnected == (int)myInfo->minNeighbor)

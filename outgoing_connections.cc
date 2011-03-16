@@ -53,7 +53,9 @@ void *write_thread(void *args){
 				header[1+i] = uoid[i] ;
 			struct Packet pk;
 			pk.status = 0 ;
+			pthread_mutex_lock(&MessageDBLock) ;
 			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+			pthread_mutex_unlock(&MessageDBLock) ;
 		} 
 		// Copy the uoid from the structure into the header
 		else if (mes.status == 1){
@@ -84,7 +86,9 @@ void *write_thread(void *args){
 
 			sprintf((char *)&buffer[2], "%s",  host);
 			//Incrementing Ready STatus
+			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[sockfd].isReady++;
+			pthread_mutex_unlock(&connectionMapLock) ;
 
 
 		}
@@ -93,7 +97,7 @@ void *write_thread(void *args){
 
 			if (mes.status == 1){
 				buffer = mes.buffer ;
-			len = strlen((const char *)buffer) ;
+				len = mes.buffer_len ;
 			}
 			else{
 				char host[256] ;
@@ -145,7 +149,7 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
 		else if (mes.type == 0xf8){
-			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
+//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
 
 			len = 0;
 			buffer = (unsigned char *)malloc(len+1) ;
@@ -158,7 +162,9 @@ void *write_thread(void *args){
 			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
 			struct Packet pk ;
 			pk.status = 0;
+			pthread_mutex_lock(&MessageDBLock) ;
 			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
+			pthread_mutex_unlock(&MessageDBLock) ;
 
 			memcpy((char *)&header[1], uoid, 20) ;
 			header[21]='1';
@@ -173,8 +179,10 @@ void *write_thread(void *args){
 		if(connectionMap.find(sockfd)!=connectionMap.end())
 		{
 			//	if(connectionMap[sockfd].keepAliveTimer!=0)
+				pthread_mutex_lock(&connectionMapLock) ;
 				connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
-				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
+				pthread_mutex_unlock(&connectionMapLock) ;
+//				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
 		}
 
 
@@ -286,7 +294,9 @@ void joinNetwork(){
 
 			cn.shutDown = 0 ;
 
+			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[resSock] = cn ;
+			pthread_mutex_unlock(&connectionMapLock) ;
 			// Push a Join Req type message in the writing queue
 			struct Message m ;
 			m.type = 0xfc ;
@@ -353,11 +363,11 @@ void joinNetwork(){
 		fprintf(stderr, "Failed to locate minimum number of nodes") ;
 		exit(0) ;
 	}
-	for (map<unsigned long int, struct node>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
-		printf("Hostname: %s, Port: %d, location: %ld\n", (*it).second.hostname, (*it).second.portNo, (*it).first) ;
-		fputs((*it).second.hostname , fp) ;
+	for (set<struct joinResNode>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
+		printf("Hostname: %s, Port: %d, location: %ld\n", (*it).hostname, (*it).portNo, (*it).location) ;
+		fputs((*it).hostname , fp) ;
 		fputs(":", fp) ;
-		sprintf(tempPort, "%d", (*it).second.portNo) ;
+		sprintf(tempPort, "%d", (*it).portNo) ;
 		fputs(tempPort, fp) ;
 		fputs("\n", fp) ;
 	
@@ -365,6 +375,8 @@ void joinNetwork(){
 	}
 	fflush(fp) ;
 	fclose(fp) ;
+	pthread_mutex_lock(&nodeConnectionMapLock) ;
 	nodeConnectionMap.erase(nodeConnectionMap.begin(), nodeConnectionMap.end()) ;
+	pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
 }
