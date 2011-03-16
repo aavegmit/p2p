@@ -11,56 +11,60 @@
 
 void *timer_thread(void *arg){
 
-while(1){
+	while(1){
 
-	sleep(1) ;
-	
-	//JoinTimeOut
-	if(!myInfo->isBeacon && inJoinNetwork)
-	{
-		if(myInfo->joinTimeOut > 0)
-			myInfo->joinTimeOut--;
-		else
+		sleep(1) ;
+
+		//JoinTimeOut
+		if(!myInfo->isBeacon && inJoinNetwork)
 		{
-			if(myInfo->joinTimeOut==0)
+			if(myInfo->joinTimeOut > 0)
+				myInfo->joinTimeOut--;
+			else
 			{
-				//printf("Timer out..: %d\n", (int)pthread_self()) ;
-				kill(accept_pid, SIGUSR1);
-				break;
-				//myInfo->joinTimeOut--;
+				if(myInfo->joinTimeOut==0)
+				{
+					//printf("Timer out..: %d\n", (int)pthread_self()) ;
+					kill(accept_pid, SIGUSR1);
+					break;
+					//myInfo->joinTimeOut--;
+				}
 			}
 		}
-	}
-	
-	//KeepAliveTimeOut
-	if(!connectionMap.empty() && !inJoinNetwork)
-	{
-	for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
-	
-		if((*it).second.keepAliveTimeOut > 0)
-			(*it).second.keepAliveTimeOut--;
-		else
+
+		//KeepAliveTimeOut
+		pthread_mutex_lock(&connectionMapLock) ;
+		if(!connectionMap.empty() && !inJoinNetwork)
 		{
-			if((*it).second.keepAliveTimeOut == 0)
-			{
-				printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
-				(*it).second.keepAliveTimeOut=-1;
-				closeConnection((*it).first);
-				//close((*it).first);
-				//toBeClosed = (*it).first;
-				//kill((*it).second.myId, SIGUSR2);
-				//kill((*it).second.myReadId, SIGUSR2);
-				//kill((*it).second.myWriteId, SIGUSR2);				
-				//connectionMap.erase((*it).first);
-				//it--;
+			for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
+
+				if((*it).second.keepAliveTimeOut > 0)
+					(*it).second.keepAliveTimeOut--;
+				else
+				{
+					if((*it).second.keepAliveTimeOut == 0)
+					{
+						printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
+						(*it).second.keepAliveTimeOut=-1;
+						pthread_mutex_unlock(&connectionMapLock) ;
+						closeConnection((*it).first);
+						pthread_mutex_lock(&connectionMapLock) ;
+						//close((*it).first);
+						//toBeClosed = (*it).first;
+						//kill((*it).second.myId, SIGUSR2);
+						//kill((*it).second.myReadId, SIGUSR2);
+						//kill((*it).second.myWriteId, SIGUSR2);				
+						//connectionMap.erase((*it).first);
+						//it--;
+					}
+				}
 			}
 		}
+		pthread_mutex_unlock(&connectionMapLock) ;
+
+
 	}
-	}
 
-
-}
-
-return 0;
+	return 0;
 }
 
