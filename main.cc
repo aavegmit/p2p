@@ -22,6 +22,7 @@ unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
+map<unsigned long int, struct node> joinResponse ;
 
 void my_handler(int nSig);
 
