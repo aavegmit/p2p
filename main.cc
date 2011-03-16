@@ -266,12 +266,16 @@ int main(int argc, char *argv[])
 
 	}
 	else{
+		FILE *f;
+		while(1)
+		{
+		
 		char nodeName[256];
 		printf("A regular node coming up...\n") ;
 
 		//checking if the init_neighbor_list exsits or not
 
-		FILE *f=fopen("init_neighbor_list", "r");
+		f=fopen("init_neighbor_list", "r");
 		sigset_t new_t;
 		if(f==NULL)
 		{
@@ -310,12 +314,13 @@ int main(int argc, char *argv[])
 
 		// Connect to neighbors in the list
 		// File exist, now say "Hello"
-		list<struct beaconList *> *tempNeighborsList ;
+		list<struct beaconList *> *tempNeighborsList;
 		tempNeighborsList = new list<struct beaconList *>;
 		struct beaconList *b2;
-		for(unsigned int i=0;i < myInfo->minNeighbor; i++)
+		//for(unsigned int i=0;i < myInfo->minNeighbor; i++)
+		while(fgets(nodeName, 255, f)!=NULL)
 		{
-			fgets(nodeName, 255, f);
+			//fgets(nodeName, 255, f);
 			char *hostName = strtok(nodeName, ":");
 			char *portNo = strtok(NULL, ":");
 
@@ -327,14 +332,22 @@ int main(int argc, char *argv[])
 
 		}
 
-		if(tempNeighborsList->size() != myInfo->minNeighbor)
+		/*if(tempNeighborsList->size() != myInfo->minNeighbor)
 		{
 			printf("Not enough neighbors alive\n");
 			// need to exit thread and do soft restart
 			exit(EXIT_FAILURE);
-		}
+		}*/
 
-
+			if(tempNeighborsList->size() < myInfo->minNeighbor)
+			{
+				//need to delete file init_neighbor_list
+				fclose(f);
+				remove("init_neighbor_list");
+				continue;
+			}
+			
+			int nodeConnected = 0;
 			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end(); it++){
 				struct node n;
 				n.portNo = (*it)->portNo ;
@@ -350,6 +363,7 @@ int main(int argc, char *argv[])
 				if (resSock == -1 ){
 					// Connection could not be established
 					// now we have to reset the network, call JOIN
+					continue;
 				}
 				else{
 					struct connectionNode cn ;
@@ -402,12 +416,26 @@ int main(int argc, char *argv[])
 						exit(EXIT_FAILURE);
 					}
 					connectionMap[resSock].myReadId = wr_thread;
+					
+					nodeConnected++;
 				}
+				if(nodeConnected == (int)myInfo->minNeighbor)
+					break;
 			}
 
 		// Join the accept connections thread
 
-
+		if(nodeConnected == (int)myInfo->minNeighbor)
+			break;
+		else
+		{
+			//need to delete init_neighbor_node
+			fclose(f);
+			remove("init_neighbor_list");
+			continue;
+		}
+			
+		}
 		fclose(f);
 	}
 
