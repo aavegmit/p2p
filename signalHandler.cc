@@ -38,6 +38,14 @@ void my_handler(int nSig)
 		//closeConnection(toBeClosed);
 		//pthread_exit(0);
 	}
+	if(nSig == SIGTERM)
+	{
+		printf("Signal Handling SIGTERM %d\n", (int)pthread_self());
+		shutDown = 1;
+		shutdown(nSocket_accept, SHUT_RDWR);
+		close(nSocket_accept);
+		//exit(0);
+	}
 
 }
 

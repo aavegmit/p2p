@@ -18,11 +18,14 @@ int keepAlive_pid;
 int toBeClosed;
 int joinTimeOutFlag = 0;
 int inJoinNetwork = 0;
+int node_pid;
+int nSocket_accept = 0;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
 map<unsigned long int, struct node> joinResponse ;
+list<pthread_t > childThreadList ;
 
 void my_handler(int nSig);
 
@@ -101,6 +104,8 @@ int main(int argc, char *argv[])
 	free(fileName) ;
 	memset(&accept_pid, 0, sizeof(accept_pid));
 
+	node_pid = getpid();
+	signal(SIGTERM, my_handler);
 	//Checks if the node is beacon or not
 	struct node n;
 	strcpy(n.hostname, (char *)myInfo->hostName);
@@ -173,8 +178,8 @@ int main(int argc, char *argv[])
 			perror("Thread creation failed");
 			exit(EXIT_FAILURE);
 		}
-
-
+		childThreadList.push_front(accept_thread);
+		
 		// Connect to other beacon nodes
 		list<struct beaconList *> *tempBeaconList ;
 		tempBeaconList = new list<struct beaconList *> ;
@@ -191,6 +196,7 @@ int main(int argc, char *argv[])
 
 		}
 
+		int resSock;
 		while(tempBeaconList->size() > 0){
 			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end(); it++){
 				struct node n;
@@ -202,7 +208,20 @@ int main(int argc, char *argv[])
 					continue ;
 				}
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
-				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if(shutDown)
+				{
+					shutdown(resSock, SHUT_RDWR);
+					close(resSock);
+					break;
+				}
+				resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if(shutDown)
+				{
+					shutdown(resSock, SHUT_RDWR);
+					close(resSock);
+					break;
+				}
+
 				if (resSock == -1 ){
 					// Connection could not be established
 				}
@@ -247,6 +266,7 @@ int main(int argc, char *argv[])
 						exit(EXIT_FAILURE);
 					}
 					connectionMap[resSock].myReadId = re_thread;
+					childThreadList.push_front(re_thread);
 
 					// Create a write thread
 					pthread_t wr_thread ;
@@ -255,7 +275,8 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
-					connectionMap[resSock].myReadId = wr_thread;
+					connectionMap[resSock].myWriteId = wr_thread;
+					childThreadList.push_front(wr_thread);
 				}
 			}
 			// Wait for 'retry' time before making the connections again
@@ -310,7 +331,7 @@ int main(int argc, char *argv[])
 			perror("Thread creation failed");
 			exit(EXIT_FAILURE);
 		}
-
+		childThreadList.push_front(accept_thread);
 
 		// Connect to neighbors in the list
 		// File exist, now say "Hello"
@@ -348,6 +369,7 @@ int main(int argc, char *argv[])
 			}
 			
 			int nodeConnected = 0;
+			int resSock;
 			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end(); it++){
 				struct node n;
 				n.portNo = (*it)->portNo ;
@@ -359,7 +381,19 @@ int main(int argc, char *argv[])
 				}
 
 				printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
-				int resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if(shutDown)
+				{
+					shutdown(resSock, SHUT_RDWR);
+					close(resSock);
+					break;
+				}
+				resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
+				if(shutDown)
+				{
+					shutdown(resSock, SHUT_RDWR);
+					close(resSock);
+					break;
+				}				
 				if (resSock == -1 ){
 					// Connection could not be established
 					// now we have to reset the network, call JOIN
@@ -407,6 +441,7 @@ int main(int argc, char *argv[])
 						exit(EXIT_FAILURE);
 					}
 					connectionMap[resSock].myReadId = re_thread;
+					childThreadList.push_front(re_thread);
 					
 					// Create a write thread
 					pthread_t wr_thread ;
@@ -415,7 +450,8 @@ int main(int argc, char *argv[])
 						perror("Thread creation failed");
 						exit(EXIT_FAILURE);
 					}
-					connectionMap[resSock].myReadId = wr_thread;
+					connectionMap[resSock].myWriteId = wr_thread;
+					childThreadList.push_front(wr_thread);
 					
 					nodeConnected++;
 				}
@@ -425,7 +461,7 @@ int main(int argc, char *argv[])
 
 		// Join the accept connections thread
 
-		if(nodeConnected == (int)myInfo->minNeighbor)
+		if(nodeConnected == (int)myInfo->minNeighbor || shutDown)
 			break;
 		else
 		{
@@ -459,6 +495,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
+	childThreadList.push_front(keepAlive_thread);
 	// Call the Keyboard thread
 	// Thread creation and join code taken from WROX Publications book
 	
@@ -469,7 +506,7 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-
+	childThreadList.push_front(k_thread);
 	// Call the timer thread
 	// Thread creation and join code taken from WROX Publications book
 	pthread_t t_thread ;
@@ -478,16 +515,26 @@ int main(int argc, char *argv[])
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
+	childThreadList.push_front(t_thread);
 
+	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
+		//printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
+		res = pthread_join((*it), &thread_result);
+		if (res != 0) {
+			perror("Thread join failed");
+			exit(EXIT_FAILURE);
+			//continue;
+		}
+	}
 
+	
 	// Thread Join code taken from WROX Publications
-	res = pthread_join(k_thread, &thread_result);
+	/*res = pthread_join(k_thread, &thread_result);
 	if (res != 0) {
 		perror("Thread join failed");
 		exit(EXIT_FAILURE);
-	}
-
-
-
-	return 0;
+	}*/
+	
+printf("Complete Shutdown!!!!\n");
+return 0;
 }

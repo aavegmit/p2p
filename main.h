@@ -68,11 +68,14 @@ struct connectionNode{
 
 extern bool shutDown ;
 extern int accept_pid;
+extern int nSocket_accept;
 extern int keepAlive_pid;
 extern int toBeClosed;
 extern int joinTimeOutFlag;
 extern int inJoinNetwork;
+extern int node_pid;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
+extern list<pthread_t > childThreadList ;
 
 struct Packet{
 

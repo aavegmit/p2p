@@ -300,7 +300,7 @@ void joinNetwork(){
 				perror("Thread creation failed");
 				exit(EXIT_FAILURE);
 			}
-
+			childThreadList.push_front(re_thread);
 			// Create a write thread
 			pthread_t wr_thread ;
 			res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
@@ -308,7 +308,7 @@ void joinNetwork(){
 				perror("Thread creation failed");
 				exit(EXIT_FAILURE);
 			}
-
+			childThreadList.push_front(wr_thread);
 			break ;
 		}
 	}
@@ -326,14 +326,19 @@ void joinNetwork(){
 		perror("Thread creation failed");
 		exit(EXIT_FAILURE);
 	}
-
+	childThreadList.push_front(t_thread);
+	
 	// Join the read thread here
 	// Thread Join code taken from WROX Publications
-	res = pthread_join(re_thread, &thread_result);
-	if (res != 0) {
-		perror("Thread join failed");
-		exit(EXIT_FAILURE);
+	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
+		//printf("Value is : %d\n", (pthread_t)(*it).second.myReadId);
+		int res = pthread_join((*it), &thread_result);
+		if (res != 0) {
+			perror("Thread join failed");
+			exit(EXIT_FAILURE);
+		}
 	}
+
 
 	joinTimeOutFlag = 0;
 	printf("Join process exiting..\n") ;

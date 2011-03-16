@@ -6,11 +6,12 @@ using namespace std ;
 
 void *accept_connectionsT(void *){
 	struct addrinfo hints, *servinfo, *p;
-	int nSocket=0 ; // , portGiven = 0 , portNum = 0;
+	//int nSocket=0 ; // , portGiven = 0 , portNum = 0;
 	char portBuf[10] ;
 	memset(portBuf, '\0', 10) ;
 
 	int rv ;
+	list<pthread_t > childThreadList_accept;
 	memset(&hints, 0, sizeof hints) ;
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
@@ -23,19 +24,19 @@ void *accept_connectionsT(void *){
 	}
 	// loop through all the results and make a socket
 	for(p = servinfo; p != NULL; p = p->ai_next) {
-		if ((nSocket = socket(p->ai_family, p->ai_socktype,
+		if ((nSocket_accept = socket(p->ai_family, p->ai_socktype,
 						p->ai_protocol)) == -1) {
 			perror("server: socket");
 			continue;
 		}
 		int yes = 1 ;
-		if (setsockopt(nSocket, SOL_SOCKET, SO_REUSEADDR, &yes,
+		if (setsockopt(nSocket_accept, SOL_SOCKET, SO_REUSEADDR, &yes,
 					sizeof(int)) == -1) {
 			perror("setsockopt");
 			exit(1);
 		}
-		if (bind(nSocket, p->ai_addr, p->ai_addrlen) == -1) {
-			close(nSocket);
+		if (bind(nSocket_accept, p->ai_addr, p->ai_addrlen) == -1) {
+			close(nSocket_accept);
 			perror("server: bind");
 			continue;
 		}
@@ -48,7 +49,7 @@ void *accept_connectionsT(void *){
 		exit(1) ;
 	}
 	freeaddrinfo(servinfo); // all done with this structure
-	if (listen(nSocket, 5) == -1) {
+	if (listen(nSocket_accept, 5) == -1) {
 		perror("listen");
 		exit(1);
 	}
@@ -59,12 +60,27 @@ void *accept_connectionsT(void *){
 		int cli_len = 0, newsockfd = 0;
 		struct sockaddr_in cli_addr ;
 
+		
 		// Wait for another nodes to connect
 		printf("Node waiting for a connection..\n") ;
-		newsockfd = accept(nSocket, (struct sockaddr *)&cli_addr, (socklen_t *)&cli_len ) ;
+		if(shutDown)
+		{
+			//printf("accept halted\n");
+			//shutdown(nSocket_accept, SHUT_RDWR);
+			break;
+			//close(nSocket_accept);
+		}
+
+		newsockfd = accept(nSocket_accept, (struct sockaddr *)&cli_addr, (socklen_t *)&cli_len ) ;
 		//		int erroac = errno ;
 
-
+		if(shutDown)
+		{
+			//printf("accept halted\n");
+			//shutdown(nSocket_accept, SHUT_RDWR);
+			//close(nSocket_accept);
+			break;
+		}
 		if (newsockfd < 0){
 			//			if (erroac == EINTR){
 			//				if (shut_alarm){
@@ -119,7 +135,9 @@ void *accept_connectionsT(void *){
 				perror("Thread creation failed");
 				exit(EXIT_FAILURE);
 			}
-
+			connectionMap[newsockfd].myReadId = re_thread;
+			childThreadList_accept.push_front(re_thread);
+			
 			pthread_t wr_thread ;
 			res = pthread_create(&wr_thread, NULL, write_thread , (void *)newsockfd);
 			if (res != 0) {
@@ -127,15 +145,24 @@ void *accept_connectionsT(void *){
 				exit(EXIT_FAILURE);
 			}
 			//		close(newsockfd) ;
+			connectionMap[newsockfd].myWriteId = wr_thread;
+			childThreadList_accept.push_front(wr_thread);
 		}
 
 	}
-	int waitV ;
-	while(!(wait(&waitV) == -1) ) ;
+	void *thread_result ;
+	for (list<pthread_t >::iterator it = childThreadList_accept.begin(); it != childThreadList_accept.end(); ++it){
+		//printf("Value is : %d\n", (pthread_t)(*it).second.myReadId);
+		int res = pthread_join((*it), &thread_result);
+		if (res != 0) {
+			perror("Thread join failed");
+			exit(EXIT_FAILURE);
+		}
+	}
 	printf("Server terminating normally\n") ;
-	close(nSocket) ;
+	//close(nSocket_accept) ;
 
-
+	pthread_exit(0);
 	return 0;
 }
 
@@ -315,7 +342,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				m.buffer = (unsigned char *)malloc((buf_len + 1)) ;
 				m.buffer[buf_len] = '\0' ;
 				m.buffer_len = buf_len ;
-				for (int i = 0 ; i < buf_len; i++)
+				for (int i = 0 ; i < (int)buf_len; i++)
 					m.buffer[i] = buffer[i] ;
 //				strncpy( (char *)m.buffer , (const char *)buffer , buf_len);
 				m.ttl = 1 ;
@@ -345,12 +372,13 @@ void *read_thread(void *args){
 	uint32_t data_len=0;
 	unsigned char uoid[20] ;
 	//connectionMap[nSocket].myReadId = pthread_self();
-	while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
+	//while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
+	while(!(connectionMap[nSocket].shutDown)  ){
 		memset(header, 0, HEADER_SIZE) ;
 		memset(uoid, 0, 20) ;
 
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			closeConnection(nSocket);
 			break;
@@ -358,7 +386,8 @@ void *read_thread(void *args){
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
 		//printf("Reading Header on : %d\n", (int)nSocket);
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		printf("Hello\n");
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			closeConnection(nSocket);
 			break;
@@ -380,15 +409,16 @@ void *read_thread(void *args){
 		memset(buffer, 0, data_len) ;
 
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			closeConnection(nSocket);
 			break;
 		}
 		return_code=(int)read(nSocket, buffer, data_len);
+		printf("Hello\n");
 		//printf("Reading Buffer on : %d\n", (int)nSocket);		
 		//Check for the JoinTimeOutFlag
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1)
+		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			closeConnection(nSocket);
 			break;

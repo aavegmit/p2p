@@ -12,6 +12,11 @@ while(1)
 {
 	sleep(1);
 
+	if(shutDown)
+	{
+		printf("KeepAlive thread halted\n");
+		break;
+	}
 	for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
 	
 		if((*it).second.keepAliveTimer > 0)
@@ -28,6 +33,7 @@ while(1)
 		}
 	}
 }
+pthread_exit(0);
 return 0;
 }
 

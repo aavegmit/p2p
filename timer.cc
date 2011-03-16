@@ -15,6 +15,11 @@ while(1){
 
 	sleep(1) ;
 	
+	if(shutDown)
+	{
+		printf("Timer thread halted\n");
+		break;
+	}
 	//JoinTimeOut
 	if(!myInfo->isBeacon && inJoinNetwork)
 	{
@@ -60,7 +65,7 @@ while(1){
 
 
 }
-
+pthread_exit(0);
 return 0;
 }
 

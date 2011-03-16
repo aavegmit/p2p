@@ -8,28 +8,29 @@
 
 void *keyboard_thread(void *arg){
 	char *inp = new char[512] ;
-	memset(inp, '\0', 512) ;	
+	memset(inp, '\0', 512) ;
 	while(1){
 		printf("servant:%d> ", myInfo->portNo) ;
+
 		fgets(inp, 511, stdin) ;
 
-		if(strcasecmp(inp, "shutdown")==0)
+		if(!strcasecmp(inp, "shutdown\n"))
 		{
-			//kill(node_pid, SIGTERM);
-			//break;
+			kill(node_pid, SIGTERM);
+			break;
 		}
-		else if(strcasecmp(inp, "status neighbors")==0)
+		else if(!strcasecmp(inp, "status neighbors\n"))
 		{
 			printf("Under construction....\n");
 		}
 		else
 		{
-			
+			printf("Hi!!!!!!!\n");
 		}
 
 		memset(inp, '\0', 512) ;	
 	}
-
+pthread_exit(0);
 	return 0;
 
 }
