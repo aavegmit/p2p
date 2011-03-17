@@ -1,5 +1,6 @@
 #include "main.h"
 #include "iniParser.h"
+#include "signalHandler.h"
 
 #ifndef min
 #define min(A,B) (((A)>(B)) ? (B) : (A))
@@ -14,6 +15,8 @@ void *write_thread(void *args){
 	unsigned char header[HEADER_SIZE] ;
 	unsigned char *buffer ;
 	uint32_t len = 0 ;
+	//signal(SIGUSR1, my_handler);
+	//printf("My Id is write: %d\n", (int)pthread_self());
 	//connectionMap[sockfd].myWriteId = pthread_self();
 
 	while(!shutDown && !(connectionMap[sockfd].shutDown)){
@@ -240,6 +243,25 @@ void *write_thread(void *args){
 			header[0] = 0xab;
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
 			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+		}
+		else if (mes.type == 0xf7)
+		{
+			printf("Sending Notify message\n");
+			len = 1;
+			buffer = (unsigned char *)malloc(len) ;
+			memset(buffer, '\0', len) ;
+			//memcpy(buffer, &mes.errorCode, sizeof(mes.errorCode));
+			buffer[0]=mes.errorCode;
+			//buffer[0]=0x01;
+			//memcpy(buffer, &mes.errorCode, sizeof(mes.errorCode));
+			
+			//puts((char *)buffer);
+			//len = strlen((const char *)buffer) ;
+			
+			header[0] = 0xf7;
+
+			header[21] = 0x01 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
 

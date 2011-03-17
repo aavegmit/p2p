@@ -32,22 +32,35 @@ void my_handler(int nSig)
 			closeConnection( (*nodeConnectionMap.begin()).second  ) ;
 			myInfo->joinTimeOut--;
 		}
+		if(shutDown)
+			printf("I am awake!!!!\n");
 		//pthread_exit(0);
 	}
 
 	if (nSig == SIGUSR2) {
-		printf("Signal Handling Success!!!!!\n");
+		printf("Signal Handling Success: %d\n", (int)pthread_self());
 		//closeConnection(toBeClosed);
-		//pthread_exit(0);
+		pthread_exit(0);
 	}
 	if(nSig == SIGTERM)
 	{
-		printf("Signal Handling SIGTERM %d\n", (int)pthread_self());
+		//printf("Signal Handling SIGTERM %d\n", (int)pthread_self());
 		shutDown = 1;
+		for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
+			closeConnection((*it).first);
 		shutdown(nSocket_accept, SHUT_RDWR);
 		close(nSocket_accept);
-		//exit(0);
+		pthread_kill(k_thread, SIGUSR2);
+		//fprintf(stdout, NULL) ;
+		//pthread_mutex_lock(&connectionMapLock) ;
+		//pthread_mutex_unlock(&connectionMapLock) ;
+		//Signaling it's child
+		
 	}
-
+	if(nSig == SIGALRM)
+	{
+		//printf("OUT OF FGETS\n");
+		pthread_exit(0);
+	}
 }
 
