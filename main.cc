@@ -20,16 +20,19 @@ int joinTimeOutFlag = 0;
 int inJoinNetwork = 0;
 int node_pid;
 int nSocket_accept = 0;
+int statusTimerFlag = 0 ;
 unsigned char *fileName = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
 list<pthread_t > childThreadList ;
 set<struct joinResNode> joinResponse ;
+set< set<struct node> > statusResponse ;
 
 pthread_mutex_t connectionMapLock ;
 pthread_mutex_t nodeConnectionMapLock ;
 pthread_mutex_t MessageDBLock ;
+pthread_mutex_t statusMsgLock ;
 
 void my_handler(int nSig);
 
@@ -144,6 +147,11 @@ int main(int argc, char *argv[])
 	}
 	
 	lres = pthread_mutex_init(&nodeConnectionMapLock, NULL) ;
+	if (lres != 0){
+		perror("Mutex initialization failed") ;
+	}
+	
+	lres = pthread_mutex_init(&statusMsgLock, NULL) ;
 	if (lres != 0){
 		perror("Mutex initialization failed") ;
 	}

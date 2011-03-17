@@ -69,8 +69,29 @@ void *timer_thread(void *arg){
 				}
 			}
 		}
+
 		pthread_mutex_unlock(&connectionMapLock) ;
 	}
+
+
+	// Status timer flag
+	if (statusTimerFlag && !inJoinNetwork){
+		--myInfo->statusResponseTimeout ;
+		if (myInfo->statusResponseTimeout == 0){
+			// Reset the status timer flag
+			pthread_mutex_lock(&statusMsgLock) ;
+			statusTimerFlag = 0 ;
+			pthread_mutex_unlock(&statusMsgLock) ;
+
+			// Write all the status responses in the output file
+			writeToStatusFile() ;
+
+		}
+
+	}
+
+
+
 }
 pthread_exit(0);
 return 0;

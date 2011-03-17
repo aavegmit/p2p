@@ -25,6 +25,7 @@
 using namespace std ;
 
 extern set<struct joinResNode> joinResponse ;
+extern set< set<struct node> > statusResponse ;
 
 
 struct node{
@@ -65,6 +66,7 @@ struct Message{
 	bool fromConnect ;							// 1 - The message was created by the node which 
 										// initiated the connection
 	int buffer_len ;
+	uint8_t status_type ;	
 
 } ;
 
@@ -87,10 +89,12 @@ extern int keepAlive_pid;
 extern int toBeClosed;
 extern int joinTimeOutFlag;
 extern int inJoinNetwork;
+extern int statusTimerFlag ;
 extern int node_pid;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
 extern pthread_mutex_t connectionMapLock ;
+extern pthread_mutex_t statusMsgLock ;
 
 struct Packet{
 
@@ -118,6 +122,8 @@ int connectTo(unsigned char *, unsigned int) ;
 void pushMessageinQ(int, struct Message ) ;
 void closeConnection(int) ;
 void joinNetwork() ;
+void getStatus() ;
+void writeToStatusFile() ;
 extern unsigned char *GetUOID(char *, unsigned char *, long unsigned int) ;
 
 

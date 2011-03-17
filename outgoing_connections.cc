@@ -15,7 +15,7 @@ void *write_thread(void *args){
 	unsigned char *buffer ;
 	uint32_t len = 0 ;
 	//connectionMap[sockfd].myWriteId = pthread_self();
-	
+
 	while(!shutDown && !(connectionMap[sockfd].shutDown)){
 		if(connectionMap[sockfd].MessageQ.size() <= 0){
 			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
@@ -48,7 +48,7 @@ void *write_thread(void *args){
 		if (mes.status == 0){
 			unsigned char uoid[SHA_DIGEST_LENGTH] ;
 			GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
-//			memcpy((char *)&header[1], uoid, 20) ;
+			//			memcpy((char *)&header[1], uoid, 20) ;
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				header[1+i] = uoid[i] ;
 			struct Packet pk;
@@ -59,7 +59,7 @@ void *write_thread(void *args){
 		} 
 		// Copy the uoid from the structure into the header
 		else if (mes.status == 1){
-//			memcpy((char *)&header[1], mes.uoid, 20) ;
+			//			memcpy((char *)&header[1], mes.uoid, 20) ;
 			//pk.status = 1 ;
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				header[1+i] = mes.uoid[i] ;
@@ -92,8 +92,9 @@ void *write_thread(void *args){
 
 
 		}
+		// Sending JOI Request
 		else if (mes.type == 0xfc){
-//			printf("Sending JOIN request\n") ;
+			//			printf("Sending JOIN request\n") ;
 
 			if (mes.status == 1){
 				buffer = mes.buffer ;
@@ -127,7 +128,7 @@ void *write_thread(void *args){
 				buffer = (unsigned char *)malloc(mes.buffer_len) ;
 				for (int i = 0 ; i < mes.buffer_len ; i++)
 					buffer[i] = mes.buffer[i] ;
-			len = mes.buffer_len ;
+				len = mes.buffer_len ;
 			}
 			else{
 				char host[256] ;
@@ -149,7 +150,7 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
 		else if (mes.type == 0xf8){
-//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
+			//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
 
 			len = 0;
 			buffer = (unsigned char *)malloc(len+1) ;
@@ -172,6 +173,75 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 
 		}
+		// Status Message request
+		else if (mes.type == 0xac){
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+			}
+			else{
+				len = 1 ;
+				buffer = (unsigned char *)malloc(len) ;
+				memset(buffer, 0, len) ;
+				buffer[0] = mes.status_type ;
+			}
+
+
+			header[0] = 0xac;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
+		else if (mes.type == 0xab){
+			printf("Sending Status Response..\n") ;
+
+			if (mes.status == 1){
+				buffer = (unsigned char *)malloc(mes.buffer_len) ;
+				for (int i = 0 ; i < mes.buffer_len ; i++)
+					buffer[i] = mes.buffer[i] ;
+				len = mes.buffer_len ;
+			}
+			else{
+				char host[256] ;
+				gethostname(host, 256) ;
+				host[255] = '\0' ;
+				unsigned int len1 = strlen(host) + 24 ;
+				buffer = (unsigned char *)malloc(len1) ;
+				memset(buffer, 0, len1) ;
+				memcpy(buffer, mes.uoid, 20) ;
+				unsigned int templen = len1 - 22 ;
+				memcpy(&buffer[20], &(templen), 2) ;
+				memcpy(&buffer[22], &(myInfo->portNo), 2) ;
+				sprintf((char *)&buffer[24], "%s",  host);
+				len  =  len1 ;
+				for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+					unsigned int len2 = strlen((*it).first.hostname) + 2  ;
+					len += len2+4 ;
+					buffer = (unsigned char *)realloc(buffer, len) ;
+					++it ;
+					if ( it == nodeConnectionMap.end() ){
+						unsigned int temlen2 = 0 ;
+						memcpy(&buffer[len-len2-4], &(temlen2), 4);
+					}
+					else{
+						memcpy(&buffer[len-len2-4], &(len2), 4);
+					}
+					--it ;
+					memcpy(&buffer[len-len2], &((*it).first.portNo ), 2) ;
+					sprintf((char *)&buffer[len-len2+2], "%s",  host);
+				}
+
+			}
+
+
+			header[0] = 0xab;
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+		}
 
 		//KeepAlive message sending
 		//Resst the keepAliveTimer for this connection
@@ -179,10 +249,10 @@ void *write_thread(void *args){
 		if(connectionMap.find(sockfd)!=connectionMap.end())
 		{
 			//	if(connectionMap[sockfd].keepAliveTimer!=0)
-				pthread_mutex_lock(&connectionMapLock) ;
-				connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
-				pthread_mutex_unlock(&connectionMapLock) ;
-//				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
+			pthread_mutex_lock(&connectionMapLock) ;
+			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
+			pthread_mutex_unlock(&connectionMapLock) ;
+			//				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
 		}
 
 
@@ -337,7 +407,7 @@ void joinNetwork(){
 		exit(EXIT_FAILURE);
 	}
 	childThreadList.push_front(t_thread);
-	
+
 	// Join the read thread here
 	// Thread Join code taken from WROX Publications
 	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
@@ -370,7 +440,7 @@ void joinNetwork(){
 		sprintf(tempPort, "%d", (*it).portNo) ;
 		fputs(tempPort, fp) ;
 		fputs("\n", fp) ;
-	
+
 
 	}
 	fflush(fp) ;
@@ -379,4 +449,92 @@ void joinNetwork(){
 	nodeConnectionMap.erase(nodeConnectionMap.begin(), nodeConnectionMap.end()) ;
 	pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
+}
+
+
+// Method to flood the status requests
+void getStatus(){
+	printf("In get status method\n");
+
+	pthread_mutex_lock(&nodeConnectionMapLock) ;
+	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+		struct Message m ;
+		m.type = 0xac ;
+		m.status = 0 ;
+		m.ttl = myInfo->ttl ;
+		m.status_type = 0x01 ;
+		pushMessageinQ( (*it).second, m) ;
+	}
+	pthread_mutex_unlock(&nodeConnectionMapLock) ;
+
+}
+
+
+void writeToStatusFile(){
+	printf("Writing to the file\n") ;
+	pthread_mutex_lock(&statusMsgLock) ;
+	FILE *fp = fopen(myInfo->status_file, "a") ;
+	if (fp == NULL){
+		fprintf(stderr, "File open failed\n") ;
+		exit(0) ;
+	}
+
+	set<struct node> distinctNodes ;
+	set<struct node>::iterator it1 ;
+
+	for (set< set<struct node> >::iterator it = statusResponse.begin(); it != statusResponse.end() ; ++it){
+		it1 = (*it).begin() ;
+		distinctNodes.insert( *it1 ) ;
+		++it1 ;
+		distinctNodes.insert( *it1 ) ;
+	}
+	
+	for (set< struct node >::iterator it = distinctNodes.begin(); it != distinctNodes.end() ; ++it){
+		fputs("n -t * -s ", fp) ;
+		char portS[20] ;
+		sprintf(portS, "%d", (*it).portNo) ;
+		fputs(portS, fp) ;
+//		if (isBeaconNode(*it) ){
+			fputs(" -c blue -i blue\n", fp) ;
+//		}
+//		else{
+//			fputs(" -c black -i black\n", fp) ;
+//		}
+	}
+	
+	for (set< set<struct node> >::iterator it = statusResponse.begin(); it != statusResponse.end() ; ++it){
+		fputs("l -t * -s ", fp) ;
+		struct node n1;
+		struct node n2;
+		it1 = (*it).begin() ;
+		n1 = *it1 ;
+		++it1 ;
+		n2 = *it1 ;
+
+		char portS[20] ;
+		sprintf(portS, "%d", n1.portNo) ;
+		fputs(portS, fp) ;
+		fputs(" -d ", fp) ;
+		
+		memset(portS, '\0', 20) ;
+		sprintf(portS, "%d", n2.portNo) ;
+		fputs(portS, fp) ;
+		
+
+//		if (isBeaconNode(n1) && isBeaconNode(n2) ){
+//			fputs(" -c blue\n", fp) ;
+//		}
+//		else{
+			fputs(" -c black\n", fp) ;
+//		}
+	}
+
+
+
+
+	fflush(fp) ;
+	fclose(fp) ;
+	statusResponse.erase( statusResponse.begin(), statusResponse.end()) ;
+	pthread_mutex_unlock(&statusMsgLock) ;
+	printf("status file written\n") ;
 }

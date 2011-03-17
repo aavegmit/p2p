@@ -28,6 +28,8 @@ void my_handler(int nSig)
 		if(myInfo->joinTimeOut == 0)
 		{
 			joinTimeOutFlag = 1;
+			
+			closeConnection( (*nodeConnectionMap.begin()).second  ) ;
 			myInfo->joinTimeOut--;
 		}
 		//pthread_exit(0);

@@ -19,9 +19,20 @@ void *keyboard_thread(void *arg){
 			kill(node_pid, SIGTERM);
 			break;
 		}
-		else if(!strcasecmp(inp, "status neighbors\n"))
+		else if(!strcasecmp(inp, "status\n"))
 		{
-			printf("Under construction....\n");
+			statusTimerFlag = 1 ;
+			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 2 ;
+			myInfo->status_ttl = 5 ;
+			strncpy(myInfo->status_file, "status.out", 256) ;
+			FILE *fp = fopen(myInfo->status_file, "w") ;
+			if (fp == NULL){
+				fprintf(stderr,"File open failed\n") ;
+				exit(0) ;
+			}
+			fputs("V -t * -v 1.0a5\n", fp) ;
+			fclose(fp) ;
+			getStatus() ;
 		}
 		else
 		{
@@ -30,7 +41,7 @@ void *keyboard_thread(void *arg){
 
 		memset(inp, '\0', 512) ;	
 	}
-pthread_exit(0);
+	pthread_exit(0);
 	return 0;
 
 }
