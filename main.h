@@ -65,6 +65,7 @@ struct Message{
 	bool fromConnect ;							// 1 - The message was created by the node which 
 										// initiated the connection
 	int buffer_len ;
+	int errorCode;
 
 } ;
 
@@ -114,7 +115,9 @@ void *write_thread(void *) ;
 // Function declarations
 int isBeaconNode(struct node n);
 int connectTo(unsigned char *, unsigned int) ;
+extern pthread_t k_thread;
 //void pushMessageinQ(int, uint8_t, unsigned long int) ;
+void notifyMessageSend(int resSock, int errorCode);
 void pushMessageinQ(int, struct Message ) ;
 void closeConnection(int) ;
 void joinNetwork() ;

@@ -11,7 +11,7 @@
 
 void *timer_thread(void *arg){
 
-	while(1){
+while(1){
 
 	sleep(1) ;
 	
@@ -40,36 +40,47 @@ void *timer_thread(void *arg){
 				}
 			}
 		}
-
-		//KeepAliveTimeOut
-		pthread_mutex_lock(&connectionMapLock) ;
-		if(!connectionMap.empty() && !inJoinNetwork)
-		{
-			for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
-
-				if((*it).second.keepAliveTimeOut > 0)
-					(*it).second.keepAliveTimeOut--;
-				else
+	}
+	//KeepAliveTimeOut
+	pthread_mutex_lock(&connectionMapLock) ;
+	if(!connectionMap.empty() && !inJoinNetwork)
+	{
+		for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
+			if((*it).second.keepAliveTimeOut > 0)
+				(*it).second.keepAliveTimeOut--;
+			else
+			{
+				if((*it).second.keepAliveTimeOut == 0)
 				{
-					if((*it).second.keepAliveTimeOut == 0)
-					{
-						printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
-						(*it).second.keepAliveTimeOut=-1;
-						pthread_mutex_unlock(&connectionMapLock) ;
-						closeConnection((*it).first);
-						pthread_mutex_lock(&connectionMapLock) ;
-						//close((*it).first);
-						//toBeClosed = (*it).first;
-						//kill((*it).second.myId, SIGUSR2);
-						//kill((*it).second.myReadId, SIGUSR2);
-						//kill((*it).second.myWriteId, SIGUSR2);				
-						//connectionMap.erase((*it).first);
-						//it--;
-					}
+					printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
+					(*it).second.keepAliveTimeOut=-1;
+					pthread_mutex_unlock(&connectionMapLock) ;
+					closeConnection((*it).first);
+					pthread_mutex_lock(&connectionMapLock) ;
+					//close((*it).first);
+					//toBeClosed = (*it).first;
+					//kill((*it).second.myId, SIGUSR2);
+					//kill((*it).second.myReadId, SIGUSR2);
+					//kill((*it).second.myWriteId, SIGUSR2);				
+					//connectionMap.erase((*it).first);
+					//it--;
 				}
 			}
 		}
-		pthread_mutex_unlock(&connectionMapLock) ;
+	}
+	pthread_mutex_unlock(&connectionMapLock) ;
+	//Auto-ShutDown Timer
+	if(!inJoinNetwork)
+	{
+		if(myInfo->autoShutDown > 0)
+			myInfo->autoShutDown--;
+		else
+		{
+			if(!myInfo->autoShutDown)
+			{
+				kill(node_pid, SIGTERM);
+			}
+		}
 	}
 }
 pthread_exit(0);

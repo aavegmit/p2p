@@ -21,6 +21,7 @@ int inJoinNetwork = 0;
 int node_pid;
 int nSocket_accept = 0;
 unsigned char *fileName = NULL;
+pthread_t k_thread;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
@@ -111,6 +112,7 @@ int main(int argc, char *argv[])
 	memset(&accept_pid, 0, sizeof(accept_pid));
 
 	node_pid = getpid();
+	printf("My Id is main: %d\n", (int)pthread_self());
 	signal(SIGTERM, my_handler);
 	//Checks if the node is beacon or not
 	struct node n;
@@ -219,8 +221,8 @@ int main(int argc, char *argv[])
 		}
 
 		int resSock;
-		while(tempBeaconList->size() > 0){
-			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end(); it++){
+		while(tempBeaconList->size() > 0 && !shutDown){
+			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end() && shutDown!=1; it++){
 				struct node n;
 				n.portNo = (*it)->portNo ;
 				strcpy(n.hostname, (const char *)(*it)->hostName) ;
@@ -320,7 +322,7 @@ int main(int argc, char *argv[])
 	}
 	else{
 		FILE *f;
-		while(1)
+		while(!shutDown)
 		{
 		
 		char nodeName[256];
@@ -401,7 +403,7 @@ int main(int argc, char *argv[])
 			
 			int nodeConnected = 0;
 			int resSock;
-			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end(); it++){
+			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end() && shutDown!=1; it++){
 				struct node n;
 				n.portNo = (*it)->portNo ;
 				strcpy(n.hostname, (const char *)(*it)->hostName) ;
@@ -506,8 +508,13 @@ int main(int argc, char *argv[])
 		else
 		{
 			//need to delete init_neighbor_node
+			//need to delete all the connected sockets
 			fclose(f);
 			remove("init_neighbor_list");
+			//pthread_mutex_lock(&connectionMapLock) ;
+			for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
+				closeConnection((*it).first);
+			//pthread_mutex_unlock(&connectionMapLock) ;
 			continue;
 		}
 			
@@ -540,7 +547,7 @@ int main(int argc, char *argv[])
 	// Thread creation and join code taken from WROX Publications book
 	
 	keepAlive_pid = getpid();
-	pthread_t k_thread ;
+	//pthread_t k_thread ;
 	res = pthread_create(&k_thread, NULL, keyboard_thread , (void *)NULL);
 	if (res != 0) {
 		perror("Thread creation failed");
@@ -558,7 +565,7 @@ int main(int argc, char *argv[])
 	childThreadList.push_front(t_thread);
 
 	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
-		//printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
+		printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
 		res = pthread_join((*it), &thread_result);
 		if (res != 0) {
 			perror("Thread join failed");

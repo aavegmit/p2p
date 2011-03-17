@@ -1,6 +1,6 @@
 #include "main.h"
 #include "iniParser.h"
-
+#include "signalHandler.h"
 
 using namespace std ;
 
@@ -152,6 +152,15 @@ void *accept_connectionsT(void *){
 		}
 
 	}
+	
+	/*for (list<pthread_t >::iterator it = childThreadList_accept.begin(); it != childThreadList_accept.end(); ++it){
+		int res = pthread_kill((*it), SIGUSR1);
+		if(res!=0){
+			perror("pthread_kill failed");
+			exit(EXIT_FAILURE);
+			//continue;
+		}
+	}*/
 	void *thread_result ;
 	for (list<pthread_t >::iterator it = childThreadList_accept.begin(); it != childThreadList_accept.end(); ++it){
 		//printf("Value is : %d\n", (pthread_t)(*it).second.myReadId);
@@ -314,7 +323,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 					m.buffer = (unsigned char *)malloc(buf_len) ;
 					m.buffer_len = buf_len ;
 //					strncpy( (char *)m.buffer , (const char *)buffer , sizeof(buffer));
-					for (int i = 0 ; i < buf_len ; i++)
+					for (int i = 0 ; i < (int)buf_len ; i++)
 						m.buffer[i] = buffer[i] ;
 					m.status = 1 ;
 					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
@@ -381,6 +390,13 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 	}
 	else if(type == 0xf8)
 		printf("Keep Alive Message Received from : %d\n", sockfd);
+	else if(type == 0xf7)
+	{
+		char ch = buffer[0];
+		//memcpy(&ch, &buffer, buf_len);
+		printf("Recieved Notify message : %02x\n", ch);
+		closeConnection(sockfd);
+	}
 //KeepAlive message recieved
 //Resst the keepAliveTimer for this connection
 pthread_mutex_lock(&connectionMapLock) ;
@@ -396,7 +412,9 @@ void *read_thread(void *args){
 	long nSocket = (long)args ;
 	unsigned char header[HEADER_SIZE];
 	unsigned char *buffer ;
-
+	//signal(SIGUSR1, my_handler);
+	//printf("My Id is read: %d\n", (int)pthread_self());
+	
 	uint8_t message_type=0;
 	uint8_t ttl=0;
 	uint32_t data_len=0;
@@ -418,7 +436,7 @@ void *read_thread(void *args){
 		pthread_mutex_unlock(&connectionMapLock) ;
 	
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
-		//printf("Reading Header on : %d\n", (int)nSocket);
+		printf("Reading Header on : %d\n", (int)nSocket);
 		//Check for the JoinTimeOutFlag
 		pthread_mutex_lock(&connectionMapLock) ;
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
@@ -446,13 +464,16 @@ void *read_thread(void *args){
 		memset(buffer, 0, data_len) ;
 
 		//Check for the JoinTimeOutFlag
+		pthread_mutex_lock(&connectionMapLock) ;
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
+			pthread_mutex_unlock(&connectionMapLock) ;
 			closeConnection(nSocket);
 			break;
 		}
+		pthread_mutex_unlock(&connectionMapLock) ;
 		return_code=(int)read(nSocket, buffer, data_len);
-		printf("Hello\n");
+		//printf("My dataLen is: %d\n", data_len);
 		//printf("Reading Buffer on : %d\n", (int)nSocket);		
 		//Check for the JoinTimeOutFlag
 		pthread_mutex_lock(&connectionMapLock) ;
@@ -467,8 +488,6 @@ void *read_thread(void *args){
 		if (return_code != (int)data_len){
 			printf("Socket Read error...from data\n") ;
 			closeConnection(nSocket);
-			//pthread_exit(0);
-			//return 0;
 			break;
 		}
 		buffer[data_len] = '\0' ;
@@ -486,14 +505,26 @@ void *read_thread(void *args){
 	return 0;
 }
 
-void pushMessageinQ(int sockfd, struct Message mes){
+void notifyMessageSend(int resSock, int errorCode)
+{
+struct Message mes ; 
+memset(&mes, 0, sizeof(mes));
+mes.type = 0xf7 ;
+mes.status = 0 ;
+mes.errorCode = errorCode ;
+//pushMessageinQ(resSock, m) ;
 
+	pthread_mutex_lock(&connectionMap[resSock].mesQLock) ;
+	(connectionMap[resSock]).MessageQ.push_front(mes) ;
+	pthread_cond_signal(&connectionMap[resSock].mesQCv) ;
+	pthread_mutex_unlock(&connectionMap[resSock].mesQLock) ;
+}
+
+void pushMessageinQ(int sockfd, struct Message mes){
 	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 	(connectionMap[sockfd]).MessageQ.push_back(mes) ;
 	pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
 	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
-
-
 }
 
 int isBeaconNode(struct node n)
