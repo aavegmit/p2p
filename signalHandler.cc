@@ -24,7 +24,7 @@ void my_handler(int nSig)
 	} 
 */	/* Signal raised by Parent for Child */
 	if (nSig == SIGUSR1) {
-		printf("Signal Handling Success!!!!!\n");
+		//printf("Signal Handling Success!!!!!\n");
 		if(myInfo->joinTimeOut == 0)
 		{
 			joinTimeOutFlag = 1;
@@ -38,7 +38,7 @@ void my_handler(int nSig)
 	}
 
 	if (nSig == SIGUSR2) {
-		printf("Signal Handling Success: %d\n", (int)pthread_self());
+		//printf("Signal Handling Success: %d\n", (int)pthread_self());
 		//closeConnection(toBeClosed);
 		pthread_exit(0);
 	}
@@ -46,16 +46,17 @@ void my_handler(int nSig)
 	{
 		//printf("Signal Handling SIGTERM %d\n", (int)pthread_self());
 		shutDown = 1;
-		for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
-			closeConnection((*it).first);
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+		for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
+			closeConnection((*it).second);
+		//nodeConnectionMap.clear();
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;
+		
 		shutdown(nSocket_accept, SHUT_RDWR);
 		close(nSocket_accept);
 		pthread_kill(k_thread, SIGUSR2);
 		//fprintf(stdout, NULL) ;
-		//pthread_mutex_lock(&connectionMapLock) ;
-		//pthread_mutex_unlock(&connectionMapLock) ;
 		//Signaling it's child
-		
 	}
 	if(nSig == SIGALRM)
 	{

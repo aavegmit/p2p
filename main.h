@@ -68,7 +68,6 @@ struct Message{
 	int buffer_len ;
 	uint8_t status_type ;	
 	int errorCode;
-
 } ;
 
 struct connectionNode{
@@ -92,6 +91,7 @@ extern int joinTimeOutFlag;
 extern int inJoinNetwork;
 extern int statusTimerFlag ;
 extern int node_pid;
+extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
 extern pthread_mutex_t connectionMapLock ;
@@ -103,6 +103,7 @@ struct Packet{
 	int status;								//  0 - originally Sent from here, 
 										//  1 - Forwarded from here, route back, else -1
 	int sockfd ;
+	int msgLifeTime;	
 };
 
 extern map<string, struct Packet> MessageDB ;					// Keeps a track of all the messages it sends/forwards
@@ -114,7 +115,7 @@ void *timer_thread(void *) ;
 void *accept_connectionsT(void *);						// Waits for other nodes to connect
 void *read_thread(void *) ;
 void *write_thread(void *) ;
-
+void *connectBeacon(void *);
 
 // Function declarations
 int isBeaconNode(struct node n);
@@ -127,6 +128,9 @@ void closeConnection(int) ;
 void joinNetwork() ;
 void getStatus() ;
 void writeToStatusFile() ;
+unsigned char *createLogEntry(unsigned char mode, int origin, unsigned char header[HEADER_SIZE], unsigned char *buffer);
+void writeLogEntry(unsigned char *logEntry);
+void eraseValueInMap(int val);
 extern unsigned char *GetUOID(char *, unsigned char *, long unsigned int) ;
 
 

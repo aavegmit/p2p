@@ -1,3 +1,3 @@
-- test shutdown with non beacon after joining code from aaveg
-- notify message scenaiors, rest of the three
-
+- files should be in direcotrires
+- clear up the code, remove prints and everything
+- clean up code, memcpy and strncpy, replace all

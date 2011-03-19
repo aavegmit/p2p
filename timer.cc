@@ -41,21 +41,30 @@ void *timer_thread(void *arg){
 				}
 			}
 		}
+
 		//KeepAliveTimeOut
-		pthread_mutex_lock(&connectionMapLock) ;
-		if(!connectionMap.empty() && !inJoinNetwork)
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+		if(!nodeConnectionMap.empty() && !inJoinNetwork)
 		{
-			for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
-				if((*it).second.keepAliveTimeOut > 0)
-					(*it).second.keepAliveTimeOut--;
+			//printf("My Map size is: %d\n", (int)nodeConnectionMap.size());
+			for (map<struct node, int >::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ){
+			//printf("Values in my mAP are: %s, %d\n", (*it).first.hostname, (*it).first.portNo);
+			pthread_mutex_lock(&connectionMapLock) ;
+				if(connectionMap[(*it).second].keepAliveTimeOut > 0)
+				{
+					connectionMap[(*it).second].keepAliveTimeOut--;
+					it++;
+				}
 				else
 				{
-					if((*it).second.keepAliveTimeOut == 0)
+					if(connectionMap[(*it).second].keepAliveTimeOut == 0)
 					{
-						printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
-						(*it).second.keepAliveTimeOut=-1;
+						//printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
+						connectionMap[(*it).second].keepAliveTimeOut=-1;
 						pthread_mutex_unlock(&connectionMapLock) ;
-						closeConnection((*it).first);
+						closeConnection((*it).second);
+						//nodeConnectionMap.erase((*it).first);
+						nodeConnectionMap.erase(it++);
 						pthread_mutex_lock(&connectionMapLock) ;
 						//close((*it).first);
 						//toBeClosed = (*it).first;
@@ -65,10 +74,15 @@ void *timer_thread(void *arg){
 						//connectionMap.erase((*it).first);
 						//it--;
 					}
+					else
+						it++;
+					
 				}
+			pthread_mutex_unlock(&connectionMapLock) ;
 			}
 		}
-		pthread_mutex_unlock(&connectionMapLock) ;
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;
+
 		//Auto-ShutDown Timer
 		if(!inJoinNetwork)
 		{
@@ -99,7 +113,35 @@ void *timer_thread(void *arg){
 			}
 
 		}
-
+		
+		//MsgLifetime timer
+		if(!inJoinNetwork)
+		{
+			pthread_mutex_lock(&MessageDBLock) ;
+			map<string, struct Packet>::iterator it_temp;
+			for(map<string, struct Packet>::iterator it = MessageDB.begin(); it != MessageDB.end(); )
+			{
+				if((*it).second.msgLifeTime > 0)
+				{
+					(*it).second.msgLifeTime--;
+					++it;
+					continue;
+				}
+				else
+				{
+					if((*it).second.msgLifeTime == 0)
+					{
+						//printf("This entry has been erased\n");
+						//it_temp = it;
+						//it++;	
+						MessageDB.erase((it)++);
+					}
+					else
+						++it;
+				}
+			}
+			pthread_mutex_unlock(&MessageDBLock) ;
+		}
 
 
 	}

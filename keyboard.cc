@@ -8,7 +8,7 @@
 
 void *keyboard_thread(void *arg){
 	fd_set rfds;
-	struct timeval tv;
+	//struct timeval tv;
 	char *inp = new char[512] ;
 	memset(inp, '\0', 512) ;
 	FD_ZERO(&rfds);
@@ -17,13 +17,12 @@ void *keyboard_thread(void *arg){
         //alarm(myInfo->autoShutDown);
         
 	while(1){
-	memset(&tv, 0, sizeof(tv));
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
+	//memset(&tv, 0, sizeof(tv));
+	//tv.tv_sec = 1;
+	//tv.tv_usec = 0;
 	printf("servant:%d> ", myInfo->portNo) ;
 	if(shutDown)
 		break;
-	
 	fgets(inp, 511, stdin);
 	
 	if(shutDown)
@@ -60,11 +59,16 @@ void *keyboard_thread(void *arg){
 			sigaddset(&new_t, SIGUSR2);
 			pthread_sigmask(SIG_BLOCK, &new_t, NULL);
 
-			for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
-			{
-				if((*it).second.isReady == 2)	//closeConnection((*it).first);
-					notifyMessageSend((*it).first, 1);
+			//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+				pthread_mutex_lock(&connectionMapLock) ;
+				if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
+					notifyMessageSend((*it).second, 1);
+				pthread_mutex_unlock(&connectionMapLock) ;
+				//printf("Hi I am here\n");
 			}
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
 			kill(node_pid, SIGTERM);
 			break;
@@ -86,6 +90,7 @@ void *keyboard_thread(void *arg){
 		}
 
 		memset(inp, '\0', 512) ;	
+//		fflush(stdin);
 	}
 	pthread_exit(0);
 	return 0;

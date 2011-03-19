@@ -56,6 +56,7 @@ void *write_thread(void *args){
 				header[1+i] = uoid[i] ;
 			struct Packet pk;
 			pk.status = 0 ;
+			pk.msgLifeTime = myInfo->msgLifeTime;
 			pthread_mutex_lock(&MessageDBLock) ;
 			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
 			pthread_mutex_unlock(&MessageDBLock) ;
@@ -109,7 +110,7 @@ void *write_thread(void *args){
 				host[255] = '\0' ;
 				len = strlen(host) + 6 ;
 				buffer = (unsigned char *)malloc(len) ;
-				memset(buffer, 0, len) ;
+				memset(buffer, '\0', len) ;
 				memcpy((unsigned char *)buffer, &(myInfo->location), 4) ;
 				memcpy((unsigned char *)&buffer[4], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[6], "%s",  host);
@@ -139,7 +140,7 @@ void *write_thread(void *args){
 				host[255] = '\0' ;
 				len = strlen(host) + 26 ;
 				buffer = (unsigned char *)malloc(len) ;
-				memset(buffer, 0, len) ;
+				memset(buffer, '\0', len) ;
 				memcpy(buffer, mes.uoid, 20) ;
 				memcpy(&buffer[20], &(mes.location), 4) ;
 				memcpy(&buffer[24], &(myInfo->portNo), 2) ;
@@ -156,21 +157,11 @@ void *write_thread(void *args){
 			//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
 
 			len = 0;
-			buffer = (unsigned char *)malloc(len+1) ;
+			buffer = (unsigned char *)malloc(len) ;
 			memset(buffer, '\0', len) ;
-			len = strlen((const char *)buffer) ;
+			//len = strlen((const char *)buffer) ;
 
 			header[0] = 0xf8;
-			//printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
-
-			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
-			struct Packet pk ;
-			pk.status = 0;
-			pthread_mutex_lock(&MessageDBLock) ;
-			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
-			pthread_mutex_unlock(&MessageDBLock) ;
-
-			memcpy((char *)&header[1], uoid, 20) ;
 			header[21]='1';
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
@@ -288,7 +279,15 @@ void *write_thread(void *args){
 			fprintf(stderr, "Socket Write Error") ;
 		}
 
-
+		unsigned char *logEntry = NULL;
+		if(mes.type != 0xfa)
+		{
+			if(!mes.status)
+				logEntry = createLogEntry('s', sockfd, header, buffer);
+			else
+				logEntry = createLogEntry('f', sockfd, header, buffer);
+			writeLogEntry(logEntry);	
+		}	
 
 		free(buffer) ;
 
@@ -516,12 +515,12 @@ void writeToStatusFile(){
 		char portS[20] ;
 		sprintf(portS, "%d", (*it).portNo) ;
 		fputs(portS, fp) ;
-//		if (isBeaconNode(*it) ){
+		if (isBeaconNode(*it)){
 			fputs(" -c blue -i blue\n", fp) ;
-//		}
-//		else{
-//			fputs(" -c black -i black\n", fp) ;
-//		}
+		}
+		else{
+			fputs(" -c black -i black\n", fp) ;
+		}
 	}
 	
 	for (set< set<struct node> >::iterator it = statusResponse.begin(); it != statusResponse.end() ; ++it){

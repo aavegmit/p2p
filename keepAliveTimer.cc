@@ -17,21 +17,26 @@ while(1)
 		printf("KeepAlive thread halted\n");
 		break;
 	}
-	for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
-	
-		if((*it).second.keepAliveTimer > 0)
-			(*it).second.keepAliveTimer--;
+	//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
+	pthread_mutex_lock(&nodeConnectionMapLock) ;
+	for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+				//printf("Hi I am here!!!!\n");
+		pthread_mutex_lock(&connectionMapLock) ;
+		if(connectionMap[(*it).second].keepAliveTimer > 0)
+			connectionMap[(*it).second].keepAliveTimer--;
 		else
 		{
-			if((*it).second.keepAliveTimeOut!=-1 && (*it).second.isReady==2)
+			if(connectionMap[(*it).second].keepAliveTimeOut!=-1 && connectionMap[(*it).second].isReady==2)
 			{
 				struct Message mes;
 				mes.type = 0xf8;
 				//printf("Sent Keep Alive Message to: %d\n", (*it).first);
-				pushMessageinQ((*it).first, mes);
+				pushMessageinQ((*it).second, mes);
 			}
 		}
+		pthread_mutex_unlock(&connectionMapLock) ;		
 	}
+	pthread_mutex_unlock(&nodeConnectionMapLock) ;
 }
 pthread_exit(0);
 return 0;

@@ -258,6 +258,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		pk.receivedFrom = n ;
 		pk.status = 1 ;
 		pk.sockfd = sockfd ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
 		pthread_mutex_lock(&MessageDBLock) ;
 		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ; 
 		pthread_mutex_unlock(&MessageDBLock) ;
@@ -370,6 +371,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		struct Packet pk;
 		pk.status = 1 ;
 		pk.sockfd = sockfd ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
 		pthread_mutex_lock(&MessageDBLock) ;
 		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ; 
 		pthread_mutex_unlock(&MessageDBLock) ;
@@ -397,7 +399,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 					m.buffer = (unsigned char *)malloc(buf_len) ;
 					m.buffer_len = buf_len ;
 					//					strncpy( (char *)m.buffer , (const char *)buffer , sizeof(buffer));
-					for (int i = 0 ; i < buf_len ; i++)
+					for (int i = 0 ; i < (int)buf_len ; i++)
 						m.buffer[i] = buffer[i] ;
 					m.status = 1 ;
 					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
@@ -442,7 +444,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				pthread_mutex_lock(&statusMsgLock) ;
 				if (statusTimerFlag){
 					int i = len1 + 22 ;
-					while ( i < buf_len){
+					while ( i < (int)buf_len){
 						unsigned int templen = 0 ;
 						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
 						if (templen == 0){
@@ -453,7 +455,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 						n1.portNo = 0 ;
 						memcpy((unsigned int *)&n1.portNo, &buffer[i], 2) ;
 						i += 2 ;
-						for (int h = 0 ; h < templen - 2 ; ++h)
+						for (int h = 0 ; h < (int)templen - 2 ; ++h)
 							n1.hostname[h] = buffer[i+h] ;
 						n1.hostname[templen-2] = '\0' ;
 						i = i +templen-2;
@@ -519,6 +521,7 @@ void *read_thread(void *args){
 	uint8_t ttl=0;
 	uint32_t data_len=0;
 	unsigned char uoid[20] ;
+	map<struct node, int>::iterator it;
 	//connectionMap[nSocket].myReadId = pthread_self();
 	//while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
 	while(!(connectionMap[nSocket].shutDown)  ){
@@ -530,18 +533,30 @@ void *read_thread(void *args){
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
+
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;
+						
 			closeConnection(nSocket);
 			break;
 		}
 		pthread_mutex_unlock(&connectionMapLock) ;
 
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
-		printf("Reading Header on : %d\n", (int)nSocket);
+		//printf("Reading Header on : %d\n", (int)nSocket);
 		//Check for the JoinTimeOutFlag
 		pthread_mutex_lock(&connectionMapLock) ;
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
 		}
@@ -549,6 +564,11 @@ void *read_thread(void *args){
 
 		if (return_code != HEADER_SIZE){
 			printf("Socket Read error...from header\n") ;
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			//pthread_exit(0);
 			break;
@@ -568,6 +588,11 @@ void *read_thread(void *args){
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
 		}
@@ -579,6 +604,11 @@ void *read_thread(void *args){
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
 		}
@@ -586,12 +616,24 @@ void *read_thread(void *args){
 
 		if (return_code != (int)data_len){
 			printf("Socket Read error...from data\n") ;
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
 		}
 		buffer[data_len] = '\0' ;
 
 		process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;
+		
+		// Writing data to log file, but first creating log entry
+		unsigned char *logEntry = createLogEntry('r', nSocket, header, buffer);
+		/*if(logEntry == NULL)
+			printf("Cannot write to file, entry returned is null\n");
+		else*/
+		writeLogEntry(logEntry);
 
 		free(buffer) ;
 	}
@@ -630,7 +672,7 @@ int isBeaconNode(struct node n)
 {
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
 //		printf("port: %d\n", (*it)->portNo);
-		if((strcmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
+		if((strcasecmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}
 	return false;
