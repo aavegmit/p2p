@@ -546,7 +546,6 @@ void *read_thread(void *args){
 		pthread_mutex_unlock(&connectionMapLock) ;
 
 		int return_code=(int)read(nSocket, header, HEADER_SIZE);
-		//printf("Reading Header on : %d\n", (int)nSocket);
 		//Check for the JoinTimeOutFlag
 		pthread_mutex_lock(&connectionMapLock) ;
 		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
