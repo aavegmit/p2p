@@ -87,7 +87,9 @@ void *write_thread(void *args){
 
 
 
-			sprintf((char *)&buffer[2], "%s",  host);
+//			sprintf((char *)&buffer[2], "%s",  host);
+			for (int i = 0 ; i < len - 2 ; ++i)
+				buffer[2+i] = host[i] ;
 			//Incrementing Ready STatus
 			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[sockfd].isReady++;
@@ -156,21 +158,21 @@ void *write_thread(void *args){
 			//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
 
 			len = 0;
-			buffer = (unsigned char *)malloc(len+1) ;
+			buffer = (unsigned char *)malloc(len) ;
 			memset(buffer, '\0', len) ;
-			len = strlen((const char *)buffer) ;
+//			len = strlen((const char *)buffer) ;
 
 			header[0] = 0xf8;
 			//printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
 
-			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
-			struct Packet pk ;
-			pk.status = 0;
-			pthread_mutex_lock(&MessageDBLock) ;
-			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
-			pthread_mutex_unlock(&MessageDBLock) ;
-
-			memcpy((char *)&header[1], uoid, 20) ;
+//			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
+//			struct Packet pk ;
+//			pk.status = 0;
+//			pthread_mutex_lock(&MessageDBLock) ;
+//			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
+//			pthread_mutex_unlock(&MessageDBLock) ;
+//
+//			memcpy((char *)&header[1], uoid, 20) ;
 			header[21]='1';
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
@@ -278,7 +280,8 @@ void *write_thread(void *args){
 		}
 
 
-		int return_code = (int)write(sockfd, header, HEADER_SIZE) ;
+		int return_code = 0 ;
+		return_code = (int)write(sockfd, header, HEADER_SIZE) ;
 		if (return_code != HEADER_SIZE){
 			fprintf(stderr, "Socket Write Error") ;
 		}
@@ -476,10 +479,10 @@ void joinNetwork(){
 
 // Method to flood the status requests
 void getStatus(){
-	printf("In get status method\n");
 
 	pthread_mutex_lock(&nodeConnectionMapLock) ;
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+	printf("In get status method\n");
 		struct Message m ;
 		m.type = 0xac ;
 		m.status = 0 ;
@@ -516,12 +519,12 @@ void writeToStatusFile(){
 		char portS[20] ;
 		sprintf(portS, "%d", (*it).portNo) ;
 		fputs(portS, fp) ;
-//		if (isBeaconNode(*it) ){
+		if (isBeaconNode(*it) ){
 			fputs(" -c blue -i blue\n", fp) ;
-//		}
-//		else{
-//			fputs(" -c black -i black\n", fp) ;
-//		}
+		}
+		else{
+			fputs(" -c black -i black\n", fp) ;
+		}
 	}
 	
 	for (set< set<struct node> >::iterator it = statusResponse.begin(); it != statusResponse.end() ; ++it){
@@ -543,12 +546,12 @@ void writeToStatusFile(){
 		fputs(portS, fp) ;
 		
 
-//		if (isBeaconNode(n1) && isBeaconNode(n2) ){
-//			fputs(" -c blue\n", fp) ;
-//		}
-//		else{
+		if (isBeaconNode(n1) && isBeaconNode(n2) ){
+			fputs(" -c blue\n", fp) ;
+		}
+		else{
 			fputs(" -c black\n", fp) ;
-//		}
+		}
 	}
 
 
