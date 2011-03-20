@@ -100,18 +100,20 @@ void *timer_thread(void *arg){
 
 		// Status timer flag
 		if (statusTimerFlag && !inJoinNetwork){
-			--myInfo->statusResponseTimeout ;
-			if (myInfo->statusResponseTimeout == 0){
+			if(myInfo->statusResponseTimeout > 0)
+				--myInfo->statusResponseTimeout ;
+			else //if (myInfo->statusResponseTimeout == 0){
+			{
+				// Write all the status responses in the output file
+				writeToStatusFile() ;
+				
 				// Reset the status timer flag
 				pthread_mutex_lock(&statusMsgLock) ;
 				statusTimerFlag = 0 ;
+				pthread_cond_signal(&statusMsgCV);
 				pthread_mutex_unlock(&statusMsgLock) ;
-
-				// Write all the status responses in the output file
-				writeToStatusFile() ;
-
+				
 			}
-
 		}
 		
 		//MsgLifetime timer

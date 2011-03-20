@@ -7,18 +7,18 @@ using namespace std ;
 void *accept_connectionsT(void *){
 	struct addrinfo hints, *servinfo, *p;
 	//int nSocket=0 ; // , portGiven = 0 , portNum = 0;
-	char portBuf[10] ;
+	unsigned char portBuf[10] ;
 	memset(portBuf, '\0', 10) ;
 
-	int rv ;
+	int rv = 0;
 	list<pthread_t > childThreadList_accept;
 	memset(&hints, 0, sizeof hints) ;
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
-	sprintf(portBuf, "%d", myInfo->portNo) ;
+	sprintf((char *)portBuf, "%d", myInfo->portNo) ;
 	// Code until connection establishment has been taken from the Beej's guide	
-	if ((rv = getaddrinfo(NULL, portBuf, &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(NULL, (char *)portBuf, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		exit(1) ;
 	}
@@ -190,19 +190,23 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		connectionMap[sockfd].isReady++;
 		pthread_mutex_unlock(&connectionMapLock) ;
 		memcpy((unsigned int *)&n.portNo, buffer, 2) ;
-		strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
+		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
+		for(unsigned int i=0;i < (unsigned int) strlen((char *)buffer)-2;i++)
+			n.hostname[i] = buffer[i+2];
+		n.hostname[strlen((char *)buffer)-2] = '\0';
 
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
-		if (!nodeConnectionMap[n]){
+		//if (!nodeConnectionMap[n]){
+		if (nodeConnectionMap.find(n)==nodeConnectionMap.end()){
 			printf("Adding %d in neighbor list\n", n.portNo) ;
 			nodeConnectionMap[n] = sockfd ;
 		}
 		else{
 
-			if(nodeConnectionMap[n]==sockfd){
+			/*if(nodeConnectionMap.find(n)!=nodeConnectionMap.end()){
 				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 				return;
-			}
+			}*/
 			// break one connection
 			if (myInfo->portNo < n.portNo){
 				// dissconect this connection
@@ -217,13 +221,21 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			}
 			else{
 				// Compare the hostname here
-				char host[256] ;
-				gethostname(host, 256) ;
+				unsigned char host[256] ;
+				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
-				//				if (strcmp() > 0){
-				//				}
-				//				else if(strcmp() < 0){
-				//				}
+				
+				if (strcmp((char *)host, n.hostname) < 0){
+				
+					closeConnection(sockfd) ;
+					nodeConnectionMap[n] = nodeConnectionMap[n] ;
+					printf("Have to break jj one connection\n") ;
+				}
+				else if(strcmp((char *)host, n.hostname) > 0){
+				
+					nodeConnectionMap[n] = sockfd;
+					printf("Have to break one connection with %d\n", n.portNo) ;					
+				}
 			}
 		}
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;
@@ -248,7 +260,10 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		struct node n ;
 		n.portNo = 0 ;
 		memcpy((unsigned int *)&n.portNo, &buffer[4], 2) ;
-		strcpy(n.hostname, const_cast<char *> ((char *)buffer+6)) ;
+		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+6)) ;
+		for(unsigned int i = 0;i<strlen(((char *)buffer)-6);i++)
+			n.hostname[i] = buffer[i+6];
+		n.hostname[strlen(((char *)buffer)-6)] = '\0';
 
 		printf("JOIN REQUEST for %s:%d received\n", n.hostname, n.portNo) ;
 
@@ -268,7 +283,10 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		m.type = 0xfb ;
 		m.status = 0;
 		m.ttl = 1 ;
-		strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+		//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+		for(unsigned int i = 0;i<SHA_DIGEST_LENGTH;i++)
+			m.uoid[i] = uoid[i];
+
 		printf("Location: %ld\n", location) ;
 		m.location = myInfo->location > location ?  myInfo->location - location : location - myInfo->location ;
 		printf("relative Location: %ld\n", m.location) ;
@@ -313,7 +331,11 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		struct node n ;
 		n.portNo = 0 ;
 		memcpy((unsigned int *)&n.portNo, &buffer[24], 2) ;
-		strcpy(n.hostname, const_cast<char *> ((char *)buffer+26)) ;
+		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+26)) ;
+		for(unsigned int i = 0;i < strlen((char *)buffer)-26;i++)
+			n.hostname[i] = buffer[i+26];
+		n.hostname[strlen((char *)buffer)-26] = '\0';
+
 
 		unsigned long int location = 0 ;
 		memcpy((unsigned int *)&location, &buffer[20], 4) ;
@@ -326,7 +348,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
 				struct joinResNode j;
 				j.portNo = n.portNo;
-				strncpy(j.hostname, n.hostname, 256) ;
+				//strncpy(j.hostname, n.hostname, 256) ;
+				for(int i=0;i<256;i++)
+					j.hostname[i] = n.hostname[i];
 				j.location = location ;
 				joinResponse.insert(j)  ;
 			}
@@ -382,7 +406,10 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		m.status = 0;
 		m.status_type = status_type ;
 		m.ttl = 1 ;
-		strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+		//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+		for(unsigned int i = 0;i<SHA_DIGEST_LENGTH;i++)
+			m.uoid[i] = uoid[i];
+			
 		pushMessageinQ(sockfd, m ) ;
 
 		--ttl ;
@@ -497,6 +524,11 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		char ch = buffer[0];
 		//memcpy(&ch, &buffer, buf_len);
 		printf("Recieved Notify message : %02x\n", ch);
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(sockfd);
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 		closeConnection(sockfd);
 	}
 	//KeepAlive message recieved
@@ -574,7 +606,9 @@ void *read_thread(void *args){
 			//return 0;
 		}
 		memcpy(&message_type, header, 1);
-		memcpy(uoid,       header+1, 20);
+		//memcpy(uoid,       header+1, 20);
+		for(int i=0;i<20;i++)
+			uoid[i] = header[i+1];
 		memcpy(&ttl,       header+21, 1);
 		memcpy(&data_len,  header+23, 4);
 

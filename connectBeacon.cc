@@ -26,6 +26,7 @@ int res = 0;
 				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 			
 				printf("Connecting to %s:%d\n", n.hostname, n.portNo) ;
+				//sleep(1);
 				resSock = connectTo((unsigned char *)n.hostname, n.portNo) ;
 				if (resSock == -1 ){
 				// Connection could not be established
@@ -87,8 +88,10 @@ int res = 0;
 						res = pthread_join((*it), &thread_result);
 						if (res != 0) {
 							perror("Thread join failed");
-							exit(EXIT_FAILURE);
+							//exit(EXIT_FAILURE);
 						}
+						it = myChildThreadList.erase(it);
+						--it;
 					}
 					if(shutDown)
 						break;

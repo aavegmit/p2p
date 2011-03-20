@@ -35,6 +35,7 @@ pthread_mutex_t connectionMapLock ;
 pthread_mutex_t nodeConnectionMapLock ;
 pthread_mutex_t MessageDBLock ;
 pthread_mutex_t statusMsgLock ;
+pthread_cond_t statusMsgCV;
 
 void my_handler(int nSig);
 
@@ -177,7 +178,11 @@ int main(int argc, char *argv[])
 		perror("Mutex initialization failed") ;
 	}
 
-
+	int cres = pthread_cond_init(&statusMsgCV, NULL) ;
+	if (cres != 0){
+		perror("CV initialization failed") ;
+	}
+	
 	void *thread_result ;
 
 
