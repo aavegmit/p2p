@@ -14,6 +14,7 @@ void *keyboard_thread(void *arg){
 	FD_ZERO(&rfds);
 	FD_SET(0, &rfds);
         signal(SIGUSR2, my_handler);
+        signal(SIGINT, my_handler);
         //alarm(myInfo->autoShutDown);
         
 	while(!shutDown){
@@ -64,20 +65,19 @@ void *keyboard_thread(void *arg){
 			//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
-				pthread_mutex_lock(&connectionMapLock) ;
-				if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
+				//pthread_mutex_lock(&connectionMapLock) ;
+				//if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
 					notifyMessageSend((*it).second, 1);
-				pthread_mutex_unlock(&connectionMapLock) ;
+				//pthread_mutex_unlock(&connectionMapLock) ;
 				//printf("Hi I am here\n");
 			}
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;
-
+			//sleep(1);
 			kill(node_pid, SIGTERM);
 			break;
 		}
 		else if(!strcasecmp(inp, "status\n"))
 		{
-			statusTimerFlag = 1 ;
 			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 2 ;
 			myInfo->status_ttl = 5 ;
 			strncpy(myInfo->status_file, "status.out", 256) ;
@@ -89,10 +89,16 @@ void *keyboard_thread(void *arg){
 			fputs("V -t * -v 1.0a5\n", fp) ;
 			fclose(fp) ;
 			getStatus() ;
+			
+			// waiting for status time out, so that command prompt can be returned
+			pthread_mutex_lock(&statusMsgLock) ;
+			statusTimerFlag = 1 ;
+			pthread_cond_wait(&statusMsgCV, &statusMsgLock);
+			pthread_mutex_unlock(&statusMsgLock) ;
 		}
 
 		memset(inp, '\0', 512) ;	
-//		fflush(stdin);
+		fflush(stdin);
 	}
 	pthread_exit(0);
 	return 0;

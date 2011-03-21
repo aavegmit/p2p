@@ -97,7 +97,7 @@ extern map<int, struct connectionNode> connectionMap ;				// Stores all the info
 extern list<pthread_t > childThreadList ;
 extern pthread_mutex_t connectionMapLock ;
 extern pthread_mutex_t statusMsgLock ;
-
+extern pthread_cond_t statusMsgCV;
 struct Packet{
 
 	struct node receivedFrom ;
