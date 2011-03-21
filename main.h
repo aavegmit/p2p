@@ -30,26 +30,26 @@ extern set< set<struct node> > statusResponse ;
 
 struct node{
 	unsigned int portNo;
-	char hostname[256];
+	unsigned char hostname[256];
 
 	bool operator<(const struct node& node1) const{
 		return node1.portNo < portNo ;
 	}
 	bool operator==(const struct node& node1) const{
-		return ((node1.portNo == portNo) && !strcmp(node1.hostname, hostname)) ;
+		return ((node1.portNo == portNo) && !strcmp((char *)node1.hostname, (char *)hostname)) ;
 	}
 };
 
 struct joinResNode{
 	unsigned int portNo;
-	char hostname[256];
+	unsigned char hostname[256];
 	unsigned long int location ;
 
 	bool operator<(const struct joinResNode& node1) const{
 		return node1.location > location ;
 	}
 	bool operator==(const struct joinResNode& node1) const{
-		return ((node1.portNo == portNo) && !strcmp(node1.hostname, hostname) && (node1.location == location)) ;
+		return ((node1.portNo == portNo) && !strcmp((char *)node1.hostname, (char *)hostname) && (node1.location == location)) ;
 	}
 };
 

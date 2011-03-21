@@ -21,11 +21,12 @@ void *write_thread(void *args){
 
 	while(!shutDown && !(connectionMap[sockfd].shutDown)){
 		if(connectionMap[sockfd].MessageQ.size() <= 0){
+//			printf("Hi I am on wait!!!!\n");
 			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 			pthread_cond_wait(&connectionMap[sockfd].mesQCv, &connectionMap[sockfd].mesQLock) ;
 			if (connectionMap[sockfd].shutDown)
 			{
-				pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;	
+				pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
 				break ;
 			}
 			mes = connectionMap[sockfd].MessageQ.front() ;
@@ -74,10 +75,10 @@ void *write_thread(void *args){
 			printf("Sending Hello Message\n") ;
 			header[0] = 0xfa;
 			header[21] = 0x01 ;
-			char host[256] ;
-			gethostname(host, 256) ;
+			unsigned char host[256] ;
+			gethostname((char *)host, 256) ;
 			host[255] = '\0' ;
-			len = strlen(host) + 2 ;
+			len = strlen((char *)host) + 2 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 
 			buffer = (unsigned char *)malloc(len) ;
@@ -107,10 +108,10 @@ void *write_thread(void *args){
 				len = mes.buffer_len ;
 			}
 			else{
-				char host[256] ;
-				gethostname(host, 256) ;
+				unsigned char host[256] ;
+				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
-				len = strlen(host) + 6 ;
+				len = strlen((char *)host) + 6 ;
 				buffer = (unsigned char *)malloc(len) ;
 				memset(buffer, '\0', len) ;
 				memcpy((unsigned char *)buffer, &(myInfo->location), 4) ;
@@ -137,13 +138,15 @@ void *write_thread(void *args){
 				len = mes.buffer_len ;
 			}
 			else{
-				char host[256] ;
-				gethostname(host, 256) ;
+				unsigned char host[256] ;
+				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
-				len = strlen(host) + 26 ;
+				len = strlen((char *)host) + 26 ;
 				buffer = (unsigned char *)malloc(len) ;
 				memset(buffer, '\0', len) ;
-				memcpy(buffer, mes.uoid, 20) ;
+				//memcpy(buffer, mes.uoid, 20) ;
+				for(unsigned int i = 0;i<20;i++)
+					buffer[i] = mes.uoid[i];
 				memcpy(&buffer[20], &(mes.location), 4) ;
 				memcpy(&buffer[24], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[26], "%s",  host);
@@ -188,7 +191,7 @@ void *write_thread(void *args){
 			else{
 				len = 1 ;
 				buffer = (unsigned char *)malloc(len) ;
-				memset(buffer, 0, len) ;
+				memset(buffer, '\0', len) ;
 				buffer[0] = mes.status_type ;
 			}
 
@@ -211,20 +214,22 @@ void *write_thread(void *args){
 				len = mes.buffer_len ;
 			}
 			else{
-				char host[256] ;
-				gethostname(host, 256) ;
+				unsigned char host[256] ;
+				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
-				unsigned int len1 = strlen(host) + 24 ;
+				unsigned int len1 = strlen((char *)host) + 24 ;
 				buffer = (unsigned char *)malloc(len1) ;
 				memset(buffer, 0, len1) ;
-				memcpy(buffer, mes.uoid, 20) ;
+				//memcpy(buffer, mes.uoid, 20) ;
+				for(unsigned int i=0;i<20;i++)
+					buffer[i] = mes.uoid[i];
 				unsigned int templen = len1 - 22 ;
 				memcpy(&buffer[20], &(templen), 2) ;
 				memcpy(&buffer[22], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[24], "%s",  host);
 				len  =  len1 ;
 				for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
-					unsigned int len2 = strlen((*it).first.hostname) + 2  ;
+					unsigned int len2 = strlen((char *)((*it).first.hostname)) + 2  ;
 					len += len2+4 ;
 					buffer = (unsigned char *)realloc(buffer, len) ;
 					++it ;
@@ -383,7 +388,10 @@ void joinNetwork(){
 			struct connectionNode cn ;
 			struct node n;
 			n.portNo = (*it)->portNo ;
-			strcpy(n.hostname, (const char *)(*it)->hostName) ;
+			//strcpy(n.hostname, (const char *)(*it)->hostName) ;
+			for(unsigned int i =0 ;i<strlen((const char *)(*it)->hostName);i++)
+				n.hostname[i] = (*it)->hostName[i];
+			n.hostname[strlen((const char *)(*it)->hostName)] = '\0';
 			//			nodeConnectionMap[n] = resSock ;
 
 			int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
@@ -462,17 +470,17 @@ void joinNetwork(){
 	if (fp==NULL){
 		fprintf(stderr, "Error in file open") ;
 	}
-	char tempPort[10] ;
+	unsigned char tempPort[10] ;
 	if (joinResponse.size() < myInfo->initNeighbor){
 		fprintf(stderr, "Failed to locate minimum number of nodes") ;
 		exit(0) ;
 	}
 	for (set<struct joinResNode>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
 		printf("Hostname: %s, Port: %d, location: %ld\n", (*it).hostname, (*it).portNo, (*it).location) ;
-		fputs((*it).hostname , fp) ;
+		fputs((char *)(*it).hostname , fp) ;
 		fputs(":", fp) ;
-		sprintf(tempPort, "%d", (*it).portNo) ;
-		fputs(tempPort, fp) ;
+		sprintf((char *)tempPort, "%d", (*it).portNo) ;
+		fputs((char *)tempPort, fp) ;
 		fputs("\n", fp) ;
 
 
@@ -507,7 +515,7 @@ void getStatus(){
 void writeToStatusFile(){
 	printf("Writing to the file\n") ;
 	pthread_mutex_lock(&statusMsgLock) ;
-	FILE *fp = fopen(myInfo->status_file, "a") ;
+	FILE *fp = fopen((char *)myInfo->status_file, "a") ;
 	if (fp == NULL){
 		fprintf(stderr, "File open failed\n") ;
 		exit(0) ;
@@ -525,9 +533,9 @@ void writeToStatusFile(){
 	
 	for (set< struct node >::iterator it = distinctNodes.begin(); it != distinctNodes.end() ; ++it){
 		fputs("n -t * -s ", fp) ;
-		char portS[20] ;
-		sprintf(portS, "%d", (*it).portNo) ;
-		fputs(portS, fp) ;
+		unsigned char portS[20] ;
+		sprintf((char *)portS, "%d", (*it).portNo) ;
+		fputs((char *)portS, fp) ;
 		if (isBeaconNode(*it) ){
 			fputs(" -c blue -i blue\n", fp) ;
 		}
@@ -545,14 +553,14 @@ void writeToStatusFile(){
 		++it1 ;
 		n2 = *it1 ;
 
-		char portS[20] ;
-		sprintf(portS, "%d", n1.portNo) ;
-		fputs(portS, fp) ;
+		unsigned char portS[20] ;
+		sprintf((char *) portS, "%d", n1.portNo) ;
+		fputs((char *)portS, fp) ;
 		fputs(" -d ", fp) ;
 		
 		memset(portS, '\0', 20) ;
-		sprintf(portS, "%d", n2.portNo) ;
-		fputs(portS, fp) ;
+		sprintf((char *)portS, "%d", n2.portNo) ;
+		fputs((char *)portS, fp) ;
 		
 
 		if (isBeaconNode(n1) && isBeaconNode(n2) ){

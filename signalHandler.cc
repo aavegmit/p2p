@@ -38,7 +38,7 @@ void my_handler(int nSig)
 	}
 
 	if (nSig == SIGUSR2) {
-		//printf("Signal Handling Success: %d\n", (int)pthread_self());
+		printf("Signal Handling Success: %d\n", (int)pthread_self());
 		//closeConnection(toBeClosed);
 		pthread_exit(0);
 	}

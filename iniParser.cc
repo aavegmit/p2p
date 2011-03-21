@@ -84,7 +84,7 @@ void printmyInfo()
 // removes white spaces from the line read from file
 void removeSpaces(unsigned char *readLine)
 {
-	char tempreadLine[512];
+	unsigned char tempreadLine[512];
 	int j=0;
 
 	for(int i=0;readLine[i]!='\0';i++)
@@ -115,8 +115,8 @@ void removeSpaces(unsigned char *readLine)
 
 	}
 	tempreadLine[j]='\0';
-	strncpy((char *)readLine, (char *)tempreadLine, strlen(tempreadLine));
-	readLine[strlen(tempreadLine)]='\0';
+	strncpy((char *)readLine, (char *)tempreadLine, strlen((char *)tempreadLine));
+	readLine[strlen((char *)tempreadLine)]='\0';
 }
 
 
@@ -431,7 +431,9 @@ void parseINIfile(unsigned char *fileName)
 					{
 						value=(unsigned char *)strtok((char *)key, ":");
 						struct beaconList *beaconNode = (struct beaconList *)malloc(sizeof(struct beaconList));
-						strncpy((char *)beaconNode->hostName, (char *)value, strlen((char *)value));
+						//strncpy((char *)beaconNode->hostName, (char *)value, strlen((char *)value));
+						for(unsigned int i=0;i<strlen((char *)value);i++)
+							beaconNode->hostName[i] = value[i];
 						beaconNode->hostName[strlen((char *)value)] = '\0';
 						value=(unsigned char *)strtok(NULL,":");
 						beaconNode->portNo = (unsigned int)atoi((char *)value);

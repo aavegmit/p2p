@@ -8,7 +8,7 @@
 
 void *keepAliveTimer_thread(void *arg){
 
-while(1)
+while(!shutDown)
 {
 	sleep(1);
 

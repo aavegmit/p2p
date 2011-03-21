@@ -9,7 +9,8 @@
 void *keyboard_thread(void *arg){
 	fd_set rfds;
 	//struct timeval tv;
-	char *inp = new char[512] ;
+	//char *inp = new char[512] ;
+	unsigned char inp[512];
 	memset(inp, '\0', 512) ;
 	FD_ZERO(&rfds);
 	FD_SET(0, &rfds);
@@ -17,14 +18,14 @@ void *keyboard_thread(void *arg){
         signal(SIGINT, my_handler);
         //alarm(myInfo->autoShutDown);
         
-	while(1){
+	while(!shutDown){
 	//memset(&tv, 0, sizeof(tv));
 	//tv.tv_sec = 1;
 	//tv.tv_usec = 0;
 	printf("servant:%d> ", myInfo->portNo) ;
 	if(shutDown)
 		break;
-	fgets(inp, 511, stdin);
+	fgets((char *)inp, 511, stdin);
 	
 	if(shutDown)
 		break;
@@ -53,13 +54,13 @@ void *keyboard_thread(void *arg){
 */           
            
            
-		if(!strcasecmp(inp, "shutdown\n"))
+		if(!strcasecmp((char *)inp, "shutdown\n"))
 		{
 			sigset_t new_t;
 			sigemptyset(&new_t);
 			sigaddset(&new_t, SIGUSR2);
 			pthread_sigmask(SIG_BLOCK, &new_t, NULL);
-
+			shutDown = 1;
 			//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
@@ -74,12 +75,12 @@ void *keyboard_thread(void *arg){
 			kill(node_pid, SIGTERM);
 			break;
 		}
-		else if(!strcasecmp(inp, "status\n"))
+		else if(!strcasecmp((char *)inp, "status\n"))
 		{
 			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 2 ;
 			myInfo->status_ttl = 5 ;
-			strncpy(myInfo->status_file, "status.out", 256) ;
-			FILE *fp = fopen(myInfo->status_file, "w") ;
+			strncpy((char *)myInfo->status_file, "status.out", 256) ;
+			FILE *fp = fopen((char *)myInfo->status_file, "w") ;
 			if (fp == NULL){
 				fprintf(stderr,"File open failed\n") ;
 				exit(0) ;
@@ -100,6 +101,5 @@ void *keyboard_thread(void *arg){
 	}
 	pthread_exit(0);
 	return 0;
-
 }
 

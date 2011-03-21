@@ -23,7 +23,7 @@ int nSocket_accept = 0;
 int statusTimerFlag = 0 ;
 unsigned char *fileName = NULL;
 pthread_t k_thread;
-FILE *f_log;
+FILE *f_log = NULL;
 struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
@@ -45,7 +45,7 @@ int usage()
 	return false;
 }
 
-int processCommandLine(int argc, char *argv[])
+int processCommandLine(int argc, unsigned char *argv[])
 {
 	int iniFlag=0;
 
@@ -57,21 +57,21 @@ int processCommandLine(int argc, char *argv[])
 		argv++;
 		if(*argv[0]=='-')
 		{
-			if(strcmp(*argv,"-reset")!=0)
+			if(strcmp((char *)(*argv),"-reset")!=0)
 				return usage();
 			else
 				resetFlag = 1;
 		}
 		else
 		{
-			if(strstr(*argv, ".ini")==NULL)
+			if(strstr((char *)*argv, ".ini")==NULL)
 				return usage();
 			else
 			{
-				int len = strlen(*argv);
+				int len = strlen((char *)*argv);
 				fileName = (unsigned char *)malloc(sizeof(unsigned char)*(len+1));
 				strncpy((char *)fileName, (char *)*argv, len);
-				fileName[len+1]='\0';
+				fileName[len]='\0';
 				iniFlag = 1;
 			}
 		}
@@ -117,7 +117,7 @@ void eraseValueInMap(int val)
 
 int main(int argc, char *argv[])
 {
-	if(!processCommandLine(argc, argv))
+	if(!processCommandLine(argc, (unsigned char**)argv))
 		exit(0);
 
 	populatemyInfo();
@@ -125,7 +125,10 @@ int main(int argc, char *argv[])
 	free(fileName) ;
 	//Checks if the node is beacon or not
 	struct node n;
-	strcpy(n.hostname, (char *)myInfo->hostName);
+	//strcpy((char *)n.hostname, (char *)myInfo->hostName);
+	for(int i=0;i<(int)strlen((char *)myInfo->hostName);i++)
+		n.hostname[i] = myInfo->hostName[i];
+	n.hostname[strlen((char *)myInfo->hostName)] = '\0';
 	n.portNo=myInfo->portNo;
 	myInfo->isBeacon = isBeaconNode(n);
 	
@@ -148,9 +151,9 @@ int main(int argc, char *argv[])
 	
 	// Assign a node ID and node instance id to this node
 	{
-		char host1[256] ;
+		unsigned char host1[256] ;
 		memset(host1, '\0', 256) ;
-		gethostname(host1, 256) ;
+		gethostname((char *)host1, 256) ;
 		host1[255] = '\0' ;
 		sprintf((char *)myInfo->node_id, "%s_%d", host1, myInfo->portNo) ;
 		printf("My node ID: %s\n", myInfo->node_id) ;
@@ -257,7 +260,7 @@ int main(int argc, char *argv[])
 				//n = NULL;
 				n->portNo = (*it)->portNo ;
 				//memcpy(&n.portNo, &(*it)->portNo, sizeof((*it)->portNo));
-				strcpy(n->hostname, (const char *)(*it)->hostName) ;
+				strncpy((char *)n->hostname, (const char *)(*it)->hostName, strlen((const char *)(*it)->hostName)) ;
 				//memcpy(n.hostname, (*it)->hostName, strlen((char *)(*it)->hostName)) ;
 				// Create a connect thread for this connection
 				pthread_t connect_thread ;
@@ -373,7 +376,7 @@ int main(int argc, char *argv[])
 		while(!shutDown)
 		{
 		
-		char nodeName[256];
+		unsigned char nodeName[256];
 		memset(&nodeName, '\0', 256);
 		printf("A regular node coming up...\n") ;
 
@@ -421,16 +424,16 @@ int main(int argc, char *argv[])
 		tempNeighborsList = new list<struct beaconList *>;
 		struct beaconList *b2;
 		//for(unsigned int i=0;i < myInfo->minNeighbor; i++)
-		while(fgets(nodeName, 255, f)!=NULL)
+		while(fgets((char *)nodeName, 255, f)!=NULL)
 		{
 			//fgets(nodeName, 255, f);
-			char *hostName = strtok(nodeName, ":");
-			char *portNo = strtok(NULL, ":");
+			unsigned char *hostName = (unsigned char *)strtok((char *)nodeName, ":");
+			unsigned char *portNo = (unsigned char *)strtok(NULL, ":");
 
 			b2 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-			strncpy((char *)b2->hostName, const_cast<char *>(hostName), strlen(hostName)) ;
-			b2->hostName[strlen(hostName)]='\0';
-			b2->portNo = atoi(portNo);
+			strncpy((char *)b2->hostName, (char *)(hostName), strlen((char *)hostName)) ;
+			b2->hostName[strlen((char *)hostName)]='\0';
+			b2->portNo = atoi((char *)portNo);
 			tempNeighborsList->push_back(b2) ;
 
 		}
@@ -455,7 +458,7 @@ int main(int argc, char *argv[])
 			for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end() && shutDown!=1; it++){
 				struct node n;
 				n.portNo = (*it)->portNo ;
-				strcpy(n.hostname, (const char *)(*it)->hostName) ;
+				strncpy((char *)n.hostname, (const char *)(*it)->hostName, 256) ;
 				pthread_mutex_lock(&nodeConnectionMapLock) ;
 				if (nodeConnectionMap[n]){
 					it = tempNeighborsList->erase(it) ;
@@ -488,7 +491,7 @@ int main(int argc, char *argv[])
 					struct connectionNode cn ;
 					struct node n;
 					n.portNo = (*it)->portNo ;
-					strcpy(n.hostname, (const char *)(*it)->hostName) ;
+					strncpy((char *)n.hostname, (const char *)(*it)->hostName, 256) ;
 					it = tempNeighborsList->erase(it) ;
 					--it ;
 //					nodeConnectionMap[n] = resSock ;

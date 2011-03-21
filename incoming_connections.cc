@@ -225,13 +225,13 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
 				
-				if (strcmp((char *)host, n.hostname) < 0){
+				if (strcmp((char *)host, (char *)n.hostname) < 0){
 				
 					closeConnection(sockfd) ;
 					nodeConnectionMap[n] = nodeConnectionMap[n] ;
 					printf("Have to break jj one connection\n") ;
 				}
-				else if(strcmp((char *)host, n.hostname) > 0){
+				else if(strcmp((char *)host, (char *)n.hostname) > 0){
 				
 					nodeConnectionMap[n] = sockfd;
 					printf("Have to break one connection with %d\n", n.portNo) ;					
@@ -705,7 +705,7 @@ int isBeaconNode(struct node n)
 {
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
 //		printf("port: %d\n", (*it)->portNo);
-		if((strcasecmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
+		if((strcasecmp((char *)n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}
 	return false;

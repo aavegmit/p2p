@@ -1,5 +1,5 @@
 - files should be in direcotrires
 - clear up the code, remove prints and everything
-- clean up code, memcpy and strncpy, replace all
 - notify message not printing properly in log file
 - Nocheck, parameter
+- restart non-beacon node when MinNeighbors is less

@@ -71,7 +71,7 @@ return msg_type;
 void dataFromBuffer(uint8_t message_type, unsigned char *buffer)
 {
 //unsigned char portNo[2];
-int portNo;
+unsigned int portNo;
 memset(&portNo, '\0', sizeof(portNo));
 unsigned char uoid[4];
 memset(&uoid, '\0', sizeof(uoid));
@@ -186,19 +186,21 @@ if(mode == 'r')
 // logging for read mode
 	sprintf((char *)finalData, "%c %10ld.%03d %s_%d %s %d %d %02x%02x%02x%02x %s\n", mode, tv.tv_sec, (int)(tv.tv_usec/1000), (char *)n.hostname, n.portNo, (char *)msg_type, (data_len + HEADER_SIZE),  ttl, uoid[0], uoid[1], uoid[2], uoid[3], (char *)data);
 printf("Final DATA is; %s\n", finalData);
-fflush(f_log);
+//fflush(f_log);
 }
 else if(mode == 's')
 {
 //log for messages sent
 	sprintf((char *)finalData, "%c %10ld.%03d %s_%d %s %d %d %02x%02x%02x%02x %s\n", mode, tv.tv_sec, (int)(tv.tv_usec/1000), (char *)n.hostname, n.portNo, (char *)msg_type, (data_len + HEADER_SIZE),  ttl, uoid[0], uoid[1], uoid[2], uoid[3], (char *)data);
-printf("Final DATA is; %s\n", finalData);	
+printf("Final DATA is; %s\n", finalData);
+//fflush(f_log);
 }
 else
 {
 // log for messages forwarded
 	sprintf((char *)finalData, "%c %10ld.%03d %s_%d %s %d %d %02x%02x%02x%02x %s\n", mode, tv.tv_sec, (int)(tv.tv_usec/1000), (char *)n.hostname, n.portNo, (char *)msg_type, (data_len + HEADER_SIZE),  ttl, uoid[0], uoid[1], uoid[2], uoid[3], (char *)data);
 printf("Final DATA is; %s\n", finalData);	
+//fflush(f_log);
 }
 
 return finalData;
@@ -207,4 +209,5 @@ return finalData;
 void writeLogEntry(unsigned char *tobewrittendata)
 {
 	fprintf(f_log, "%s", tobewrittendata);
+	fflush(f_log);
 }
