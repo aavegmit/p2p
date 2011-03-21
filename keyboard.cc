@@ -60,7 +60,9 @@ void *keyboard_thread(void *arg){
 			sigemptyset(&new_t);
 			sigaddset(&new_t, SIGUSR2);
 			pthread_sigmask(SIG_BLOCK, &new_t, NULL);
-			shutDown = 1;
+
+			shutDown = 1 ;
+
 			//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){

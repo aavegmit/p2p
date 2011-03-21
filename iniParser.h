@@ -39,6 +39,7 @@ struct myStartInfo
 	unsigned int status_ttl ;
 	unsigned char status_file[256] ;
 	unsigned int statusResponseTimeout ;
+	unsigned int checkResponseTimeout ;
 };
 
 extern struct myStartInfo *myInfo;

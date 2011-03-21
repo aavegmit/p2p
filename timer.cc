@@ -116,6 +116,23 @@ void *timer_thread(void *arg){
 			}
 		}
 		
+		// CHECK timer flag
+		if (checkTimerFlag && !inJoinNetwork){
+			--myInfo->checkResponseTimeout ;
+//			printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
+			if (myInfo->checkResponseTimeout <= 0){
+				// Reset the status timer flag
+				checkTimerFlag = 0 ;
+				
+
+				// Write all the status responses in the output file
+				printf("No response from any beacon node. You are disconnected from the network. Connect again\n") ;
+//				writeToStatusFile() ;
+
+			}
+
+		}
+		
 		//MsgLifetime timer
 		if(!inJoinNetwork)
 		{

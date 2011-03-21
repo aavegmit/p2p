@@ -10,9 +10,9 @@ unsigned char msg_type[4];
 struct node n;
 void getNeighbor(int sockfd)
 {
-//struct node *n = (struct node *)malloc(sizeof(struct node));
-//memset(&n, NULL, sizeof(n));
-pthread_mutex_lock(&nodeConnectionMapLock);
+	//struct node *n = (struct node *)malloc(sizeof(struct node));
+	//memset(&n, NULL, sizeof(n));
+	pthread_mutex_lock(&nodeConnectionMapLock);
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
 		if((*it).second == sockfd)
 		{
@@ -20,52 +20,52 @@ pthread_mutex_lock(&nodeConnectionMapLock);
 			break;
 		}
 	}
-pthread_mutex_unlock(&nodeConnectionMapLock);	
+	pthread_mutex_unlock(&nodeConnectionMapLock);	
 }
 
 unsigned char* messageType(uint8_t message_type)
 {
-//char *msg_type = (char *)malloc(sizeof(char)*4);
-//char msg_type[4];
-memset(&msg_type, '\0', 4);
-const char *temp_msg_type;
+	//char *msg_type = (char *)malloc(sizeof(char)*4);
+	//char msg_type[4];
+	memset(&msg_type, '\0', 4);
+	const char *temp_msg_type;
 
 	switch(message_type)
 	{
-		
+
 		case 0xfc : 	//strncpy((char *)msg_type, "JNRQ", 4);
-				temp_msg_type = "JNRQ";
-				break;
+			temp_msg_type = "JNRQ";
+			break;
 		case 0xfb : 	//strncpy((char *)msg_type, "JNRS", 4);
-				temp_msg_type ="JNRS";
-				break; 
+			temp_msg_type ="JNRS";
+			break; 
 		case 0xfa : 	//strncpy((char *)msg_type, "HLLO", 4);
-				temp_msg_type ="HLLO";
-				break;
+			temp_msg_type ="HLLO";
+			break;
 		case 0xf8 : 	//strncpy((char *)msg_type, "KPAV", 4);
-				temp_msg_type ="KPAV";
-				break;
+			temp_msg_type ="KPAV";
+			break;
 		case 0xf7 : 	//strncpy((char *)msg_type, "NTFY", 4);
-				temp_msg_type ="NTFY";
-				break;
+			temp_msg_type ="NTFY";
+			break;
 		case 0xf6 : 	//strncpy((char *)msg_type, "CKRQ", 4);
-				temp_msg_type ="CKRQ";
-				break;
+			temp_msg_type ="CKRQ";
+			break;
 		case 0xf5 : 	//strncpy((char *)msg_type, "CKRS", 4);
-				temp_msg_type ="CKRS";
-				break;
+			temp_msg_type ="CKRS";
+			break;
 		case 0xac : 	//strncpy((char *)msg_type, "STRQ", 4);
-				temp_msg_type ="STRQ";
-				break;
+			temp_msg_type ="STRQ";
+			break;
 		case 0xab : 	//strncpy((char *)msg_type, "STRS", 4);
-				temp_msg_type ="STRS";
-				break;
+			temp_msg_type ="STRS";
+			break;
 		default : break;
 	}
-for(unsigned int i=0;i<4;i++)
-	msg_type[i]=temp_msg_type[i];
-msg_type[4] = '\0';
-return msg_type;
+	for(unsigned int i=0;i<4;i++)
+		msg_type[i]=temp_msg_type[i];
+	msg_type[4] = '\0';
+	return msg_type;
 }
 
 void dataFromBuffer(uint8_t message_type, unsigned char *buffer)
@@ -85,49 +85,49 @@ int statusType = 0;
 	switch(message_type)
 	{
 		case 0xfc : 	//Join Request
-				memcpy(&portNo, buffer+4, 2) ;
-				for(unsigned int i=0;i < strlen((char *)buffer)-6;i++)
-					hostName[i] = buffer[i+6];
-				//strncpy((char *)hostName, (char *)buffer+2, strlen((char *)buffer)-2) ;
-				sprintf((char *)data, "%d %s", portNo, (char *)hostName);
-				break;
-				
+			memcpy(&portNo, buffer+4, 2) ;
+			for(unsigned int i=0;i < strlen((char *)buffer)-6;i++)
+				hostName[i] = buffer[i+6];
+			//strncpy((char *)hostName, (char *)buffer+2, strlen((char *)buffer)-2) ;
+			sprintf((char *)data, "%d %s", portNo, (char *)hostName);
+			break;
+
 		case 0xfb : 	//Join Response
-				//memcpy(uoid, &buffer[17], 4);
-				for(unsigned int i=0;i < 4;i++)
-					uoid[i] = buffer[17+i];
-				memcpy(&distance, &buffer[20], 4) ;
-				memcpy(&portNo, &buffer[24], 2) ;
-				for(unsigned int i=26;buffer[i]!='\0';i++)
-					hostName[i-26] = buffer[i];
-				//strncpy((char *)hostName, ((char *)buffer+26), strlen((char *)buffer)-26) ;
-				sprintf((char *)data, "%02x%02x%02x%02x %ld %d %s", uoid[0], uoid[1], uoid[2], uoid[3], distance, portNo, hostName);
-				break; 
-				
+			//memcpy(uoid, &buffer[17], 4);
+			for(unsigned int i=0;i < 4;i++)
+				uoid[i] = buffer[17+i];
+			memcpy(&distance, &buffer[20], 4) ;
+			memcpy(&portNo, &buffer[24], 2) ;
+			for(unsigned int i=26;buffer[i]!='\0';i++)
+				hostName[i-26] = buffer[i];
+			//strncpy((char *)hostName, ((char *)buffer+26), strlen((char *)buffer)-26) ;
+			sprintf((char *)data, "%02x%02x%02x%02x %ld %d %s", uoid[0], uoid[1], uoid[2], uoid[3], distance, portNo, hostName);
+			break; 
+
 		case 0xfa : 	//Hello Message
-				memcpy(&portNo, buffer, 2) ;
-				//strncpy((char *)hostName, (char *)buffer+2, strlen((char *)buffer)-2) ;
-				for(unsigned int i=0;i < strlen((char *)buffer)-2;i++)
-					hostName[i] = buffer[i+2];
-				sprintf((char *)data, "%d %s", portNo, (char *)hostName);
-				break;
-				
+			memcpy(&portNo, buffer, 2) ;
+			//strncpy((char *)hostName, (char *)buffer+2, strlen((char *)buffer)-2) ;
+			for(unsigned int i=0;i < strlen((char *)buffer)-2;i++)
+				hostName[i] = buffer[i+2];
+			sprintf((char *)data, "%d %s", portNo, (char *)hostName);
+			break;
+
 		case 0xf8 : 	//msg_type = "KPAV"
-				break;
+			break;
 		case 0xf7 : 	//msg_type = "NTFY"
-				memcpy(&errorCode, buffer, 1);
-				sprintf((char *)data, "%d", errorCode);
-				break;
+			memcpy(&errorCode, buffer, 1);
+			sprintf((char *)data, "%d", errorCode);
+			break;
 		case 0xf6 : 	//msg_type = "CKRQ"
-				break;
+			break;
 		case 0xf5 : 	//msg_type = "CKRS"
-				break;
+			break;
 		case 0xac : 	//msg_type = "STRQ"
-				memcpy(&statusType, buffer, 1) ;
-				sprintf((char *)data, "%d", statusType);				
-				break;
+			memcpy(&statusType, buffer, 1) ;
+			sprintf((char *)data, "%d", statusType);				
+			break;
 		case 0xab : 	//msg_type = "STRS"
-				break;
+			break;
 	}
 }
 
@@ -203,7 +203,7 @@ printf("Final DATA is; %s\n", finalData);
 //fflush(f_log);
 }
 
-return finalData;
+	return finalData;
 }
 
 void writeLogEntry(unsigned char *tobewrittendata)

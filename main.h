@@ -90,6 +90,7 @@ extern int toBeClosed;
 extern int joinTimeOutFlag;
 extern int inJoinNetwork;
 extern int statusTimerFlag ;
+extern int checkTimerFlag ;
 extern int node_pid;
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
@@ -121,7 +122,6 @@ void *connectBeacon(void *);
 int isBeaconNode(struct node n);
 int connectTo(unsigned char *, unsigned int) ;
 extern pthread_t k_thread;
-//void pushMessageinQ(int, uint8_t, unsigned long int) ;
 void notifyMessageSend(int resSock, int errorCode);
 void pushMessageinQ(int, struct Message ) ;
 void closeConnection(int) ;
@@ -132,5 +132,6 @@ unsigned char *createLogEntry(unsigned char mode, int origin, unsigned char head
 void writeLogEntry(unsigned char *logEntry);
 void eraseValueInMap(int val);
 extern unsigned char *GetUOID(char *, unsigned char *, long unsigned int) ;
+void initiateCheck() ;
 
 
