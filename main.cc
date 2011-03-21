@@ -21,7 +21,10 @@ int inJoinNetwork = 0;
 int node_pid;
 int nSocket_accept = 0;
 int statusTimerFlag = 0 ;
+int checkTimerFlag = 0 ;
 unsigned char *fileName = NULL;
+
+
 pthread_t k_thread;
 FILE *f_log;
 struct myStartInfo *myInfo ;
@@ -84,6 +87,11 @@ int processCommandLine(int argc, char *argv[])
 
 void closeConnection(int sockfd){
 
+	// Initiate a CHECK message
+	if (!myInfo->isBeacon && !shutDown){
+		printf("Inititating CHECK message\n") ;
+////		initiateCheck() ;
+	}
 	// Set the shurdown flag for this connection
 	pthread_mutex_lock(&connectionMapLock) ;
 	(connectionMap[sockfd]).shutDown = 1 ;
@@ -100,6 +108,7 @@ void closeConnection(int sockfd){
 //	pthread_cancel(connectionMap[sockfd].myReadId);
 //	pthread_cancel(connectionMap[sockfd].myWriteId);
 	printf("This socket has been closed: %d\n", sockfd);
+
 }
 
 void eraseValueInMap(int val)
@@ -609,6 +618,9 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	childThreadList.push_front(t_thread);
+
+	printf("here2\n") ;
+
 
 	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
 		printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());

@@ -1,16 +1,1 @@
 V -t * -v 1.0a5
-<<<<<<< HEAD
-n -t * -s 12319 -c black -i black
-n -t * -s 12318 -c blue -i blue
-n -t * -s 12313 -c black -i black
-n -t * -s 12312 -c black -i black
-n -t * -s 12311 -c blue -i blue
-l -t * -s 12319 -d 12318 -c black
-l -t * -s 12319 -d 12311 -c black
-l -t * -s 12318 -d 12313 -c black
-l -t * -s 12318 -d 12311 -c black
-l -t * -s 12313 -d 12312 -c black
-l -t * -s 12313 -d 12311 -c black
-l -t * -s 12312 -d 12311 -c black
-=======
->>>>>>> 1d85ebecefb6052587666312846024626f509397

@@ -45,7 +45,7 @@ void my_handler(int nSig)
 	if(nSig == SIGTERM)
 	{
 		//printf("Signal Handling SIGTERM %d\n", (int)pthread_self());
-		shutDown = 1;
+//		shutDown = 1;
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
 			closeConnection((*it).second);

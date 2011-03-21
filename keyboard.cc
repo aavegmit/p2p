@@ -16,7 +16,7 @@ void *keyboard_thread(void *arg){
         signal(SIGUSR2, my_handler);
         //alarm(myInfo->autoShutDown);
         
-	while(1){
+	while(!shutDown){
 	//memset(&tv, 0, sizeof(tv));
 	//tv.tv_sec = 1;
 	//tv.tv_usec = 0;
@@ -58,6 +58,8 @@ void *keyboard_thread(void *arg){
 			sigemptyset(&new_t);
 			sigaddset(&new_t, SIGUSR2);
 			pthread_sigmask(SIG_BLOCK, &new_t, NULL);
+
+			shutDown = 1 ;
 
 			//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
 			pthread_mutex_lock(&nodeConnectionMapLock) ;

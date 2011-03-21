@@ -11,7 +11,7 @@
 
 void *timer_thread(void *arg){
 
-	while(1){
+	while(!shutDown){
 
 		sleep(1) ;
 
@@ -101,7 +101,7 @@ void *timer_thread(void *arg){
 		// Status timer flag
 		if (statusTimerFlag && !inJoinNetwork){
 			--myInfo->statusResponseTimeout ;
-			if (myInfo->statusResponseTimeout == 0){
+			if (myInfo->statusResponseTimeout <= 0){
 				// Reset the status timer flag
 				pthread_mutex_lock(&statusMsgLock) ;
 				statusTimerFlag = 0 ;
@@ -109,6 +109,23 @@ void *timer_thread(void *arg){
 
 				// Write all the status responses in the output file
 				writeToStatusFile() ;
+
+			}
+
+		}
+		
+		// CHECK timer flag
+		if (checkTimerFlag && !inJoinNetwork){
+			--myInfo->checkResponseTimeout ;
+//			printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
+			if (myInfo->checkResponseTimeout <= 0){
+				// Reset the status timer flag
+				checkTimerFlag = 0 ;
+				
+
+				// Write all the status responses in the output file
+				printf("No response from any beacon node. You are disconnected from the network. Connect again\n") ;
+//				writeToStatusFile() ;
 
 			}
 

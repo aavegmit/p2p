@@ -152,14 +152,14 @@ void *accept_connectionsT(void *){
 		}
 
 	}
-	
+
 	/*for (list<pthread_t >::iterator it = childThreadList_accept.begin(); it != childThreadList_accept.end(); ++it){
-		int res = pthread_kill((*it), SIGUSR1);
-		if(res!=0){
-			perror("pthread_kill failed");
-			exit(EXIT_FAILURE);
-			//continue;
-		}
+	  int res = pthread_kill((*it), SIGUSR1);
+	  if(res!=0){
+	  perror("pthread_kill failed");
+	  exit(EXIT_FAILURE);
+	//continue;
+	}
 	}*/
 	void *thread_result ;
 	for (list<pthread_t >::iterator it = childThreadList_accept.begin(); it != childThreadList_accept.end(); ++it){
@@ -460,8 +460,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 						n1.hostname[templen-2] = '\0' ;
 						i = i +templen-2;
 						//					strncpy(n.hostname, const_cast<char *> ((char *)buffer+i) , templen - 2   ) ;
-//						printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
-						printf("%s\n", n1.hostname) ;
+						printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
+						//			printf("%s\n", n1.hostname) ;
 						set <struct node> tempset ;
 						tempset.insert(n) ;
 						tempset.insert(n1) ;
@@ -492,11 +492,120 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			}
 		}
 	}
+	else if(type == 0xf6){
+		printf("CHECK message received\n") ;
+
+		// Check if the message has already been received or not
+		pthread_mutex_lock(&MessageDBLock) ;
+		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
+			printf("Message has already been received.\n") ;
+			pthread_mutex_unlock(&MessageDBLock) ;
+			return ;
+		}
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		unsigned int status_type = 0 ;
+		memcpy((unsigned int *)&status_type, buffer, 1) ;
+
+		struct Packet pk;
+		pk.status = 1 ;
+		pk.sockfd = sockfd ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ; 
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		// Respond the sender with the check response, only if its a beacon node
+		if (myInfo->isBeacon){
+			struct Message m ;
+			m.type = 0xf5 ;
+			m.status = 0;
+			m.ttl = 1 ;
+			for (int i = 0 ; i < SHA_DIGEST_LENGTH ; ++i)
+				m.uoid[i] = uoid[i] ;
+			//			strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+			pushMessageinQ(sockfd, m ) ;
+		}
+		else{
+
+			--ttl ;
+			// Push the request message in neighbors queue
+			if (ttl >= 1 && myInfo->ttl > 0){
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+					if( !((*it).second == sockfd)){
+						printf("Check msg send to: %d\n", (*it).first.portNo) ;
+
+						struct Message m ;
+						m.type = 0xf6 ;
+						m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+						m.buffer = (unsigned char *)malloc(buf_len) ;
+						m.buffer_len = buf_len ;
+						for (int i = 0 ; i < (int)buf_len ; i++)
+							m.buffer[i] = buffer[i] ;
+						m.status = 1 ;
+						memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
+						for (int i = 0 ; i < 20 ; i++)
+							m.uoid[i] = uoid[i] ;
+						pushMessageinQ((*it).second, m) ;
+					}
+				}
+				pthread_mutex_unlock(&nodeConnectionMapLock);
+			}
+		}
+
+	}
+	else if (type == 0xf5){
+		printf("Check response received\n") ;
+		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;
+		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
+			original_uoid[i] = buffer[i] ;
+
+
+		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
+			printf("Status request was never forwarded from this node.\n") ;
+			return ;
+		}
+		else{
+			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
+				if (checkTimerFlag){
+					// Dsicard fuether messages, since only one respose
+					// is required to prove that the node is still connected
+					// to the core network
+					checkTimerFlag = 0 ;
+					printf("Dont worry!! You are still connected to the core SERVANT network\n") ;
+				}
+
+			}
+			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){
+				// Message was forwarded from this node, see the receivedFrom member
+				struct Message m;
+				pthread_mutex_lock(&MessageDBLock) ;
+				int return_sock = MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].sockfd ;
+				pthread_mutex_unlock(&MessageDBLock) ;
+
+				m.type = type ;
+				m.buffer = (unsigned char *)malloc((buf_len + 1)) ;
+				m.buffer[buf_len] = '\0' ;
+				m.buffer_len = buf_len ;
+				for (int i = 0 ; i < (int)buf_len; i++)
+					m.buffer[i] = buffer[i] ;
+				m.ttl = 1 ;
+				m.status = 1 ;
+				pushMessageinQ(return_sock, m) ;
+			}
+		}
+	}
 	else if(type == 0xf7)
 	{
 		char ch = buffer[0];
 		//memcpy(&ch, &buffer, buf_len);
 		printf("Recieved Notify message : %02x\n", ch);
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+		//it = nodeConnectionMap.find(nSocket);
+		//nodeConnectionMap.erase(it);
+		eraseValueInMap(sockfd);				
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 		closeConnection(sockfd);
 	}
 	//KeepAlive message recieved
@@ -505,7 +614,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 	if(connectionMap.find(sockfd)!=connectionMap.end())
 		connectionMap[sockfd].keepAliveTimeOut = myInfo->keepAliveTimeOut;
 	pthread_mutex_unlock(&connectionMapLock) ;
-		//	if(connectionMap[sockfd].keepAliveTimer!=0)
+	//	if(connectionMap[sockfd].keepAliveTimer!=0)
 }
 
 
@@ -516,7 +625,7 @@ void *read_thread(void *args){
 	unsigned char *buffer ;
 	//signal(SIGUSR1, my_handler);
 	//printf("My Id is read: %d\n", (int)pthread_self());
-	
+
 	uint8_t message_type=0;
 	uint8_t ttl=0;
 	uint32_t data_len=0;
@@ -535,11 +644,11 @@ void *read_thread(void *args){
 			pthread_mutex_unlock(&connectionMapLock) ;
 
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
-				//it = nodeConnectionMap.find(nSocket);
-				//nodeConnectionMap.erase(it);
-				eraseValueInMap(nSocket);
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(nSocket);
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;
-						
+
 			closeConnection(nSocket);
 			break;
 		}
@@ -552,9 +661,9 @@ void *read_thread(void *args){
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
-				//it = nodeConnectionMap.find(nSocket);
-				//nodeConnectionMap.erase(it);
-				eraseValueInMap(nSocket);
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(nSocket);
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
@@ -564,9 +673,9 @@ void *read_thread(void *args){
 		if (return_code != HEADER_SIZE){
 			printf("Socket Read error...from header\n") ;
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
-				//it = nodeConnectionMap.find(nSocket);
-				//nodeConnectionMap.erase(it);
-				eraseValueInMap(nSocket);				
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(nSocket);				
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			//pthread_exit(0);
@@ -588,9 +697,9 @@ void *read_thread(void *args){
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
-				//it = nodeConnectionMap.find(nSocket);
-				//nodeConnectionMap.erase(it);
-				eraseValueInMap(nSocket);				
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(nSocket);				
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
@@ -604,9 +713,9 @@ void *read_thread(void *args){
 		{
 			pthread_mutex_unlock(&connectionMapLock) ;
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
-				//it = nodeConnectionMap.find(nSocket);
-				//nodeConnectionMap.erase(it);
-				eraseValueInMap(nSocket);				
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(nSocket);				
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
@@ -616,9 +725,9 @@ void *read_thread(void *args){
 		if (return_code != (int)data_len){
 			printf("Socket Read error...from data\n") ;
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
-				//it = nodeConnectionMap.find(nSocket);
-				//nodeConnectionMap.erase(it);
-				eraseValueInMap(nSocket);				
+			//it = nodeConnectionMap.find(nSocket);
+			//nodeConnectionMap.erase(it);
+			eraseValueInMap(nSocket);				
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
 			closeConnection(nSocket);
 			break;
@@ -626,12 +735,12 @@ void *read_thread(void *args){
 		buffer[data_len] = '\0' ;
 
 		process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;
-		
+
 		// Writing data to log file, but first creating log entry
 		unsigned char *logEntry = createLogEntry('r', nSocket, header, buffer);
 		/*if(logEntry == NULL)
-			printf("Cannot write to file, entry returned is null\n");
-		else*/
+		  printf("Cannot write to file, entry returned is null\n");
+		  else*/
 		writeLogEntry(logEntry);
 
 		free(buffer) ;
@@ -647,12 +756,12 @@ void *read_thread(void *args){
 
 void notifyMessageSend(int resSock, int errorCode)
 {
-struct Message mes ; 
-memset(&mes, 0, sizeof(mes));
-mes.type = 0xf7 ;
-mes.status = 0 ;
-mes.errorCode = errorCode ;
-//pushMessageinQ(resSock, m) ;
+	struct Message mes ; 
+	memset(&mes, 0, sizeof(mes));
+	mes.type = 0xf7 ;
+	mes.status = 0 ;
+	mes.errorCode = errorCode ;
+	//pushMessageinQ(resSock, m) ;
 
 	pthread_mutex_lock(&connectionMap[resSock].mesQLock) ;
 	(connectionMap[resSock]).MessageQ.push_front(mes) ;
@@ -670,7 +779,7 @@ void pushMessageinQ(int sockfd, struct Message mes){
 int isBeaconNode(struct node n)
 {
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-//		printf("port: %d\n", (*it)->portNo);
+		//		printf("port: %d\n", (*it)->portNo);
 		if((strcasecmp(n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
 			return true;
 	}

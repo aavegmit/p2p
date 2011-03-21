@@ -68,6 +68,11 @@ void *write_thread(void *args){
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				header[1+i] = mes.uoid[i] ;
 		}
+		// Done for status message
+		else if (mes.status == 2){
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				header[1+i] = mes.uoid[i] ;
+		}
 
 		// Message of type Hello
 		if (mes.type == 0xfa){
@@ -88,7 +93,7 @@ void *write_thread(void *args){
 
 
 
-//			sprintf((char *)&buffer[2], "%s",  host);
+			//			sprintf((char *)&buffer[2], "%s",  host);
 			for (int i = 0 ; i < (int)len - 2 ; ++i)
 				buffer[2+i] = host[i] ;
 			//Incrementing Ready STatus
@@ -161,19 +166,19 @@ void *write_thread(void *args){
 			len = 0;
 			buffer = (unsigned char *)malloc(len) ;
 			memset(buffer, '\0', len) ;
-//			len = strlen((const char *)buffer) ;
+			//			len = strlen((const char *)buffer) ;
 
 			header[0] = 0xf8;
 			//printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
 
-//			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
-//			struct Packet pk ;
-//			pk.status = 0;
-//			pthread_mutex_lock(&MessageDBLock) ;
-//			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
-//			pthread_mutex_unlock(&MessageDBLock) ;
-//
-//			memcpy((char *)&header[1], uoid, 20) ;
+			//			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
+			//			struct Packet pk ;
+			//			pk.status = 0;
+			//			pthread_mutex_lock(&MessageDBLock) ;
+			//			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
+			//			pthread_mutex_unlock(&MessageDBLock) ;
+			//
+			//			memcpy((char *)&header[1], uoid, 20) ;
 			header[21]='1';
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
@@ -194,6 +199,25 @@ void *write_thread(void *args){
 
 
 			header[0] = 0xac;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
+		// CHECK Message request
+		else if (mes.type == 0xf6){
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+			}
+			else{
+				len = 0 ;
+			}
+
+
+			header[0] = 0xf6;
 
 
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
@@ -248,6 +272,34 @@ void *write_thread(void *args){
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
+		else if (mes.type == 0xf5){
+			printf("Sending CHECK Response..\n") ;
+
+			if (mes.status == 1){
+				buffer = (unsigned char *)malloc(mes.buffer_len) ;
+				for (int i = 0 ; i < mes.buffer_len ; i++)
+					buffer[i] = mes.buffer[i] ;
+				len = mes.buffer_len ;
+			}
+			else{
+				unsigned int len1 =  20 ;
+
+				buffer = (unsigned char *)malloc(len1) ;
+				memset(buffer, 0, len1) ;
+
+				for (int i = 0 ; i < SHA_DIGEST_LENGTH ; ++i)
+					buffer[i] = mes.uoid[i] ;
+//				memcpy(buffer, mes.uoid, 20) ;
+
+				len  =  len1 ;
+
+			}
+
+			header[0] = 0xf5;
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+		}
 		else if (mes.type == 0xf7)
 		{
 			printf("Sending Notify message\n");
@@ -258,10 +310,10 @@ void *write_thread(void *args){
 			buffer[0]=mes.errorCode;
 			//buffer[0]=0x01;
 			//memcpy(buffer, &mes.errorCode, sizeof(mes.errorCode));
-			
+
 			//puts((char *)buffer);
 			//len = strlen((const char *)buffer) ;
-			
+
 			header[0] = 0xf7;
 
 			header[21] = 0x01 ;
@@ -489,19 +541,71 @@ void joinNetwork(){
 // Method to flood the status requests
 void getStatus(){
 
+	unsigned char uoid[SHA_DIGEST_LENGTH] ;
+	GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+	//			memcpy((char *)&header[1], uoid, 20) ;
+
+
+	struct Packet pk;
+	pk.status = 0 ;
+	pk.msgLifeTime = myInfo->msgLifeTime;
+
+
+	pthread_mutex_lock(&MessageDBLock) ;
+	MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+	pthread_mutex_unlock(&MessageDBLock) ;
+	
 	pthread_mutex_lock(&nodeConnectionMapLock) ;
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
-	printf("In get status method\n");
 		struct Message m ;
 		m.type = 0xac ;
-		m.status = 0 ;
+		m.status = 2 ;
 		m.ttl = myInfo->ttl ;
 		m.status_type = 0x01 ;
+		for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+			m.uoid[i] = uoid[i] ;
 		pushMessageinQ( (*it).second, m) ;
 	}
 	pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
 }
+
+
+// Method to initiate the CHECK message
+// The methid is invoked when one of the node's
+// neighbor dies
+void initiateCheck(){
+
+	unsigned char uoid[SHA_DIGEST_LENGTH] ;
+	GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+
+	struct Packet pk;
+	pk.status = 0 ;
+	pk.msgLifeTime = myInfo->msgLifeTime;
+
+
+	pthread_mutex_lock(&MessageDBLock) ;
+	MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+	pthread_mutex_unlock(&MessageDBLock) ;
+
+	myInfo->checkResponseTimeout = myInfo->joinTimeOut ;
+
+	
+	pthread_mutex_lock(&nodeConnectionMapLock) ;
+	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+		struct Message m ;
+		m.type = 0xf6 ;
+		m.status = 2 ;
+		m.ttl = myInfo->ttl ;
+		for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+			m.uoid[i] = uoid[i] ;
+		pushMessageinQ( (*it).second, m) ;
+	}
+	pthread_mutex_unlock(&nodeConnectionMapLock) ;
+	checkTimerFlag = 1 ;
+
+}
+
 
 
 void writeToStatusFile(){
@@ -522,7 +626,7 @@ void writeToStatusFile(){
 		++it1 ;
 		distinctNodes.insert( *it1 ) ;
 	}
-	
+
 	for (set< struct node >::iterator it = distinctNodes.begin(); it != distinctNodes.end() ; ++it){
 		fputs("n -t * -s ", fp) ;
 		char portS[20] ;
@@ -535,7 +639,7 @@ void writeToStatusFile(){
 			fputs(" -c black -i black\n", fp) ;
 		}
 	}
-	
+
 	for (set< set<struct node> >::iterator it = statusResponse.begin(); it != statusResponse.end() ; ++it){
 		fputs("l -t * -s ", fp) ;
 		struct node n1;
@@ -549,11 +653,11 @@ void writeToStatusFile(){
 		sprintf(portS, "%d", n1.portNo) ;
 		fputs(portS, fp) ;
 		fputs(" -d ", fp) ;
-		
+
 		memset(portS, '\0', 20) ;
 		sprintf(portS, "%d", n2.portNo) ;
 		fputs(portS, fp) ;
-		
+
 
 		if (isBeaconNode(n1) && isBeaconNode(n2) ){
 			fputs(" -c blue\n", fp) ;
