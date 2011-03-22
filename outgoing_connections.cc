@@ -528,7 +528,7 @@ void joinNetwork(){
 		exit(0) ;
 	}
 	for (set<struct joinResNode>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
-		printf("Hostname: %s, Port: %d, location: %ld\n", (*it).hostname, (*it).portNo, (*it).location) ;
+		printf("Hostname: %s, Port: %d, location: %d\n", (*it).hostname, (*it).portNo, (*it).location) ;
 		fputs((char *)(*it).hostname , fp) ;
 		fputs(":", fp) ;
 		sprintf((char *)tempPort, "%d", (*it).portNo) ;

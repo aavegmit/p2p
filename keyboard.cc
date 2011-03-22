@@ -73,7 +73,7 @@ void *keyboard_thread(void *arg){
 				//printf("Hi I am here\n");
 			}
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;
-			//sleep(1);
+			sleep(1);
 			kill(node_pid, SIGTERM);
 			break;
 		}

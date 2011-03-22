@@ -189,7 +189,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		pthread_mutex_lock(&connectionMapLock) ;
 		connectionMap[sockfd].isReady++;
 		pthread_mutex_unlock(&connectionMapLock) ;
-		memcpy((unsigned int *)&n.portNo, buffer, 2) ;
+		memcpy(&n.portNo, buffer, 2) ;
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
 		for(unsigned int i=0;i < (unsigned int) strlen((char *)buffer)-2;i++)
 			n.hostname[i] = buffer[i+2];
@@ -259,7 +259,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 		struct node n ;
 		n.portNo = 0 ;
-		memcpy((unsigned int *)&n.portNo, &buffer[4], 2) ;
+		memcpy(&n.portNo, &buffer[4], 2) ;
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+6)) ;
 		for(unsigned int i = 0;i<strlen(((char *)buffer)-6);i++)
 			n.hostname[i] = buffer[i+6];
@@ -267,8 +267,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 		printf("JOIN REQUEST for %s:%d received\n", n.hostname, n.portNo) ;
 
-		unsigned long int location = 0 ;
-		memcpy((unsigned long int *)&location, buffer, 4) ;
+		uint32_t location = 0 ;
+		memcpy(&location, buffer, 4) ;
 
 		pk.receivedFrom = n ;
 		pk.status = 1 ;
@@ -287,9 +287,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		for(unsigned int i = 0;i<SHA_DIGEST_LENGTH;i++)
 			m.uoid[i] = uoid[i];
 
-		printf("Location: %ld\n", location) ;
+		printf("Location: %d\n", location) ;
 		m.location = myInfo->location > location ?  myInfo->location - location : location - myInfo->location ;
-		printf("relative Location: %ld\n", m.location) ;
+		printf("relative Location: %d\n", m.location) ;
 		pushMessageinQ(sockfd, m ) ;
 
 		--ttl ;
@@ -332,13 +332,13 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		n.portNo = 0 ;
 		memcpy((unsigned int *)&n.portNo, &buffer[24], 2) ;
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+26)) ;
-		for(unsigned int i = 0;i < strlen((char *)buffer)-26;i++)
+		for(unsigned int i = 0;i < buf_len-26;i++)
 			n.hostname[i] = buffer[i+26];
-		n.hostname[strlen((char *)buffer)-26] = '\0';
+		n.hostname[buf_len-26] = '\0';
 
 
-		unsigned long int location = 0 ;
-		memcpy((unsigned int *)&location, &buffer[20], 4) ;
+		uint32_t location = 0 ;
+		memcpy(&location, &buffer[20], 4) ;
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
 			printf("JOIN request was never forwarded from this node.\n") ;

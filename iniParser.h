@@ -7,14 +7,14 @@ using namespace std;
 struct beaconList
 {
 	unsigned char hostName[256];
-	unsigned int portNo;
+	unsigned short int portNo;
 };
 
 struct myStartInfo
 {
 	unsigned char hostName[256];
 	unsigned short int portNo;
-	unsigned long int location;
+	uint32_t location;
 	unsigned char homeDir[512];
 	unsigned char logFileName[256];
 	unsigned int autoShutDown;

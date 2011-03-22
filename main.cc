@@ -264,22 +264,27 @@ int main(int argc, char *argv[])
 		//int resSock;
 		//while(tempBeaconList->size() > 0 && !shutDown){
 			for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end() && shutDown!=1; ++it){
-				struct node *n = (struct node *)malloc(sizeof(n));
-				memset(n, NULL, sizeof(n));
+				//struct node *n = (struct node *)malloc(sizeof(n));
+				struct node n;
+				memset(&n, 0, sizeof(n));
 				//n = NULL;
-				n->portNo = (*it)->portNo ;
+				n.portNo = (*it)->portNo ;
 				//memcpy(&n.portNo, &(*it)->portNo, sizeof((*it)->portNo));
-				strncpy((char *)n->hostname, (const char *)(*it)->hostName, strlen((const char *)(*it)->hostName)) ;
+				//strncpy((char *)n->hostname, (const char *)(*it)->hostName, strlen((const char *)(*it)->hostName)) ;
+				for (unsigned int i=0;i<strlen((const char *)(*it)->hostName);i++)
+					n.hostname[i] = (*it)->hostName[i];
+				n.hostname[strlen((const char *)(*it)->hostName)] = '\0';
 				//memcpy(n.hostname, (*it)->hostName, strlen((char *)(*it)->hostName)) ;
 				// Create a connect thread for this connection
 				pthread_t connect_thread ;
 				//printf("In Main: size of List is: %s %d\n", n->hostname, n->portNo);
-				int res = pthread_create(&connect_thread, NULL, connectBeacon , (void *)n);
+				int res = pthread_create(&connect_thread, NULL, connectBeacon , (void *)&n);
 				if (res != 0) {
 					perror("Thread creation failed");
 					exit(EXIT_FAILURE);
 				}
 				childThreadList.push_front(connect_thread);
+				sleep(1);
 			}	
 				/*
 				
@@ -469,7 +474,7 @@ int main(int argc, char *argv[])
 				n.portNo = (*it)->portNo ;
 				strncpy((char *)n.hostname, (const char *)(*it)->hostName, 256) ;
 				pthread_mutex_lock(&nodeConnectionMapLock) ;
-				if (nodeConnectionMap[n]){
+				if (nodeConnectionMap.find(n)!=nodeConnectionMap.end()){
 					it = tempNeighborsList->erase(it) ;
 					--it ;
 					pthread_mutex_unlock(&nodeConnectionMapLock) ;

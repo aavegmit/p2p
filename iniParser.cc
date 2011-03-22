@@ -60,7 +60,7 @@ void printmyInfo()
 
 	printf("Port No: %d\n",myInfo->portNo);
 	printf("hostName: %s\n",myInfo->hostName);
-	printf("Location: %ld\n",myInfo->location);
+	printf("Location: %d\n",myInfo->location);
 	printf("HomeDir: %s\n",myInfo->homeDir);
 	printf("logFileName: %s\n",myInfo->logFileName);
 	printf("autoShutDown: %d\n",myInfo->autoShutDown);
@@ -147,7 +147,7 @@ void parseINIfile(unsigned char *fileName)
 			continue;
 		//printf("2. readLine is: %s\n", readLine);
 
-		if(strcasestr((char *)readLine, "[init]")!=NULL)
+		if(strcasecmp((char *)readLine, "[init]")==0)
 		{
 			if(visitedFlag[0]==0)
 				visitedFlag[0]=1;
@@ -163,7 +163,7 @@ void parseINIfile(unsigned char *fileName)
 		}
 		else
 		{
-			if(strcasestr((char *)readLine, "[beacons]")!=NULL)
+			if(strcasecmp((char *)readLine, "[beacons]")==0)
 			{
 				if(visitedFlag[1]==0)
 					visitedFlag[1]=1;

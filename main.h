@@ -29,7 +29,7 @@ extern set< set<struct node> > statusResponse ;
 
 
 struct node{
-	unsigned int portNo;
+	unsigned short int portNo;
 	unsigned char hostname[256];
 
 	bool operator<(const struct node& node1) const{
@@ -41,9 +41,9 @@ struct node{
 };
 
 struct joinResNode{
-	unsigned int portNo;
+	unsigned short int portNo;
 	unsigned char hostname[256];
-	unsigned long int location ;
+	uint32_t location ;
 
 	bool operator<(const struct joinResNode& node1) const{
 		return node1.location > location ;
@@ -60,7 +60,7 @@ struct Message{
 	uint8_t type;
 	unsigned char *buffer ;
 	unsigned int ttl ;
-	unsigned long int location ;
+	uint32_t location ;
 	int status ;								// 0 - originated from here
 	unsigned char uoid[SHA_DIGEST_LENGTH] ;
 	bool fromConnect ;							// 1 - The message was created by the node which 

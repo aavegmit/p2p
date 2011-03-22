@@ -6,7 +6,7 @@
 
 unsigned char data[256];
 unsigned char finalData[512];
-unsigned char msg_type[4];
+unsigned char msg_type[5];
 struct node n;
 void getNeighbor(int sockfd)
 {
@@ -23,7 +23,7 @@ void getNeighbor(int sockfd)
 	pthread_mutex_unlock(&nodeConnectionMapLock);	
 }
 
-unsigned char* messageType(uint8_t message_type)
+void messageType(uint8_t message_type)
 {
 	//char *msg_type = (char *)malloc(sizeof(char)*4);
 	//char msg_type[4];
@@ -65,17 +65,16 @@ unsigned char* messageType(uint8_t message_type)
 	for(unsigned int i=0;i<4;i++)
 		msg_type[i]=temp_msg_type[i];
 	msg_type[4] = '\0';
-	return msg_type;
 }
 
 void dataFromBuffer(uint8_t message_type, unsigned char *buffer)
 {
 //unsigned char portNo[2];
-unsigned int portNo;
+unsigned short int portNo;
 memset(&portNo, '\0', sizeof(portNo));
 unsigned char uoid[4];
 memset(&uoid, '\0', sizeof(uoid));
-long int distance;
+uint32_t distance;
 memset(&distance, '\0', sizeof(distance));
 unsigned char hostName[256];
 memset(&hostName, '\0', sizeof(hostName));
@@ -101,7 +100,7 @@ int statusType = 0;
 			for(unsigned int i=26;buffer[i]!='\0';i++)
 				hostName[i-26] = buffer[i];
 			//strncpy((char *)hostName, ((char *)buffer+26), strlen((char *)buffer)-26) ;
-			sprintf((char *)data, "%02x%02x%02x%02x %ld %d %s", uoid[0], uoid[1], uoid[2], uoid[3], distance, portNo, hostName);
+			sprintf((char *)data, "%02x%02x%02x%02x %d %d %s", uoid[0], uoid[1], uoid[2], uoid[3], distance, portNo, hostName);
 			break; 
 
 		case 0xfa : 	//Hello Message
@@ -140,7 +139,6 @@ uint8_t message_type=0;
 uint8_t ttl=0;
 uint32_t data_len=0;
 unsigned char uoid[4];
-unsigned char msg_type[4];
 memset(&msg_type, '\0', 4);
 memset(&uoid, '\0', 4);
 unsigned char hostname[256];
@@ -150,7 +148,7 @@ memset(&finalData, '\0', sizeof(finalData));
 struct timeval tv;
 memset(&tv, NULL, sizeof(tv));
 //struct node *n;
-memset(&n, NULL, sizeof(n));
+memset(&n, 0, sizeof(n));
 
 gettimeofday(&tv, NULL);
 
@@ -159,22 +157,21 @@ memcpy(uoid,       header+17, 4);
 memcpy(&ttl,       header+21, 1);
 memcpy(&data_len,  header+23, 4);
 
+
+/*if(!messageType(message_type))
+	return NULL;*/
+messageType(message_type);
+
 getNeighbor(sockfd);
+//printf("HOST NAME IOS: %s, %d\n", n.hostname, n.portNo);
 /*gethostname((char *)hostname, 256);
 hostname[255] = '\0';*/
 
 
 //if(n == NULL)
 //	return NULL;
-if(!messageType(message_type))
-	return NULL;
 
 //strncpy((char *)msg_type, (char *)messageType(message_type), 4);
-unsigned char *tempChar = messageType(message_type);
-for(unsigned  int i=0;i < 4;i++)
-	msg_type[i] = tempChar[i];
-msg_type[4]='\0';
-
 
 dataFromBuffer(message_type, buffer);
 

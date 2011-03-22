@@ -30,6 +30,7 @@ while(!shutDown)
 			{
 				struct Message mes;
 				mes.type = 0xf8;
+				mes.status = 0;
 				//printf("Sent Keep Alive Message to: %d\n", (*it).first);
 				pushMessageinQ((*it).second, mes);
 			}

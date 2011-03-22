@@ -9,7 +9,7 @@ memset(&n, 0, sizeof(n));
 n = *((struct node *)args);
 //x = (struct node *)args;
 //printf("size of List is: %s %d\n", n.hostname, n.portNo);
-free(args);
+//free(args);
 
 //n.portNo = (((struct node *)args).portNo) ;
 //strcpy(n.hostname, (const char *)(args.hostname) ;
