@@ -68,6 +68,8 @@ void *write_thread(void *args){
 			//pk.status = 1 ;
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				header[1+i] = mes.uoid[i] ;
+
+		
 		}
 		// Done for status message
 		else if (mes.status == 2){
@@ -182,7 +184,7 @@ void *write_thread(void *args){
 			//			pthread_mutex_unlock(&MessageDBLock) ;
 			//
 			//			memcpy((char *)&header[1], uoid, 20) ;
-			header[21]='1';
+			header[21]=0x01;
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 
@@ -542,6 +544,7 @@ void joinNetwork(){
 	pthread_mutex_lock(&nodeConnectionMapLock) ;
 	nodeConnectionMap.erase(nodeConnectionMap.begin(), nodeConnectionMap.end()) ;
 	pthread_mutex_unlock(&nodeConnectionMapLock) ;
+	childThreadList.clear();
 
 }
 

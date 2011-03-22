@@ -89,7 +89,7 @@ int processCommandLine(int argc, unsigned char *argv[])
 void closeConnection(int sockfd){
 
 	// Initiate a CHECK message
-	if (!myInfo->isBeacon && !shutDown){
+	if (!myInfo->isBeacon && !shutDown && !inJoinNetwork){
 		printf("Inititating CHECK message\n") ;
 ////		initiateCheck() ;
 	}

@@ -330,7 +330,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 		struct node n ;
 		n.portNo = 0 ;
-		memcpy((unsigned int *)&n.portNo, &buffer[24], 2) ;
+		memcpy(&n.portNo, &buffer[24], 2) ;
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+26)) ;
 		for(unsigned int i = 0;i < buf_len-26;i++)
 			n.hostname[i] = buffer[i+26];
@@ -368,6 +368,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				m.buffer_len = buf_len ;
 				for (int i = 0 ; i < (int)buf_len; i++)
 					m.buffer[i] = buffer[i] ;
+				for (int i = 0 ; i < 20; i++)
+					m.uoid[i] = uoid[i] ;
 				m.ttl = 1 ;
 				m.status = 1 ;
 				pushMessageinQ(return_sock, m) ;
@@ -625,7 +627,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 	}
 	else if(type == 0xf7)
 	{
-		char ch = buffer[0];
+		unsigned char ch = buffer[0];
 		//memcpy(&ch, &buffer, buf_len);
 		printf("Recieved Notify message : %02x\n", ch);
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
@@ -714,6 +716,10 @@ void *read_thread(void *args){
 		memcpy(&ttl,       header+21, 1);
 		memcpy(&data_len,  header+23, 4);
 
+		/*if(message_type == 0xfb)
+			for(int i=0;i<20;i++)
+				printf("%02x ", uoid[i]);*/
+
 
 		buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
 		memset(buffer, 0, data_len) ;
@@ -781,7 +787,7 @@ void *read_thread(void *args){
 	return 0;
 }
 
-void notifyMessageSend(int resSock, int errorCode)
+void notifyMessageSend(int resSock, uint8_t errorCode)
 {
 	struct Message mes ; 
 	memset(&mes, 0, sizeof(mes));

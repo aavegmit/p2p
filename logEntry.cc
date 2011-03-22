@@ -8,6 +8,8 @@ unsigned char data[256];
 unsigned char finalData[512];
 unsigned char msg_type[5];
 struct node n;
+uint32_t data_len=0;
+
 void getNeighbor(int sockfd)
 {
 	//struct node *n = (struct node *)malloc(sizeof(struct node));
@@ -78,14 +80,14 @@ uint32_t distance;
 memset(&distance, '\0', sizeof(distance));
 unsigned char hostName[256];
 memset(&hostName, '\0', sizeof(hostName));
-int errorCode  = 0;
+uint8_t errorCode  = 0;
 int statusType = 0;
 
 	switch(message_type)
 	{
 		case 0xfc : 	//Join Request
 			memcpy(&portNo, buffer+4, 2) ;
-			for(unsigned int i=0;i < strlen((char *)buffer)-6;i++)
+			for(unsigned int i=0;i < data_len-6;i++)
 				hostName[i] = buffer[i+6];
 			//strncpy((char *)hostName, (char *)buffer+2, strlen((char *)buffer)-2) ;
 			sprintf((char *)data, "%d %s", portNo, (char *)hostName);
@@ -106,7 +108,7 @@ int statusType = 0;
 		case 0xfa : 	//Hello Message
 			memcpy(&portNo, buffer, 2) ;
 			//strncpy((char *)hostName, (char *)buffer+2, strlen((char *)buffer)-2) ;
-			for(unsigned int i=0;i < strlen((char *)buffer)-2;i++)
+			for(unsigned int i=0;i < data_len-2;i++)
 				hostName[i] = buffer[i+2];
 			sprintf((char *)data, "%d %s", portNo, (char *)hostName);
 			break;
@@ -137,7 +139,6 @@ unsigned char *createLogEntry(unsigned char mode, int sockfd, unsigned char head
 
 uint8_t message_type=0;
 uint8_t ttl=0;
-uint32_t data_len=0;
 unsigned char uoid[4];
 memset(&msg_type, '\0', 4);
 memset(&uoid, '\0', 4);
@@ -153,7 +154,9 @@ memset(&n, 0, sizeof(n));
 gettimeofday(&tv, NULL);
 
 memcpy(&message_type, header, 1);
-memcpy(uoid,       header+17, 4);
+//memcpy(uoid,       header+17, 4);
+for(int i=0;i<4;i++)
+	uoid[i] = header[17+i];
 memcpy(&ttl,       header+21, 1);
 memcpy(&data_len,  header+23, 4);
 
@@ -172,7 +175,6 @@ hostname[255] = '\0';*/
 //	return NULL;
 
 //strncpy((char *)msg_type, (char *)messageType(message_type), 4);
-
 dataFromBuffer(message_type, buffer);
 
 if(data == NULL)

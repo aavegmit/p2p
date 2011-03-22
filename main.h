@@ -59,7 +59,7 @@ extern pthread_mutex_t nodeConnectionMapLock ;
 struct Message{
 	uint8_t type;
 	unsigned char *buffer ;
-	unsigned int ttl ;
+	uint8_t ttl ;
 	uint32_t location ;
 	int status ;								// 0 - originated from here
 	unsigned char uoid[SHA_DIGEST_LENGTH] ;
@@ -67,7 +67,7 @@ struct Message{
 										// initiated the connection
 	int buffer_len ;
 	uint8_t status_type ;	
-	int errorCode;
+	uint8_t errorCode;
 } ;
 
 struct connectionNode{
@@ -122,7 +122,7 @@ void *connectBeacon(void *);
 int isBeaconNode(struct node n);
 int connectTo(unsigned char *, unsigned int) ;
 extern pthread_t k_thread;
-void notifyMessageSend(int resSock, int errorCode);
+void notifyMessageSend(int resSock, uint8_t errorCode);
 void pushMessageinQ(int, struct Message ) ;
 void closeConnection(int) ;
 void joinNetwork() ;
