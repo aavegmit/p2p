@@ -96,7 +96,7 @@ uint8_t statusType = 0x00;
 		case 0xfb : 	//Join Response
 			//memcpy(uoid, &buffer[17], 4);
 			for(unsigned int i=0;i < 4;i++)
-				uoid[i] = buffer[17+i];
+				uoid[i] = buffer[16+i];
 			memcpy(&distance, &buffer[20], 4) ;
 			memcpy(&portNo, &buffer[24], 2) ;
 			for(unsigned int i=26;buffer[i]!='\0';i++)

@@ -325,8 +325,11 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		printf("JOIN response received\n") ;
 		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;
 		//		memcpy((unsigned char *)original_uoid, buffer, SHA_DIGEST_LENGTH) ;
-		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
+		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++){
 			original_uoid[i] = buffer[i] ;
+			printf("%02x-", original_uoid[i]) ;
+		}
+		printf("\n") ;
 
 		struct node n ;
 		n.portNo = 0 ;

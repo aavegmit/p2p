@@ -6,26 +6,39 @@
 #include "iniParser.h"
 #include "signalHandler.h"
 
+using namespace std ;
+
 void *keyboard_thread(void *arg){
 	fd_set rfds;
 	//struct timeval tv;
 	//char *inp = new char[512] ;
-	unsigned char inp[512];
+	char *inp;
+	inp = (char *)malloc(512 * sizeof(char)) ;
 	memset(inp, '\0', 512) ;
 	FD_ZERO(&rfds);
 	FD_SET(0, &rfds);
         signal(SIGUSR2, my_handler);
+	sigset_t new_t ;
+	sigemptyset(&new_t);
+	sigaddset(&new_t, SIGINT);
+	pthread_sigmask(SIG_UNBLOCK, &new_t, NULL);
         signal(SIGINT, my_handler);
         //alarm(myInfo->autoShutDown);
         
 	while(!shutDown){
+	sigaddset(&new_t, SIGINT);
+	pthread_sigmask(SIG_UNBLOCK, &new_t, NULL);
+        signal(SIGINT, my_handler);
 	//memset(&tv, 0, sizeof(tv));
 	//tv.tv_sec = 1;
 	//tv.tv_usec = 0;
 	printf("servant:%d> ", myInfo->portNo) ;
 	if(shutDown)
 		break;
-	fgets((char *)inp, 511, stdin);
+	string inpS ;
+	getline(cin, inpS) ;
+	inp = const_cast<char *> (inpS.c_str()) ;
+//	fgets((char *)inp, 511, stdin);
 	
 	if(shutDown)
 		break;
@@ -54,7 +67,7 @@ void *keyboard_thread(void *arg){
 */           
            
            
-		if(!strcasecmp((char *)inp, "shutdown\n"))
+		if(!strcasecmp((char *)inp, "shutdown"))
 		{
 			sigset_t new_t;
 			sigemptyset(&new_t);
@@ -77,7 +90,7 @@ void *keyboard_thread(void *arg){
 			kill(node_pid, SIGTERM);
 			break;
 		}
-		else if(!strcasecmp((char *)inp, "status\n"))
+		else if(!strcasecmp((char *)inp, "status"))
 		{
 			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 2 ;
 			myInfo->status_ttl = 5 ;
@@ -99,6 +112,7 @@ void *keyboard_thread(void *arg){
 		}
 
 		memset(inp, '\0', 512) ;	
+		cin.clear() ;
 		fflush(stdin);
 	}
 	pthread_exit(0);

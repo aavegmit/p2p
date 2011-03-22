@@ -68,7 +68,6 @@ void my_handler(int nSig)
 		//printf("OUT OF FGETS\n");
 		//pthread_exit(0);
 		//Set the status timeout to be 0
-		printf("Ctrl+c\n");
 		pthread_mutex_lock(&statusMsgLock) ;
 		if(statusTimerFlag)
 			myInfo->statusResponseTimeout = 0;
