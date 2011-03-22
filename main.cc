@@ -38,6 +38,7 @@ pthread_mutex_t connectionMapLock ;
 pthread_mutex_t nodeConnectionMapLock ;
 pthread_mutex_t MessageDBLock ;
 pthread_mutex_t statusMsgLock ;
+pthread_mutex_t logEntryLock ;
 pthread_cond_t statusMsgCV;
 
 void my_handler(int nSig);
@@ -175,7 +176,11 @@ int main(int argc, char *argv[])
 	}
 
 	// Initialize Locks
-	int lres = pthread_mutex_init(&connectionMapLock, NULL) ;
+	int lres = pthread_mutex_init(&logEntryLock, NULL) ;
+	if (lres != 0){
+		perror("Mutex initialization failed") ;
+	}
+	lres = pthread_mutex_init(&connectionMapLock, NULL) ;
 	if (lres != 0){
 		perror("Mutex initialization failed") ;
 	}
@@ -529,6 +534,7 @@ else{
 				cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 				cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 				cn.isReady = 0;
+				cn.n = n;
 				//signal(SIGUSR2, my_handler);
 
 				pthread_mutex_lock(&connectionMapLock) ;

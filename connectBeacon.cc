@@ -46,6 +46,7 @@ int res = 0;
 					cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 					cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 					cn.isReady = 0;
+					cn.n = n;
 					//signal(SIGUSR2, my_handler);
 					
 					pthread_mutex_lock(&connectionMapLock) ;				

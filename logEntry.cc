@@ -14,7 +14,7 @@ void getNeighbor(int sockfd)
 {
 	//struct node *n = (struct node *)malloc(sizeof(struct node));
 	//memset(&n, NULL, sizeof(n));
-	pthread_mutex_lock(&nodeConnectionMapLock);
+	/*pthread_mutex_lock(&nodeConnectionMapLock);
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
 		if((*it).second == sockfd)
 		{
@@ -22,7 +22,12 @@ void getNeighbor(int sockfd)
 			break;
 		}
 	}
-	pthread_mutex_unlock(&nodeConnectionMapLock);	
+	pthread_mutex_unlock(&nodeConnectionMapLock);*/
+	pthread_mutex_lock(&connectionMapLock);
+	//for(map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end() ; ++it){
+	//}
+		n = connectionMap[sockfd].n;
+	pthread_mutex_unlock(&connectionMapLock);
 }
 
 void messageType(uint8_t message_type)
@@ -169,7 +174,8 @@ getNeighbor(sockfd);
 //printf("HOST NAME IOS: %s, %d\n", n.hostname, n.portNo);
 /*gethostname((char *)hostname, 256);
 hostname[255] = '\0';*/
-
+if(strcmp((char *)n.hostname, "")==0&& n.portNo == 0)
+	return NULL;
 
 //if(n == NULL)
 //	return NULL;
@@ -185,21 +191,21 @@ if(mode == 'r')
 // logging for read mode
 	sprintf((char *)finalData, "%c %10ld.%03d %s_%d %s %d %d %02x%02x%02x%02x %s\n", mode, tv.tv_sec, (int)(tv.tv_usec/1000), (char *)n.hostname, n.portNo, (char *)msg_type, (data_len + HEADER_SIZE),  ttl, uoid[0], uoid[1], uoid[2], uoid[3], (char *)data);
 //printf("Final DATA is; %s\n", finalData);
-//fflush(f_log);
+fflush(f_log);
 }
 else if(mode == 's')
 {
 //log for messages sent
 	sprintf((char *)finalData, "%c %10ld.%03d %s_%d %s %d %d %02x%02x%02x%02x %s\n", mode, tv.tv_sec, (int)(tv.tv_usec/1000), (char *)n.hostname, n.portNo, (char *)msg_type, (data_len + HEADER_SIZE),  ttl, uoid[0], uoid[1], uoid[2], uoid[3], (char *)data);
 //printf("Final DATA is; %s\n", finalData);
-//fflush(f_log);
+fflush(f_log);
 }
 else
 {
 // log for messages forwarded
 	sprintf((char *)finalData, "%c %10ld.%03d %s_%d %s %d %d %02x%02x%02x%02x %s\n", mode, tv.tv_sec, (int)(tv.tv_usec/1000), (char *)n.hostname, n.portNo, (char *)msg_type, (data_len + HEADER_SIZE),  ttl, uoid[0], uoid[1], uoid[2], uoid[3], (char *)data);
 //printf("Final DATA is; %s\n", finalData);	
-//fflush(f_log);
+fflush(f_log);
 }
 
 	return finalData;

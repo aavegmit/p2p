@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "iniParser.h"
 #include "signalHandler.h"
+#include <ctype.h>
 
 using namespace std ;
 
@@ -32,7 +33,7 @@ void *keyboard_thread(void *arg){
 	//memset(&tv, 0, sizeof(tv));
 	//tv.tv_sec = 1;
 	//tv.tv_usec = 0;
-	printf("servant:%d> ", myInfo->portNo) ;
+	printf("\nservant:%d> ", myInfo->portNo) ;
 	if(shutDown)
 		break;
 	string inpS ;
@@ -90,25 +91,65 @@ void *keyboard_thread(void *arg){
 			kill(node_pid, SIGTERM);
 			break;
 		}
-		else if(!strcasecmp((char *)inp, "status"))
+		else if(strstr((char *)inp, "status neighbors")!=NULL)
 		{
-			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 2 ;
-			myInfo->status_ttl = 5 ;
-			strncpy((char *)myInfo->status_file, "status.out", 256) ;
-			FILE *fp = fopen((char *)myInfo->status_file, "w") ;
-			if (fp == NULL){
-				fprintf(stderr,"File open failed\n") ;
-				exit(0) ;
-			}
-			fputs("V -t * -v 1.0a5\n", fp) ;
-			fclose(fp) ;
-			getStatus() ;
 			
-			// waiting for status time out, so that command prompt can be returned
-			pthread_mutex_lock(&statusMsgLock) ;
-			statusTimerFlag = 1 ;
-			pthread_cond_wait(&statusMsgCV, &statusMsgLock);
-			pthread_mutex_unlock(&statusMsgLock) ;
+			sprintf((char *)inp, "%s ", inp);
+			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
+			unsigned char fileName[256];
+			memset(&fileName, '\0', 256);
+			for(int i=0;i<3;i++)
+			{
+				value = (unsigned char *)strtok(NULL, " ");
+				if(value == NULL)
+					break;
+				if(i==0)
+				{
+					if(strcasecmp((char*)value, "neighbors")==0)
+						continue;
+					else
+						break;
+				}
+				if(i==1) 
+				{
+					int digitCheckFlag = 0;
+					for(int j=0;j<(int)strlen((char *)value);j++)
+						if(isdigit(value[j]) == 0)
+						{
+							digitCheckFlag = 1;
+							break;
+						}
+					if(digitCheckFlag)
+						break;
+					myInfo->status_ttl = (uint8_t)atoi((char *)value);
+				}
+				
+				if(i==2)
+				{
+					strncpy((char *)myInfo->status_file, (char *)value, strlen((char *)value)) ;
+					
+					myInfo->statusResponseTimeout = myInfo->msgLifeTime + 2 ;
+					//myInfo->status_ttl = 5 ;
+					//strncpy((char *)myInfo->status_file, "status.out", 256) ;
+					FILE *fp = fopen((char *)myInfo->status_file, "w") ;
+					if (fp == NULL){
+						fprintf(stderr,"File open failed\n") ;
+						exit(0) ;
+					}
+					fputs("V -t * -v 1.0a5\n", fp) ;
+					fclose(fp) ;
+					getStatus() ;
+					
+					
+					// waiting for status time out, so that command prompt can be returned
+					pthread_mutex_lock(&statusMsgLock) ;
+					statusTimerFlag = 1 ;
+					pthread_cond_wait(&statusMsgCV, &statusMsgLock);
+					pthread_mutex_unlock(&statusMsgLock) ;
+					break;
+				}
+			}
+			
 		}
 
 		memset(inp, '\0', 512) ;	

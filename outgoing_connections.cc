@@ -154,9 +154,9 @@ void *write_thread(void *args){
 				//memcpy(buffer, mes.uoid, 20) ;
 				for(unsigned int i = 0;i<20;i++){
 					buffer[i] = mes.uoid[i];
-					printf("%02x-", mes.uoid[i]) ;
+					//printf("%02x-", mes.uoid[i]) ;
 				}
-				printf("\n") ;
+				//printf("\n") ;
 				memcpy(&buffer[20], &(mes.location), 4) ;
 				memcpy(&buffer[24], &(myInfo->portNo), 2) ;
 				sprintf((char *)&buffer[26], "%s",  host);
@@ -359,13 +359,16 @@ void *write_thread(void *args){
 		}
 
 		unsigned char *logEntry = NULL;
-//		if(mes.type != 0xfa)
+		if(!(mes.type == 0xfa && inJoinNetwork))
 		{
+			pthread_mutex_lock(&logEntryLock) ;						
 			if(mes.status== 0 || mes.status == 2 )
 				logEntry = createLogEntry('s', sockfd, header, buffer);
 			else
 				logEntry = createLogEntry('f', sockfd, header, buffer);
-			writeLogEntry(logEntry);	
+			if(logEntry!=NULL)
+				writeLogEntry(logEntry);	
+			pthread_mutex_unlock(&logEntryLock) ;				
 		}	
 
 		free(buffer) ;
@@ -466,7 +469,7 @@ void joinNetwork(){
 			}
 
 			cn.shutDown = 0 ;
-
+			cn.n = n;
 			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[resSock] = cn ;
 			pthread_mutex_unlock(&connectionMapLock) ;

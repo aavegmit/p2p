@@ -186,14 +186,15 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		// Break the Tie now
 		struct node n ;
 		n.portNo = 0 ;
-		pthread_mutex_lock(&connectionMapLock) ;
-		connectionMap[sockfd].isReady++;
-		pthread_mutex_unlock(&connectionMapLock) ;
 		memcpy(&n.portNo, buffer, 2) ;
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+2)) ;
-		for(unsigned int i=0;i < (unsigned int) strlen((char *)buffer)-2;i++)
+		for(unsigned int i=0;i < buf_len-2;i++)
 			n.hostname[i] = buffer[i+2];
-		n.hostname[strlen((char *)buffer)-2] = '\0';
+		n.hostname[buf_len-2] = '\0';
+		pthread_mutex_lock(&connectionMapLock) ;
+		connectionMap[sockfd].isReady++;
+		connectionMap[sockfd].n = n;
+		pthread_mutex_unlock(&connectionMapLock) ;
 
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		//if (!nodeConnectionMap[n]){
@@ -261,9 +262,13 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		n.portNo = 0 ;
 		memcpy(&n.portNo, &buffer[4], 2) ;
 		//strcpy(n.hostname, const_cast<char *> ((char *)buffer+6)) ;
-		for(unsigned int i = 0;i<strlen(((char *)buffer)-6);i++)
+		for(unsigned int i = 0;i<buf_len-6;i++)
 			n.hostname[i] = buffer[i+6];
-		n.hostname[strlen(((char *)buffer)-6)] = '\0';
+		n.hostname[buf_len-6] = '\0';
+
+		pthread_mutex_lock(&connectionMapLock) ;
+		connectionMap[sockfd].n = n;
+		pthread_mutex_unlock(&connectionMapLock) ;
 
 		printf("JOIN REQUEST for %s:%d received\n", n.hostname, n.portNo) ;
 
@@ -327,9 +332,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		//		memcpy((unsigned char *)original_uoid, buffer, SHA_DIGEST_LENGTH) ;
 		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++){
 			original_uoid[i] = buffer[i] ;
-			printf("%02x-", original_uoid[i]) ;
+			//printf("%02x-", original_uoid[i]) ;
 		}
-		printf("\n") ;
+		//printf("\n") ;
 
 		struct node n ;
 		n.portNo = 0 ;
@@ -339,6 +344,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			n.hostname[i] = buffer[i+26];
 		n.hostname[buf_len-26] = '\0';
 
+		pthread_mutex_lock(&connectionMapLock) ;
+		connectionMap[sockfd].n = n;
+		pthread_mutex_unlock(&connectionMapLock) ;
 
 		uint32_t location = 0 ;
 		memcpy(&location, &buffer[20], 4) ;
@@ -774,12 +782,15 @@ void *read_thread(void *args){
 
 		process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;
 
-		// Writing data to log file, but first creating log entry
-		unsigned char *logEntry = createLogEntry('r', nSocket, header, buffer);
-		/*if(logEntry == NULL)
-		  printf("Cannot write to file, entry returned is null\n");
-		  else*/
-		writeLogEntry(logEntry);
+		if(!(inJoinNetwork && message_type == 0xfa))
+		{
+			pthread_mutex_lock(&logEntryLock) ;
+			// Writing data to log file, but first creating log entry
+			unsigned char *logEntry = createLogEntry('r', nSocket, header, buffer);
+			if(logEntry!=NULL)
+				writeLogEntry(logEntry);
+			pthread_mutex_unlock(&logEntryLock) ;				
+		}
 
 		free(buffer) ;
 	}
