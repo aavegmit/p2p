@@ -391,8 +391,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		}
 		pthread_mutex_unlock(&MessageDBLock) ;
 
-		unsigned int status_type = 0 ;
-		memcpy((unsigned int *)&status_type, buffer, 1) ;
+		uint8_t status_type = 0 ;
+		memcpy(&status_type, buffer, 1) ;
 
 		struct Packet pk;
 		pk.status = 1 ;
@@ -515,6 +515,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				m.buffer_len = buf_len ;
 				for (int i = 0 ; i < (int)buf_len; i++)
 					m.buffer[i] = buffer[i] ;
+				for (int i = 0 ; i < SHA_DIGEST_LENGTH ; ++i)
+					m.uoid[i] = uoid[i] ;
 				m.ttl = 1 ;
 				m.status = 1 ;
 				pushMessageinQ(return_sock, m) ;

@@ -106,7 +106,7 @@ void *write_thread(void *args){
 
 
 		}
-		// Sending JOI Request
+		// Sending JOIN Request
 		else if (mes.type == 0xfc){
 			//			printf("Sending JOIN request\n") ;
 
@@ -249,10 +249,12 @@ void *write_thread(void *args){
 				//memcpy(buffer, mes.uoid, 20) ;
 				for(unsigned int i=0;i<20;i++)
 					buffer[i] = mes.uoid[i];
-				unsigned int templen = len1 - 22 ;
+				uint16_t templen = len1 - 22 ;
 				memcpy(&buffer[20], &(templen), 2) ;
 				memcpy(&buffer[22], &(myInfo->portNo), 2) ;
-				sprintf((char *)&buffer[24], "%s",  host);
+				for (int i = 24 ; i < (int)len1 ; ++i)
+					buffer[i] = host[i-24] ;
+//				sprintf((char *)&buffer[24], "%s",  host);
 				len  =  len1 ;
 				for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
 					unsigned int len2 = strlen((char *)((*it).first.hostname)) + 2  ;
@@ -268,7 +270,9 @@ void *write_thread(void *args){
 					}
 					--it ;
 					memcpy(&buffer[len-len2], &((*it).first.portNo ), 2) ;
-					sprintf((char *)&buffer[len-len2+2], "%s",  host);
+					for (int i = len - len2 + 2 ; i < (int)len ; ++i)
+						buffer[i] = host[i -(len-len2+2)] ;
+//					sprintf((char *)&buffer[len-len2+2], "%s",  host);
 				}
 
 			}
