@@ -48,8 +48,8 @@ void *timer_thread(void *arg){
 		{
 			//printf("My Map size is: %d\n", (int)nodeConnectionMap.size());
 			for (map<struct node, int >::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ){
-			//printf("Values in my mAP are: %s, %d\n", (*it).first.hostname, (*it).first.portNo);
-			pthread_mutex_lock(&connectionMapLock) ;
+				//printf("Values in my mAP are: %s, %d\n", (*it).first.hostname, (*it).first.portNo);
+				pthread_mutex_lock(&connectionMapLock) ;
 				if(connectionMap[(*it).second].keepAliveTimeOut > 0)
 				{
 					connectionMap[(*it).second].keepAliveTimeOut--;
@@ -76,9 +76,9 @@ void *timer_thread(void *arg){
 					}
 					else
 						it++;
-					
+
 				}
-			pthread_mutex_unlock(&connectionMapLock) ;
+				pthread_mutex_unlock(&connectionMapLock) ;
 			}
 		}
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;
@@ -106,7 +106,7 @@ void *timer_thread(void *arg){
 			{
 				// Write all the status responses in the output file
 				writeToStatusFile() ;
-				
+
 				// Reset the status timer flag
 				pthread_mutex_lock(&statusMsgLock) ;
 				statusTimerFlag = 0 ;
@@ -114,24 +114,37 @@ void *timer_thread(void *arg){
 				pthread_mutex_unlock(&statusMsgLock) ;
 			}
 		}
-		
+
 		// CHECK timer flag
 		if (checkTimerFlag && !inJoinNetwork){
 			--myInfo->checkResponseTimeout ;
-//			printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
+						printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
 			if (myInfo->checkResponseTimeout <= 0){
 				// Reset the status timer flag
 				checkTimerFlag = 0 ;
-				
+				softRestartFlag = 1 ;
+
 
 				// Write all the status responses in the output file
 				printf("No response from any beacon node. You are disconnected from the network. Connect again\n") ;
-//				writeToStatusFile() ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+					//pthread_mutex_lock(&connectionMapLock) ;
+					//if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
+					notifyMessageSend((*it).second, 1);
+					//pthread_mutex_unlock(&connectionMapLock) ;
+					//printf("Hi I am here\n");
+				}
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;
+				sleep(1);
+				kill(node_pid, SIGTERM);
+				break;
+				//				writeToStatusFile() ;
 
 			}
 
 		}
-		
+
 		//MsgLifetime timer
 		if(!inJoinNetwork)
 		{
@@ -166,8 +179,8 @@ void *timer_thread(void *arg){
 		}
 
 
+		}
+		pthread_exit(0);
+		return 0;
 	}
-	pthread_exit(0);
-	return 0;
-}
 

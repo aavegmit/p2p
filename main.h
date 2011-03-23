@@ -93,6 +93,7 @@ extern int inJoinNetwork;
 extern int statusTimerFlag ;
 extern int checkTimerFlag ;
 extern int node_pid;
+extern int softRestartFlag ;
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
@@ -135,5 +136,7 @@ void writeLogEntry(unsigned char *logEntry);
 void eraseValueInMap(int val);
 extern unsigned char *GetUOID(char *, unsigned char *, long unsigned int) ;
 void initiateCheck() ;
+void init() ;
+void cleanup() ;
 
 
