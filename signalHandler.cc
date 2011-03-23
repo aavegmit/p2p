@@ -65,7 +65,7 @@ void my_handler(int nSig)
 	}
 	if(nSig == SIGINT)
 	{
-		//printf("OUT OF FGETS\n");
+		printf("OUT OF FGETS\n");
 		//pthread_exit(0);
 		//Set the status timeout to be 0
 		pthread_mutex_lock(&statusMsgLock) ;

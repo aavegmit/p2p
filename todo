@@ -1,6 +1,5 @@
-- files should be in direcotrires
 - clear up the code, remove prints and everything
-- notify message not printing properly in log file
 - Nocheck, parameter
 - restart non-beacon node when MinNeighbors is less
 - notify while restaring the node, oft restart when min ieghbor not connected
+- 'file' direcotry should be built programitcally

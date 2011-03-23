@@ -112,7 +112,6 @@ void *timer_thread(void *arg){
 				statusTimerFlag = 0 ;
 				pthread_cond_signal(&statusMsgCV);
 				pthread_mutex_unlock(&statusMsgLock) ;
-				
 			}
 		}
 		
@@ -136,27 +135,31 @@ void *timer_thread(void *arg){
 		//MsgLifetime timer
 		if(!inJoinNetwork)
 		{
+						printf("1. Hi I am here now\n");
 			pthread_mutex_lock(&MessageDBLock) ;
-			map<string, struct Packet>::iterator it_temp;
-			for(map<string, struct Packet>::iterator it = MessageDB.begin(); it != MessageDB.end(); )
+			//map<string, struct Packet>::iterator it_temp;
+			for(map<string, struct Packet>::iterator it_temp = MessageDB.begin(); it_temp != MessageDB.end(); )
 			{
-				if((*it).second.msgLifeTime > 0)
+				if((*it_temp).second.msgLifeTime > 0)
 				{
-					(*it).second.msgLifeTime--;
-					++it;
+					(*it_temp).second.msgLifeTime--;
+					++it_temp;
 					continue;
 				}
 				else
 				{
-					if((*it).second.msgLifeTime == 0)
+					if((*it_temp).second.msgLifeTime == 0)
 					{
 						//printf("This entry has been erased\n");
 						//it_temp = it;
 						//it++;	
-						MessageDB.erase((it)++);
+						//if(MessageDB.erase((it_temp)++)==0)
+						//	continue;
+						//printf("2. Hi I am here now\n");
+						MessageDB.erase((it_temp)++);
 					}
 					else
-						++it;
+						++it_temp;
 				}
 			}
 			pthread_mutex_unlock(&MessageDBLock) ;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <queue>
@@ -138,6 +139,13 @@ int main(int argc, char *argv[])
 	populatemyInfo();
 	parseINIfile(fileName);
 	free(fileName) ;
+	
+	if(strcmp((char *)myInfo->homeDir, "\0")==0)
+		exit(0);
+	mkdir((char *)myInfo->homeDir, 0777);
+	
+//	printf("Created a directory %s\n", (char *)myInfo->homeDir);
+//		exit(0);
 	//Checks if the node is beacon or not
 	struct node n;
 	//strcpy((char *)n.hostname, (char *)myInfo->hostName);
@@ -151,15 +159,27 @@ int main(int argc, char *argv[])
 	node_pid = getpid();
 	//printf("My Id is main: %d\n", (int)pthread_self());
 	signal(SIGTERM, my_handler);
+
+	unsigned char tempLogFile[512], tempInitFile[512];
+	memset(&tempLogFile, '\0', 512);
+	memset(&tempInitFile, '\0', 512);
+	strncpy((char *)tempLogFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));
+	strncpy((char *)tempInitFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));	
+	tempLogFile[strlen((char*)myInfo->homeDir)] = '\0';
+	tempInitFile[strlen((char*)myInfo->homeDir)] = '\0';
+	strcat((char *)tempLogFile, "/");
+	strcat((char *)tempLogFile, (char *)myInfo->logFileName);
+	strcat((char *)tempInitFile, "/init_neighbor_list");	
+	
 	if(resetFlag)
 	{
-		remove((char *)myInfo->logFileName);
+		remove((char *)tempLogFile);
 		if(!myInfo->isBeacon)
-			remove("init_neighbor_list");
+			remove((char *)tempInitFile);
 		remove("status.out");
 
 	}
-	f_log = fopen((char *)myInfo->logFileName, "a");
+	f_log = fopen((char *)tempLogFile, "a");
 
 	//printmyInfo();
 	//exit(0);
@@ -406,7 +426,7 @@ else{
 
 		//checking if the init_neighbor_list exsits or not
 
-		f=fopen("init_neighbor_list", "r");
+		f=fopen((char *)tempInitFile, "r");
 		sigset_t new_t;
 		if(f==NULL)
 		{
