@@ -609,11 +609,14 @@ void initiateCheck(){
 	MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
 	pthread_mutex_unlock(&MessageDBLock) ;
 
-	myInfo->checkResponseTimeout = myInfo->joinTimeOut ;
+//	myInfo->checkResponseTimeout = myInfo->joinTimeOut ;
 
 	
-	pthread_mutex_lock(&nodeConnectionMapLock) ;
+	printf("here1\n") ;
+//	pthread_mutex_lock(&nodeConnectionMapLock) ;
+	printf("here2\n") ;
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+	printf("here3\n") ;
 		struct Message m ;
 		m.type = 0xf6 ;
 		m.status = 2 ;
@@ -622,7 +625,7 @@ void initiateCheck(){
 			m.uoid[i] = uoid[i] ;
 		pushMessageinQ( (*it).second, m) ;
 	}
-	pthread_mutex_unlock(&nodeConnectionMapLock) ;
+//	pthread_mutex_unlock(&nodeConnectionMapLock) ;
 	checkTimerFlag = 1 ;
 
 }

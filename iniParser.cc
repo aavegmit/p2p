@@ -39,6 +39,7 @@ void populatemyInfo()
 	myInfo->getMsgLifeTime = 300;
 	myInfo->initNeighbor = 3;
 	myInfo->joinTimeOut = 15;
+	myInfo->checkResponseTimeout = 15;
 	myInfo->keepAliveTimeOut = 60;
 	myInfo->minNeighbor = 2;
 	myInfo->noCheck = 0;
@@ -317,6 +318,7 @@ void parseINIfile(unsigned char *fileName)
 							continue;
 						value=(unsigned char *)strtok(NULL,"=");
 						myInfo->joinTimeOut=atoi((char *)value);
+						myInfo->checkResponseTimeout=atoi((char *)value);
 					}
 					else if(!strcasecmp((char *)key, "keepalivetimeout"))
 					{
