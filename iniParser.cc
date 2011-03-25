@@ -34,11 +34,13 @@ void populatemyInfo()
 	strncpy((char *)myInfo->logFileName, "servant.log", strlen("servant.log"));
 	myInfo->logFileName[strlen("servant.log")]='\0';
 	myInfo->autoShutDown = 900;
+	myInfo->autoShutDown_permanent = 900;
 	myInfo->ttl = 30;
 	myInfo->msgLifeTime = 30;
 	myInfo->getMsgLifeTime = 300;
 	myInfo->initNeighbor = 3;
 	myInfo->joinTimeOut = 15;
+	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
 	myInfo->checkResponseTimeout = 15;
 	myInfo->keepAliveTimeOut = 60;
 	myInfo->minNeighbor = 2;

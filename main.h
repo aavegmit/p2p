@@ -80,9 +80,11 @@ struct connectionNode{
 	int myReadId;
 	int myWriteId;
 	int isReady;
+	bool joinFlag;
 	struct node n;
 };
 
+extern unsigned char tempLogFile[512], tempInitFile[512];
 extern bool shutDown ;
 extern int accept_pid;
 extern int nSocket_accept;
@@ -138,5 +140,4 @@ extern unsigned char *GetUOID(char *, unsigned char *, long unsigned int) ;
 void initiateCheck() ;
 void init() ;
 void cleanup() ;
-
 

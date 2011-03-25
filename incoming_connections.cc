@@ -115,21 +115,16 @@ void *accept_connectionsT(void *){
 			}
 
 			cn.shutDown = 0 ;
-			cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+			cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
 			cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 			cn.isReady = 0;
 			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[newsockfd] = cn ;
 			pthread_mutex_unlock(&connectionMapLock) ;
 
-			// Send a HELLO message
-			struct Message m;
-			m.type = 0xfa ;
-			m.status = 0;
-			m.fromConnect = 0;
-			pushMessageinQ(newsockfd, m) ;
+			//Sleep before sending hello, so that hello gets recived first
 
-
+			
 			int res ;
 			pthread_t re_thread ;
 			res = pthread_create(&re_thread, NULL, read_thread , (void *)newsockfd);
@@ -140,6 +135,14 @@ void *accept_connectionsT(void *){
 			connectionMap[newsockfd].myReadId = re_thread;
 			childThreadList_accept.push_front(re_thread);
 
+			sleep(1);
+			// Send a HELLO message
+			struct Message m;
+			m.type = 0xfa ;
+			m.status = 0;
+			m.fromConnect = 0;
+			pushMessageinQ(newsockfd, m) ;
+
 			pthread_t wr_thread ;
 			res = pthread_create(&wr_thread, NULL, write_thread , (void *)newsockfd);
 			if (res != 0) {
@@ -149,6 +152,9 @@ void *accept_connectionsT(void *){
 			//		close(newsockfd) ;
 			connectionMap[newsockfd].myWriteId = wr_thread;
 			childThreadList_accept.push_front(wr_thread);
+			
+			//sleep(1);
+
 		}
 
 	}
@@ -171,6 +177,7 @@ void *accept_connectionsT(void *){
 		}
 	}
 	printf("Server terminating normally\n") ;
+	childThreadList_accept.clear();
 	//close(nSocket_accept) ;
 
 	pthread_exit(0);
@@ -268,6 +275,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 		pthread_mutex_lock(&connectionMapLock) ;
 		connectionMap[sockfd].n = n;
+		connectionMap[sockfd].joinFlag = 1;		
 		pthread_mutex_unlock(&connectionMapLock) ;
 
 		printf("JOIN REQUEST for %s:%d received\n", n.hostname, n.portNo) ;
@@ -467,11 +475,11 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 		struct node n ;
 		n.portNo = 0 ;
-		memcpy((unsigned int *)&n.portNo, &buffer[22], 2) ;
+		memcpy((unsigned short int *)&n.portNo, &buffer[22], 2) ;
 		for(int hh = 0 ; hh < len1 - 2 ; ++hh)
 			n.hostname[hh] = buffer[24 + hh] ;
 		//		strncpy(n.hostname, const_cast<char *> ((char *)buffer+24) , len1 - 2   ) ;
-		n.hostname[len1] = '\0' ;
+		n.hostname[len1-2] = '\0' ;
 		printf("%s\n", n.hostname) ;
 
 

@@ -25,6 +25,7 @@ void my_handler(int nSig)
 */	/* Signal raised by Parent for Child */
 	if (nSig == SIGUSR1) {
 		//printf("Signal Handling Success!!!!!\n");
+		printf("I am awake!!!!\n");
 		if(myInfo->joinTimeOut == 0)
 		{
 			joinTimeOutFlag = 1;
@@ -32,19 +33,20 @@ void my_handler(int nSig)
 			closeConnection( (*nodeConnectionMap.begin()).second  ) ;
 			myInfo->joinTimeOut--;
 		}
-		if(shutDown)
-			printf("I am awake!!!!\n");
+//		if(shutDown)
+			
 		//pthread_exit(0);
 	}
 
 	if (nSig == SIGUSR2) {
 		printf("Signal Handling Success: %d\n", (int)pthread_self());
 		//closeConnection(toBeClosed);
-		pthread_exit(0);
+		//pthread_exit(0);
 	}
 	if(nSig == SIGTERM)
 	{
 		//printf("Signal Handling SIGTERM %d\n", (int)pthread_self());
+		//		printf("ERROR MAYBE HERE!!!!!\n");
 		shutDown = 1;
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
@@ -65,7 +67,7 @@ void my_handler(int nSig)
 	}
 	if(nSig == SIGINT)
 	{
-		printf("OUT OF FGETS\n");
+		//printf("OUT OF FGETS\n");
 		//pthread_exit(0);
 		//Set the status timeout to be 0
 		pthread_mutex_lock(&statusMsgLock) ;

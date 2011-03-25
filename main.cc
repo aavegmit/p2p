@@ -45,6 +45,7 @@ pthread_mutex_t logEntryLock ;
 pthread_cond_t statusMsgCV;
 
 void my_handler(int nSig);
+void resetValues();
 
 int usage()
 {
@@ -143,6 +144,9 @@ int main(int argc, char *argv[])
 	parseINIfile(fileName);
 	free(fileName) ;
 	
+	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
+	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
+	
 	if(strcmp((char *)myInfo->homeDir, "\0")==0)
 		exit(0);
 	mkdir((char *)myInfo->homeDir, 0777);
@@ -178,10 +182,17 @@ int main(int argc, char *argv[])
 		remove((char *)tempLogFile);
 		if(!myInfo->isBeacon)
 			remove((char *)tempInitFile);
-		remove("status.out");
-
+		//remove("status.out");
 	}
 	f_log = fopen((char *)tempLogFile, "a");
+	
+	/*struct timeval tv;
+	memset(&tv, 0, sizeof(tv));
+	gettimeofday(&tv, NULL);
+	unsigned char startLogging[256];
+	memset(startLogging, '\0', 256);
+	sprintf((char *)startLogging, "// %10ld.%03ld : Logging Started\n", tv.tv_sec, (tv.tv_usec/1000));
+	writeLogEntry(startLogging);*/
 
 	//printmyInfo();
 	//exit(0);
@@ -271,9 +282,30 @@ int main(int argc, char *argv[])
 	// Call the init function
 	while(!shutDown || softRestartFlag){
 		softRestartFlag = 0 ;
+		signal(SIGTERM, my_handler);
+		
+		struct timeval tv;
+		memset(&tv, 0, sizeof(tv));
+		gettimeofday(&tv, NULL);
+		unsigned char startLogging[256];
+		memset(startLogging, '\0', 256);
+		sprintf((char *)startLogging, "// %10ld.%03ld : Logging Started\n", tv.tv_sec, (tv.tv_usec/1000));
+		writeLogEntry(startLogging);
+	
 		init() ;
 		cleanup() ;
+		//printf("The SIze of master list is : %d\n", (int)childThreadList.size());
 		printf("going back again\n") ;
+		
+		if(softRestartFlag)
+			resetValues();
+		//pthread_exit(0);
+		memset(&tv, 0, sizeof(tv));
+		gettimeofday(&tv, NULL);
+		unsigned char stopLogging[256];
+		memset(stopLogging, '\0', 256);
+		sprintf((char *)stopLogging, "// %10ld.%03ld : Logging Stopped\n", tv.tv_sec, (tv.tv_usec/1000));
+		writeLogEntry(stopLogging);
 
 	}
 
@@ -618,6 +650,17 @@ int main(int argc, char *argv[])
 }
 
 
+void resetValues()
+{
+	shutDown = 0;
+	myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
+	myInfo->autoShutDown = myInfo->autoShutDown_permanent;
+	myInfo->checkResponseTimeout = myInfo->joinTimeOut_permanent;
+	checkTimerFlag = 0;
+	nSocket_accept = 0;
+	remove((char *)tempInitFile);
+}
+
 void cleanup(){
 
 	int res ;
@@ -655,7 +698,6 @@ void cleanup(){
 	childThreadList.push_front(t_thread);
 
 
-
 	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
 		printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
 		res = pthread_join((*it), &thread_result);
@@ -665,8 +707,11 @@ void cleanup(){
 			//continue;
 		}
 	}
-
-
+	
+	nodeConnectionMap.clear();
+	childThreadList.clear();
+	connectionMap.clear();
+	joinResponse.clear();
 }
 
 
@@ -741,6 +786,9 @@ else{
 
 		f=fopen((char *)tempInitFile, "r");
 		sigset_t new_t;
+		sigemptyset(&new_t);
+		sigaddset(&new_t, SIGUSR1);
+
 		if(f==NULL)
 		{
 			printf("Neighbor List does not exist...Joining the network\n");
@@ -748,6 +796,9 @@ else{
 
 			//Adding Signal Handler for USR1 signal
 			accept_pid=getpid();
+
+			pthread_sigmask(SIG_UNBLOCK, &new_t, NULL);
+
 			signal(SIGUSR1, my_handler);
 
 			inJoinNetwork = 1;	
@@ -755,12 +806,11 @@ else{
 			inJoinNetwork = 0;
 
 			printf("Joining success\n");
+			myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
 			continue ;
 		}
 
 		myInfo->joinTimeOut = -1;
-		sigemptyset(&new_t);
-		sigaddset(&new_t, SIGUSR1);
 		pthread_sigmask(SIG_BLOCK, &new_t, NULL);
 //=======
 //	}
@@ -839,13 +889,35 @@ else{
 				exit(EXIT_FAILURE);
 				}*/
 
-				if(tempNeighborsList->size() < myInfo->minNeighbor)
+/*				if(tempNeighborsList->size() < myInfo->minNeighbor)
 				{
-					//need to delete file init_neighbor_list
 					fclose(f);
-					remove("init_neighbor_list");
+					remove((char *)tempInitFile);
+					shutdown(nSocket_accept, SHUT_RDWR);
+					close(nSocket_accept);
+				
+					pthread_mutex_lock(&nodeConnectionMapLock) ;
+					for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
+						closeConnection((*it).second);
+					//Maybe send NOTIFY message beacouse of restart
+					nodeConnectionMap.clear();
+					pthread_mutex_unlock(&nodeConnectionMapLock) ;
+					
+					void *thread_result;
+					for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
+//						printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
+						res = pthread_join((*it), &thread_result);
+						if (res != 0) {
+							perror("Thread join failed");
+							exit(EXIT_FAILURE);
+							//continue;
+						}
+					}
+					childThreadList.clear();
+					myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
 					continue;
 				}
+*/
 
 				int nodeConnected = 0;
 				int resSock;
@@ -901,7 +973,7 @@ else{
 						}
 						//Shutdown initilazed to zero
 						cn.shutDown = 0 ;
-						cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+						cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
 						cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 						cn.isReady = 0;
 						cn.n = n;
@@ -954,16 +1026,32 @@ else{
 					break;
 				else
 				{
-					//need to delete init_neighbor_node
-					//need to delete all the connected sockets
 					fclose(f);
-					remove("init_neighbor_list");
+					//remove((char *)tempInitFile);
+					shutDown = 1;
+					shutdown(nSocket_accept, SHUT_RDWR);
+					close(nSocket_accept);
+				
 					pthread_mutex_lock(&nodeConnectionMapLock) ;
 					for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
 						closeConnection((*it).second);
 					//Maybe send NOTIFY message beacouse of restart
 					nodeConnectionMap.clear();
 					pthread_mutex_unlock(&nodeConnectionMapLock) ;
+					
+					void *thread_result;
+					for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
+//						printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
+						res = pthread_join((*it), &thread_result);
+						if (res != 0) {
+							perror("Thread join failed");
+							exit(EXIT_FAILURE);
+							//continue;
+						}
+					}
+					childThreadList.clear();
+					//myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
+					resetValues();
 					continue;
 				}
 

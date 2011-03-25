@@ -36,11 +36,13 @@ struct myStartInfo
 	unsigned char homeDir[512];
 	unsigned char logFileName[256];
 	unsigned int autoShutDown;
+	unsigned int autoShutDown_permanent;	
 	uint8_t ttl;
 	unsigned int msgLifeTime;
 	unsigned int getMsgLifeTime;
 	unsigned int initNeighbor;
 	unsigned int joinTimeOut;
+	unsigned int joinTimeOut_permanent;
 	unsigned int keepAliveTimeOut;
 	unsigned int minNeighbor;
 	unsigned int noCheck;

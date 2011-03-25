@@ -33,7 +33,7 @@ void *timer_thread(void *arg){
 				{
 					if(myInfo->joinTimeOut==0)
 					{
-						//printf("Timer out..: %d\n", (int)pthread_self()) ;
+						printf("Timer out..: %d\n", (int)pthread_self()) ;
 						kill(accept_pid, SIGUSR1);
 						break;
 						//myInfo->joinTimeOut--;
@@ -105,7 +105,7 @@ void *timer_thread(void *arg){
 			else //if (myInfo->statusResponseTimeout == 0){
 			{
 				// Write all the status responses in the output file
-				writeToStatusFile() ;
+				//writeToStatusFile() ;
 
 				// Reset the status timer flag
 				pthread_mutex_lock(&statusMsgLock) ;
@@ -131,14 +131,14 @@ void *timer_thread(void *arg){
 				for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
 					//pthread_mutex_lock(&connectionMapLock) ;
 					//if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
-					notifyMessageSend((*it).second, 1);
+					notifyMessageSend((*it).second, 3);
 					//pthread_mutex_unlock(&connectionMapLock) ;
 					//printf("Hi I am here\n");
 				}
 				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 				sleep(1);
 				kill(node_pid, SIGTERM);
-				break;
+				//break;
 				//				writeToStatusFile() ;
 
 			}
@@ -148,7 +148,6 @@ void *timer_thread(void *arg){
 		//MsgLifetime timer
 		if(!inJoinNetwork)
 		{
-						printf("1. Hi I am here now\n");
 			pthread_mutex_lock(&MessageDBLock) ;
 			//map<string, struct Packet>::iterator it_temp;
 			for(map<string, struct Packet>::iterator it_temp = MessageDB.begin(); it_temp != MessageDB.end(); )
@@ -176,6 +175,7 @@ void *timer_thread(void *arg){
 				}
 			}
 			pthread_mutex_unlock(&MessageDBLock) ;
+			
 		}
 
 

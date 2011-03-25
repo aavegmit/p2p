@@ -341,12 +341,13 @@ void *write_thread(void *args){
 		{
 			//	if(connectionMap[sockfd].keepAliveTimer!=0)
 			pthread_mutex_lock(&connectionMapLock) ;
-			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
+			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/3;
 			pthread_mutex_unlock(&connectionMapLock) ;
 			//				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
 		}
 
-
+		/*if((mes.type == 0xfa && !inJoinNetwork))
+			sleep(1);*/
 		int return_code = 0 ;
 		return_code = (int)write(sockfd, header, HEADER_SIZE) ;
 		if (return_code != HEADER_SIZE){
@@ -359,13 +360,15 @@ void *write_thread(void *args){
 		}
 
 		unsigned char *logEntry = NULL;
-		if(!(mes.type == 0xfa && inJoinNetwork))
+		if(!(mes.type == 0xfa && (inJoinNetwork || connectionMap[sockfd].joinFlag == 1)))
 		{
 			pthread_mutex_lock(&logEntryLock) ;						
 			if(mes.status== 0 || mes.status == 2 )
 				logEntry = createLogEntry('s', sockfd, header, buffer);
 			else
 				logEntry = createLogEntry('f', sockfd, header, buffer);
+			
+			//printf("<<<<<<<<<<<<LOG ENTRY IS: %s\n", logEntry);
 			if(logEntry!=NULL)
 				writeLogEntry(logEntry);	
 			pthread_mutex_unlock(&logEntryLock) ;				
@@ -530,23 +533,31 @@ void joinNetwork(){
 	printf("Join process exiting..\n") ;
 
 	// Sort the output and write them in the file
-	FILE *fp = fopen("init_neighbor_list", "w") ;
+	//FILE *fp = fopen("init_neighbor_list", "w") ;
+	FILE *fp = fopen((char *)tempInitFile, "w");
 	if (fp==NULL){
 		fprintf(stderr, "Error in file open") ;
 	}
 	unsigned char tempPort[10] ;
 	if (joinResponse.size() < myInfo->initNeighbor){
-		fprintf(stderr, "Failed to locate minimum number of nodes") ;
+	//if (joinResponse.size() < 1){
+		//fprintf(stderr, "Failed to locate minimum number of nodes\n") ;
+		writeLogEntry((unsigned char *)"//Failed to locate minimum number of nodes\n");
+		fclose(f_log);
 		exit(0) ;
 	}
-	for (set<struct joinResNode>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++){
+	unsigned int counter = 0;
+	for (set<struct joinResNode>::iterator it = joinResponse.begin(); it != joinResponse.end() ; it++, counter++){
+	
+		if(counter==myInfo->minNeighbor)
+			break;
+
 		printf("Hostname: %s, Port: %d, location: %d\n", (*it).hostname, (*it).portNo, (*it).location) ;
 		fputs((char *)(*it).hostname , fp) ;
 		fputs(":", fp) ;
 		sprintf((char *)tempPort, "%d", (*it).portNo) ;
 		fputs((char *)tempPort, fp) ;
 		fputs("\n", fp) ;
-
 
 	}
 	fflush(fp) ;
@@ -555,7 +566,6 @@ void joinNetwork(){
 	nodeConnectionMap.erase(nodeConnectionMap.begin(), nodeConnectionMap.end()) ;
 	pthread_mutex_unlock(&nodeConnectionMapLock) ;
 	childThreadList.clear();
-
 }
 
 
@@ -651,6 +661,21 @@ void writeToStatusFile(){
 		distinctNodes.insert( *it1 ) ;
 	}
 
+	if(distinctNodes.size() == 0)
+	{
+		fputs("n -t * -s ", fp) ;	
+		
+		unsigned char portS[20] ;
+		sprintf((char *)portS, "%d", myInfo->portNo) ;
+		fputs((char *)portS, fp) ;
+		if (myInfo->isBeacon){
+			fputs(" -c blue -i blue\n", fp) ;
+		}
+		else{
+			fputs(" -c black -i black\n", fp) ;
+		}		
+	}
+
 	for (set< struct node >::iterator it = distinctNodes.begin(); it != distinctNodes.end() ; ++it){
 		fputs("n -t * -s ", fp) ;
 		unsigned char portS[20] ;
@@ -690,7 +715,6 @@ void writeToStatusFile(){
 			fputs(" -c black\n", fp) ;
 		}
 	}
-
 
 
 

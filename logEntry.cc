@@ -104,7 +104,7 @@ uint8_t statusType = 0x00;
 				uoid[i] = buffer[16+i];
 			memcpy(&distance, &buffer[20], 4) ;
 			memcpy(&portNo, &buffer[24], 2) ;
-			for(unsigned int i=26;buffer[i]!='\0';i++)
+			for(unsigned int i=26;i < data_len;i++)
 				hostName[i-26] = buffer[i];
 			//strncpy((char *)hostName, ((char *)buffer+26), strlen((char *)buffer)-26) ;
 			sprintf((char *)data, "%02x%02x%02x%02x %d %d %s", uoid[0], uoid[1], uoid[2], uoid[3], distance, portNo, hostName);
@@ -125,14 +125,24 @@ uint8_t statusType = 0x00;
 			sprintf((char *)data, "%d", errorCode);
 			break;
 		case 0xf6 : 	//msg_type = "CKRQ"
+			
 			break;
 		case 0xf5 : 	//msg_type = "CKRS"
+			for(unsigned int i=0;i < 4;i++)
+				uoid[i] = buffer[16+i];
+			sprintf((char *)data, "%02x%02x%02x%02x", uoid[0], uoid[1], uoid[2], uoid[3]);
 			break;
 		case 0xac : 	//msg_type = "STRQ"
 			memcpy(&statusType, buffer, 1) ;
-			sprintf((char *)data, "%d", statusType);				
+			if(statusType == 0x01)
+				sprintf((char *)data, "%s", "neighbors");
+			else
+				sprintf((char *)data, "%s", "files");
 			break;
 		case 0xab : 	//msg_type = "STRS"
+			for(unsigned int i=0;i < 4;i++)
+				uoid[i] = buffer[16+i];
+			sprintf((char *)data, "%02x%02x%02x%02x", uoid[0], uoid[1], uoid[2], uoid[3]);
 			break;
 	}
 }
@@ -174,8 +184,8 @@ getNeighbor(sockfd);
 //printf("HOST NAME IOS: %s, %d\n", n.hostname, n.portNo);
 /*gethostname((char *)hostname, 256);
 hostname[255] = '\0';*/
-if(strcmp((char *)n.hostname, "")==0&& n.portNo == 0)
-	return NULL;
+/*if(strcmp((char *)n.hostname, "")==0&& n.portNo == 0)
+	return NULL;*/
 
 //if(n == NULL)
 //	return NULL;

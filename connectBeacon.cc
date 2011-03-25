@@ -45,7 +45,7 @@ void* connectBeacon(void *args)
 				}
 
 				cn.shutDown = 0 ;
-				cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+				cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
 				cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 				cn.isReady = 0;
 				cn.n = n;
@@ -108,5 +108,7 @@ void* connectBeacon(void *args)
 		//printf("Hello I am here!!!\n");
 
 	}
+	//printf("I am gone!!!\n");
+	myChildThreadList.clear();
 	pthread_exit(0);
 }
