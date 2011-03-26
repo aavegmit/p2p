@@ -1,22 +1,13 @@
-- clear up the code, remove prints and everything
 - Nocheck, parameter
-- restart non-beacon node when MinNeighbors is less
-- notify while restaring the node, oft restart when min ieghbor not connected
-- connectBeacon waits bfr going for shutdown, sleep waali ki chod
+
 - JNRS repeating, C-3-a
 
 # resolve ties
 # segfault in ini file
 
 
-# nunki pe port karo
-# code me comments
 
-
-- at the start of every log, enter timestamp
-- exit if location, homedirecory and prot no does not exist
-
-- retry the case with 6 nodes, C-2-a
+- retry the case with 6 nodes, C-2-a.......6 JNRS, expected 5 JNRS
 - retry the case with 6 nodes, C-2-b
 - retry the case with 6 nodes, C-2-c
 

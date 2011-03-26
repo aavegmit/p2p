@@ -24,9 +24,10 @@
 
 using namespace std ;
 
+//keeps the join responses
 extern set<struct joinResNode> joinResponse ;
+//keeps the status messgae
 extern set< set<struct node> > statusResponse ;
-
 
 struct node{
 	unsigned short int portNo;
@@ -56,6 +57,7 @@ struct joinResNode{
 extern map<struct node, int> nodeConnectionMap ;				// To store all the neighboring nodes
 extern pthread_mutex_t nodeConnectionMapLock ;
 
+//message structure that goes into the messgae queues
 struct Message{
 	uint8_t type;
 	unsigned char *buffer ;
@@ -70,6 +72,7 @@ struct Message{
 	uint8_t errorCode;
 } ;
 
+//information for the neighbors stored in this structures
 struct connectionNode{
 	list<struct Message> MessageQ ;
 	pthread_mutex_t mesQLock ;
@@ -99,10 +102,13 @@ extern int softRestartFlag ;
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
+extern map<pthread_t , bool > myConnectThread ;
 extern pthread_mutex_t connectionMapLock ;
 extern pthread_mutex_t statusMsgLock ;
 extern pthread_mutex_t logEntryLock ;
 extern pthread_cond_t statusMsgCV;
+
+//pakcet structre stored in the cache at the nodes
 struct Packet{
 
 	struct node receivedFrom ;

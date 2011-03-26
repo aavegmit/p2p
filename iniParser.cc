@@ -12,17 +12,18 @@
 using namespace std;
 
 
+//Creates the node instacne id, using the timestamp
 void setNodeInstanceId(){
 	// Should be called once node_id of the node is set
 	time_t sec;
 	sec = time (NULL) ;
 	sprintf((char *)myInfo->node_instance_id, "%s_%ld", myInfo->node_id, (long)sec) ;
-	printf("%s\n", myInfo->node_instance_id) ;
+//	printf("%s\n", myInfo->node_instance_id) ;
 }
 
 
 
-//Initilaizing default values for myInfo
+//Initilaizing default values for myInfo, default values for the nodes parameters
 void populatemyInfo()
 {
 	myInfo = (struct myStartInfo *)malloc(sizeof(myStartInfo));
@@ -50,13 +51,14 @@ void populatemyInfo()
 	myInfo->neighborStoreProb = 0.2;
 	myInfo->cacheSize = 500;
 	myInfo->isBeacon = false;
+	//myInfo->retry = 30;
 	myInfo->retry = 30;
 	memset(myInfo->node_id, '\0', 265) ;
 	memset(myInfo->node_instance_id, '\0', 300) ;
 
 }
 
-//printing the values of myInfo
+//function to print the values of myInfo, node default values
 void printmyInfo()
 {
 	printf("Value for myInfo is:--\n\n");
@@ -123,7 +125,7 @@ void removeSpaces(unsigned char *readLine)
 }
 
 
-// Parses the ini file passed as command line argument
+// Parses the ini file passed as command line argument, this function populates the myInfo structure of the node
 void parseINIfile(unsigned char *fileName)
 {
 	FILE *f=fopen((char *)fileName,"r");
@@ -133,7 +135,8 @@ void parseINIfile(unsigned char *fileName)
 
 	if(f==NULL)
 	{
-		printf("Error in file opening\n");
+		//printf("Error in file opening\n");
+		writeLogEntry((unsigned char *)"Error in Ini file opening\n");
 		exit(1);
 	}
 
@@ -142,6 +145,7 @@ void parseINIfile(unsigned char *fileName)
 	unsigned char readLine[512];
 	unsigned char *key, *value;
 
+	//reading the ini file to parse it
 	while(fgets((char *)readLine, 511, f)!=NULL)
 	{
 		//removes trailing space, tabs, new line, CR

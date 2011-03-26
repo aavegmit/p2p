@@ -6,18 +6,23 @@
 #include "main.h"
 #include "keepAliveTimer.h"
 
+
+//Keep alive timer thread, sends the KEEP ALIVE message every keepalivetimeout/3
+//this message indicates that the node is still alive
 void *keepAliveTimer_thread(void *arg){
 
 while(!shutDown)
 {
 	sleep(1);
 
+	//global flag denttoing shutdown of the nodes
 	if(shutDown)
 	{
-		printf("KeepAlive thread halted\n");
+		//printf("KeepAlive thread halted\n");
 		break;
 	}
 	//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it){
+	//iterate through the neighbprs list and send KEEP ALIVE messages
 	pthread_mutex_lock(&nodeConnectionMapLock) ;
 	for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
 				//printf("Hi I am here!!!!\n");

@@ -34,6 +34,8 @@ struct myStartInfo *myInfo ;
 map<int, struct connectionNode> connectionMap;
 map<struct node, int> nodeConnectionMap;
 list<pthread_t > childThreadList ;
+//list<pthread_t > myConnectThread ;
+map<pthread_t, bool > myConnectThread;
 set<struct joinResNode> joinResponse ;
 set< set<struct node> > statusResponse ;
 
@@ -49,14 +51,16 @@ void resetValues();
 
 int usage()
 {
-	printf("Usage is: \"sv_node [-reset] <.ini file>\"\n");
+	printf("Incorrect command line argument--\n\nUsage is: \"sv_node [-reset] <.ini file>\"\n");
 	return false;
 }
 
+// this function process the command line arguments, checks for reset options and colelcts the startup configuration file
 int processCommandLine(int argc, unsigned char *argv[])
 {
 	int iniFlag=0;
 
+	//not enough number of arguments
 	if(argc<2 || argc > 3)
 		return usage();
 
@@ -91,6 +95,7 @@ int processCommandLine(int argc, unsigned char *argv[])
 }
 
 
+//this functions closes the connection after shutting down the socket
 void closeConnection(int sockfd){
 
 	// Set the shurdown flag for this connection
@@ -106,17 +111,17 @@ void closeConnection(int sockfd){
 	// Finally, close the socket
 	shutdown(sockfd, SHUT_RDWR);
 	close(sockfd) ;
-	//	pthread_cancel(connectionMap[sockfd].myReadId);
-	//	pthread_cancel(connectionMap[sockfd].myWriteId);
-	printf("This socket has been closed: %d\n", sockfd);
+
+	//printf("This socket has been closed: %d\n", sockfd);
 	// Initiate a CHECK message
 	if (!myInfo->isBeacon && !shutDown && !inJoinNetwork){
-		printf("Inititating CHECK message\n") ;
+		//printf("Inititating CHECK message\n") ;
 				initiateCheck() ;
 	}
 
 }
 
+// while closing a connection, this function is called to erase the value of neighbor from the list maintained
 void eraseValueInMap(int val)
 {
 	for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
@@ -129,8 +134,10 @@ void eraseValueInMap(int val)
 }
 
 
+// Main body of the PEER TO PEER file sharing system
 int main(int argc, char *argv[])
 {
+	//Checks if the command arguments are correct or not
 	if(!processCommandLine(argc, (unsigned char**)argv))
 		exit(0);
 
@@ -139,16 +146,47 @@ int main(int argc, char *argv[])
 	sigemptyset(&new_t);
 	sigaddset(&new_t, SIGINT);
 	pthread_sigmask(SIG_BLOCK, &new_t, NULL);
-
+	
+	//function populates the node elemenets with default values
 	populatemyInfo();
+	
+	//parses the INI file, populates the 
 	parseINIfile(fileName);
 	free(fileName) ;
 	
 	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
 	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
 	
-	if(strcmp((char *)myInfo->homeDir, "\0")==0)
+	
+	//Log file and init_neighbors_file
+	memset(&tempLogFile, '\0', 512);
+	memset(&tempInitFile, '\0', 512);
+	strncpy((char *)tempLogFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));
+	strncpy((char *)tempInitFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));	
+	tempLogFile[strlen((char*)myInfo->homeDir)] = '\0';
+	tempInitFile[strlen((char*)myInfo->homeDir)] = '\0';
+	strcat((char *)tempLogFile, "/");
+	strcat((char *)tempLogFile, (char *)myInfo->logFileName);
+	strcat((char *)tempInitFile, "/init_neighbor_list");	
+
+		//if reset option at the commnad prompt given, delets the log file, init neighbor file
+	if(resetFlag)
+	{
+		//writeLogEntry((unsigned char *)"//Reset Option in command line is given, deleted Log file\n");
+		remove((char *)tempLogFile);
+		if(!myInfo->isBeacon)
+			remove((char *)tempInitFile);
+	}
+	//Opening the log file
+	f_log = fopen((char *)tempLogFile, "a");
+
+	if(strcmp((char *)myInfo->homeDir, "\0")==0 || myInfo->portNo == 0 || myInfo->location == 0)
+	{
+		//Program should exit
+		writeLogEntry((unsigned char *)"//Madatory elements of Nodes were not populated\n");
 		exit(0);
+	}
+	//creates the directory, homedirectory
 	mkdir((char *)myInfo->homeDir, 0777);
 	
 //	printf("Created a directory %s\n", (char *)myInfo->homeDir);
@@ -164,39 +202,9 @@ int main(int argc, char *argv[])
 
 	memset(&accept_pid, 0, sizeof(accept_pid));
 	node_pid = getpid();
-	//printf("My Id is main: %d\n", (int)pthread_self());
 	signal(SIGTERM, my_handler);
 
-	memset(&tempLogFile, '\0', 512);
-	memset(&tempInitFile, '\0', 512);
-	strncpy((char *)tempLogFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));
-	strncpy((char *)tempInitFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));	
-	tempLogFile[strlen((char*)myInfo->homeDir)] = '\0';
-	tempInitFile[strlen((char*)myInfo->homeDir)] = '\0';
-	strcat((char *)tempLogFile, "/");
-	strcat((char *)tempLogFile, (char *)myInfo->logFileName);
-	strcat((char *)tempInitFile, "/init_neighbor_list");	
 	
-	if(resetFlag)
-	{
-		remove((char *)tempLogFile);
-		if(!myInfo->isBeacon)
-			remove((char *)tempInitFile);
-		//remove("status.out");
-	}
-	f_log = fopen((char *)tempLogFile, "a");
-	
-	/*struct timeval tv;
-	memset(&tv, 0, sizeof(tv));
-	gettimeofday(&tv, NULL);
-	unsigned char startLogging[256];
-	memset(startLogging, '\0', 256);
-	sprintf((char *)startLogging, "// %10ld.%03ld : Logging Started\n", tv.tv_sec, (tv.tv_usec/1000));
-	writeLogEntry(startLogging);*/
-
-	//printmyInfo();
-	//exit(0);
-
 	// Assign a node ID and node instance id to this node
 	{
 		unsigned char host1[256] ;
@@ -204,86 +212,54 @@ int main(int argc, char *argv[])
 		gethostname((char *)host1, 256) ;
 		host1[255] = '\0' ;
 		sprintf((char *)myInfo->node_id, "%s_%d", host1, myInfo->portNo) ;
-		printf("My node ID: %s\n", myInfo->node_id) ;
+	//	printf("My node ID: %s\n", myInfo->node_id) ;
 		setNodeInstanceId() ;
 	}
 
-	// Initialize Locks
+	// Initialize Locks and considiton vairables
 	int lres = pthread_mutex_init(&logEntryLock, NULL) ;
 	if (lres != 0){
-		perror("Mutex initialization failed") ;
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");
 	}
 	lres = pthread_mutex_init(&connectionMapLock, NULL) ;
 	if (lres != 0){
-		perror("Mutex initialization failed") ;
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");		
 	}
 
 	lres = pthread_mutex_init(&MessageDBLock, NULL) ;
 	if (lres != 0){
-		perror("Mutex initialization failed") ;
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");		
 	}
 
 	lres = pthread_mutex_init(&nodeConnectionMapLock, NULL) ;
 	if (lres != 0){
-		perror("Mutex initialization failed") ;
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");
 	}
 
 	lres = pthread_mutex_init(&statusMsgLock, NULL) ;
 	if (lres != 0){
-		perror("Mutex initialization failed") ;
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");
 	}
 
 	int cres = pthread_cond_init(&statusMsgCV, NULL) ;
 	if (cres != 0){
-		perror("CV initialization failed") ;
+		//perror("CV initialization failed") ;
+		writeLogEntry((unsigned char *)"//CV initialization failed\n");		
 	}
-
-//	void *thread_result ;
-
-
-	// Populate the structure manually for testing
-	//	myInfo = (struct myStartInfo *)malloc(sizeof(struct myStartInfo)) ;
-	//	myInfo->myBeaconList = new list<struct beaconList *> ;
-
-	//myInfo->isBeacon = true ;
-
-	//Added by Aaveg, Commented by Manu
-	/*
-	   if (myInfo->portNo == 12318)
-	   myInfo->isBeacon = false;
-	   else
-	   myInfo->isBeacon = true ;
-	   */
-	//myInfo->isBeacon = false ;
-	//	myInfo->portNo = 12347 ;
-	//	myInfo->keepAliveTimeOut = 10 ;
-	//
-	//	struct beaconList *b1;
-	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	//	strcpy((char *)b1->hostName, "localhost") ;
-	//	b1->portNo = 12345 ;
-	//	myInfo->myBeaconList->push_front(b1) ;
-	//
-	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	//	strcpy((char *)b1->hostName, "localhost") ;
-	//	b1->portNo = 12346 ;
-	//	myInfo->myBeaconList->push_front(b1) ;
-	//
-	//	b1 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	//	strcpy((char *)b1->hostName, "localhost") ;
-	//	b1->portNo = 12347 ;
-	//	myInfo->myBeaconList->push_front(b1) ;
-
-	// -------------------------------------------
-
-
 
 
 	// Call the init function
 	while(!shutDown || softRestartFlag){
+	
 		softRestartFlag = 0 ;
 		signal(SIGTERM, my_handler);
 		
+		//Start of the logging 
 		struct timeval tv;
 		memset(&tv, 0, sizeof(tv));
 		gettimeofday(&tv, NULL);
@@ -292,14 +268,19 @@ int main(int argc, char *argv[])
 		sprintf((char *)startLogging, "// %10ld.%03ld : Logging Started\n", tv.tv_sec, (tv.tv_usec/1000));
 		writeLogEntry(startLogging);
 	
+		//Initialiing the threads, establishing connections
 		init() ;
+		
+		//Cleaning up, shutting down
 		cleanup() ;
 		//printf("The SIze of master list is : %d\n", (int)childThreadList.size());
-		printf("going back again\n") ;
+		//printf("going back again\n") ;
 		
+		//checks if the soft restart needs to be performed, and then reset the values
 		if(softRestartFlag)
 			resetValues();
-		//pthread_exit(0);
+
+		//Stop logging here		
 		memset(&tv, 0, sizeof(tv));
 		gettimeofday(&tv, NULL);
 		unsigned char stopLogging[256];
@@ -312,339 +293,7 @@ int main(int argc, char *argv[])
 
 
 
-
-	//
-	//
-	//	// If current node is beacon
-	//	if (myInfo->isBeacon){
-	//		// Call the Accept thread
-	//		// Thread creation and join code taken from WROX Publications book
-	//		pthread_t accept_thread ;
-	//		int res ;
-	//		res = pthread_create(&accept_thread, NULL, accept_connectionsT , (void *)NULL);
-	//		if (res != 0) {
-	//			perror("Thread creation failed");
-	//			exit(EXIT_FAILURE);
-	//		}
-	//		childThreadList.push_front(accept_thread);
-	//
-	//		// Connect to other beacon nodes
-	//		list<struct beaconList *> *tempBeaconList ;
-	//		tempBeaconList = new list<struct beaconList *> ;
-	//		struct beaconList *b2;
-	//		for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-	//			if ( (*it)->portNo != myInfo->portNo){
-	//				b2 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	//				strncpy((char *)b2->hostName, const_cast<char *>((char *)(*it)->hostName), 256) ;
-	//				b2->portNo = (*it)->portNo ;
-	//				tempBeaconList->push_front(b2) ;
-	//			}
-	//		}
-	//
-	//		//int resSock;
-	//		//while(tempBeaconList->size() > 0 && !shutDown){
-	//		for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end() && shutDown!=1; ++it){
-	//			//struct node *n = (struct node *)malloc(sizeof(n));
-	//			struct node n;
-	//			memset(&n, 0, sizeof(n));
-	//			//n = NULL;
-	//			n.portNo = (*it)->portNo ;
-	//			//memcpy(&n.portNo, &(*it)->portNo, sizeof((*it)->portNo));
-	//			//strncpy((char *)n->hostname, (const char *)(*it)->hostName, strlen((const char *)(*it)->hostName)) ;
-	//			for (unsigned int i=0;i<strlen((const char *)(*it)->hostName);i++)
-	//				n.hostname[i] = (*it)->hostName[i];
-	//			n.hostname[strlen((const char *)(*it)->hostName)] = '\0';
-	//			//memcpy(n.hostname, (*it)->hostName, strlen((char *)(*it)->hostName)) ;
-	//			// Create a connect thread for this connection
-	//			pthread_t connect_thread ;
-	//			//printf("In Main: size of List is: %s %d\n", n->hostname, n->portNo);
-	//			int res = pthread_create(&connect_thread, NULL, connectBeacon , (void *)&n);
-	//			if (res != 0) {
-	//				perror("Thread creation failed");
-	//				exit(EXIT_FAILURE);
-	//			}
-	//			childThreadList.push_front(connect_thread);
-	//			sleep(1);
-	//		}	
-	//
-	//		// Join the accept connections thread
-	//
-	//	}
-	//		else{
-	//			FILE *f;
-	//			while(!shutDown)
-	//			{
-	//
-	//				unsigned char nodeName[256];
-	//				memset(&nodeName, '\0', 256);
-	//				printf("A regular node coming up...\n") ;
-	//
-	//				//checking if the init_neighbor_list exsits or not
-	//
-	//				f=fopen("init_neighbor_list", "r");
-	//				sigset_t new_t;
-	//				if(f==NULL)
-	//				{
-	//					printf("Neighbor List does not exist...Joining the network\n");
-	//					//			exit(EXIT_FAILURE);
-	//
-	//					//Adding Signal Handler for USR1 signal
-	//					accept_pid=getpid();
-	//					signal(SIGUSR1, my_handler);
-	//
-	//					inJoinNetwork = 1;	
-	//					joinNetwork() ;	
-	//					inJoinNetwork = 0;
-	//
-	//					printf("Joining success\n");
-	//					continue ;
-	//				}
-	//
-	//				myInfo->joinTimeOut = -1;
-	//				sigemptyset(&new_t);
-	//				sigaddset(&new_t, SIGUSR1);
-	//				pthread_sigmask(SIG_BLOCK, &new_t, NULL);
-	//
-	//
-	//				// Call the Accept thread
-	//				// Thread creation and join code taken from WROX Publications book
-	//				pthread_t accept_thread ;
-	//				int res ;
-	//				res = pthread_create(&accept_thread, NULL, accept_connectionsT , (void *)NULL);
-	//				if (res != 0) {
-	//					perror("Thread creation failed");
-	//					exit(EXIT_FAILURE);
-	//				}
-	//				childThreadList.push_front(accept_thread);
-	//
-	//				// Connect to neighbors in the list
-	//				// File exist, now say "Hello"
-	//				list<struct beaconList *> *tempNeighborsList;
-	//				tempNeighborsList = new list<struct beaconList *>;
-	//				struct beaconList *b2;
-	//				//for(unsigned int i=0;i < myInfo->minNeighbor; i++)
-	//				while(fgets((char *)nodeName, 255, f)!=NULL)
-	//				{
-	//					//fgets(nodeName, 255, f);
-	//					unsigned char *hostName = (unsigned char *)strtok((char *)nodeName, ":");
-	//					unsigned char *portNo = (unsigned char *)strtok(NULL, ":");
-	//
-	//					b2 = (struct beaconList *)malloc(sizeof(struct beaconList)) ;
-	//					strncpy((char *)b2->hostName, (char *)(hostName), strlen((char *)hostName)) ;
-	//					b2->hostName[strlen((char *)hostName)]='\0';
-	//					b2->portNo = atoi((char *)portNo);
-	//					tempNeighborsList->push_back(b2) ;
-	//
-	//				}
-	//
-	//				/*if(tempNeighborsList->size() != myInfo->minNeighbor)
-	//				  {
-	//				  printf("Not enough neighbors alive\n");
-	//				// need to exit thread and do soft restart
-	//				exit(EXIT_FAILURE);
-	//				}*/
-	//
-	//				if(tempNeighborsList->size() < myInfo->minNeighbor)
-	//				{
-	//					//need to delete file init_neighbor_list
-	//					fclose(f);
-	//					remove("init_neighbor_list");
-	//					continue;
-	//				}
-	//
-	//				int nodeConnected = 0;
-	//				int resSock;
-	//				for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end() && shutDown!=1; it++){
-	//					struct node n;
-	//					n.portNo = (*it)->portNo ;
-	//					strncpy((char *)n.hostname, (const char *)(*it)->hostName, 256) ;
-	//					pthread_mutex_lock(&nodeConnectionMapLock) ;
-	//					if (nodeConnectionMap.find(n)!=nodeConnectionMap.end()){
-	//						it = tempNeighborsList->erase(it) ;
-	//						--it ;
-	//						pthread_mutex_unlock(&nodeConnectionMapLock) ;
-	//						continue ;
-	//					}
-	//					pthread_mutex_unlock(&nodeConnectionMapLock) ;
-	//
-	//					printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
-	//					if(shutDown)
-	//					{
-	//						shutdown(resSock, SHUT_RDWR);
-	//						close(resSock);
-	//						break;
-	//					}
-	//					resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
-	//					if(shutDown)
-	//					{
-	//						shutdown(resSock, SHUT_RDWR);
-	//						close(resSock);
-	//						break;
-	//					}				
-	//					if (resSock == -1 ){
-	//						// Connection could not be established
-	//						// now we have to reset the network, call JOIN
-	//						continue;
-	//					}
-	//					else{
-	//						struct connectionNode cn ;
-	//						struct node n;
-	//						n.portNo = (*it)->portNo ;
-	//						strncpy((char *)n.hostname, (const char *)(*it)->hostName, 256) ;
-	//						it = tempNeighborsList->erase(it) ;
-	//						--it ;
-	//						//					nodeConnectionMap[n] = resSock ;
-	//
-	//						int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
-	//						if (mres != 0){
-	//							perror("Mutex initialization failed");
-	//
-	//						}
-	//						int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
-	//						if (cres != 0){
-	//							perror("CV initialization failed") ;
-	//						}
-	//						//Shutdown initilazed to zero
-	//						cn.shutDown = 0 ;
-	//						cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
-	//						cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
-	//						cn.isReady = 0;
-	//						cn.n = n;
-	//						//signal(SIGUSR2, my_handler);
-	//
-	//						pthread_mutex_lock(&connectionMapLock) ;
-	//						connectionMap[resSock] = cn ;
-	//						pthread_mutex_unlock(&connectionMapLock) ;
-	//						// Push a Hello type message in the writing queue
-	//						struct Message m ; 
-	//						m.type = 0xfa ;
-	//						m.status = 0 ;
-	//						m.fromConnect = 1 ;
-	//						pushMessageinQ(resSock, m) ;
-	//						//					pushMessageinQ(resSock, 0xfa) ;
-	//
-	//						// Create a read thread for this connection
-	//						pthread_t re_thread ;
-	//						res = pthread_create(&re_thread, NULL, read_thread , (void *)resSock);
-	//						if (res != 0) {
-	//							perror("Thread creation failed");
-	//							exit(EXIT_FAILURE);
-	//						}
-	//						pthread_mutex_lock(&connectionMapLock) ;
-	//						connectionMap[resSock].myReadId = re_thread;
-	//						childThreadList.push_front(re_thread);
-	//						pthread_mutex_unlock(&connectionMapLock) ;
-	//
-	//						// Create a write thread
-	//						pthread_t wr_thread ;
-	//						res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
-	//						if (res != 0) {
-	//							perror("Thread creation failed");
-	//							exit(EXIT_FAILURE);
-	//						}
-	//						childThreadList.push_front(wr_thread);
-	//						pthread_mutex_lock(&connectionMapLock) ;
-	//						connectionMap[resSock].myWriteId = wr_thread;
-	//						pthread_mutex_unlock(&connectionMapLock) ;
-	//
-	//						nodeConnected++;
-	//					}
-	//					if(nodeConnected == (int)myInfo->minNeighbor)
-	//						break;
-	//				}
-	//
-	//				// Join the accept connections thread
-	//
-	//				if(nodeConnected == (int)myInfo->minNeighbor || shutDown)
-	//					break;
-	//				else
-	//				{
-	//					//need to delete init_neighbor_node
-	//					//need to delete all the connected sockets
-	//					fclose(f);
-	//					remove("init_neighbor_list");
-	//					pthread_mutex_lock(&nodeConnectionMapLock) ;
-	//					for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
-	//						closeConnection((*it).second);
-	//					//Maybe send NOTIFY message beacouse of restart
-	//					nodeConnectionMap.clear();
-	//					pthread_mutex_unlock(&nodeConnectionMapLock) ;
-	//					continue;
-	//				}
-	//
-	//			}
-	//			fclose(f);
-	//		}
-	//
-
-
-
-
-
-
-
-
-
-//	int res ;
-//
-//
-//
-//	//KeepAlive Timer Thread, Sends KeepAlive Messages
-//	pthread_t keepAlive_thread ;
-//	res = pthread_create(&keepAlive_thread, NULL, keepAliveTimer_thread , (void *)NULL);
-//	if (res != 0) {
-//		perror("Thread creation failed");
-//		exit(EXIT_FAILURE);
-//	}
-//	childThreadList.push_front(keepAlive_thread);
-//	// Call the Keyboard thread
-//	// Thread creation and join code taken from WROX Publications book
-//
-//	keepAlive_pid = getpid();
-//	//pthread_t k_thread ;
-//	res = pthread_create(&k_thread, NULL, keyboard_thread , (void *)NULL);
-//	if (res != 0) {
-//		perror("Thread creation failed");
-//		exit(EXIT_FAILURE);
-//	}
-//	childThreadList.push_front(k_thread);
-//	// Call the timer thread
-//	// Thread creation and join code taken from WROX Publications book
-//	pthread_t t_thread ;
-//	res = pthread_create(&t_thread, NULL, timer_thread , (void *)NULL);
-//	if (res != 0) {
-//		perror("Thread creation failed");
-//		exit(EXIT_FAILURE);
-//	}
-//	childThreadList.push_front(t_thread);
-//
-//
-//
-//	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
-//		printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
-//		res = pthread_join((*it), &thread_result);
-//		if (res != 0) {
-//			perror("Thread join failed");
-//			exit(EXIT_FAILURE);
-//			//continue;
-//		}
-//	}
-//
-
-	// Thread Join code taken from WROX Publications
-	/*res = pthread_join(k_thread, &thread_result);
-	  if (res != 0) {
-	  perror("Thread join failed");
-	  exit(EXIT_FAILURE);
-	  }*/
-	/*struct node  n1;
-	  strcpy(n1.hostname , "localhost");
-	  n1.portNo = 12311;
-	  printf("The answer is : %d\n", isBeaconNode(n1));
-	  for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++)
-	  printf("Hostname: %s, port: %d\n", (*it)->hostName, (*it)->portNo);
-	  */
-	printf("Complete Shutdown!!!!\n");
+	//printf("Complete Shutdown!!!!\n");
 	fclose(f_log);
 	return 0;
 }
@@ -672,7 +321,8 @@ void cleanup(){
 	pthread_t keepAlive_thread ;
 	res = pthread_create(&keepAlive_thread, NULL, keepAliveTimer_thread , (void *)NULL);
 	if (res != 0) {
-		perror("Thread creation failed");
+		//perror("Thread creation failed");
+		writeLogEntry((unsigned char *)"//In Main: Thread creation failed\n");
 		exit(EXIT_FAILURE);
 	}
 	childThreadList.push_front(keepAlive_thread);
@@ -683,7 +333,8 @@ void cleanup(){
 	//pthread_t k_thread ;
 	res = pthread_create(&k_thread, NULL, keyboard_thread , (void *)NULL);
 	if (res != 0) {
-		perror("Thread creation failed");
+		//perror("Thread creation failed");
+		writeLogEntry((unsigned char *)"//In Main: Thread creation failed\n");		
 		exit(EXIT_FAILURE);
 	}
 	childThreadList.push_front(k_thread);
@@ -692,22 +343,25 @@ void cleanup(){
 	pthread_t t_thread ;
 	res = pthread_create(&t_thread, NULL, timer_thread , (void *)NULL);
 	if (res != 0) {
-		perror("Thread creation failed");
+		//perror("Thread creation failed");
+		writeLogEntry((unsigned char *)"//In Main: Thread creation failed\n");		
 		exit(EXIT_FAILURE);
 	}
 	childThreadList.push_front(t_thread);
 
 
 	for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
-		printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
+		//printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
 		res = pthread_join((*it), &thread_result);
 		if (res != 0) {
-			perror("Thread join failed");
+			//perror("Thread join failed");
+			writeLogEntry((unsigned char *)"//In Main: Thread joining failed\n");
 			exit(EXIT_FAILURE);
 			//continue;
 		}
 	}
 	
+	//clearing out the data structres used, if incase needed a restart
 	nodeConnectionMap.clear();
 	childThreadList.clear();
 	connectionMap.clear();
@@ -743,8 +397,7 @@ void init(){
 			}
 		}
 
-		//int resSock;
-		//while(tempBeaconList->size() > 0 && !shutDown){
+		//creating the connect threads for the beaocn node, which will retry and retry, untill gets conected to form a complete mesh
 		for(list<struct beaconList *>::iterator it = tempBeaconList->begin(); it != tempBeaconList->end() && shutDown!=1; ++it){
 			//struct node *n = (struct node *)malloc(sizeof(n));
 			struct node n;
@@ -766,89 +419,54 @@ void init(){
 				exit(EXIT_FAILURE);
 			}
 			childThreadList.push_front(connect_thread);
+			//myConnectThread[connect_thread] = 0;
 			sleep(1);
 		}	
 
-		// Join the accept connections thread
-
-//<<<<<<< HEAD
-}
-else{
-	FILE *f;
-	while(!shutDown)
-	{
-
-		unsigned char nodeName[256];
-		memset(&nodeName, '\0', 256);
-		printf("A regular node coming up...\n") ;
-
-		//checking if the init_neighbor_list exsits or not
-
-		f=fopen((char *)tempInitFile, "r");
-		sigset_t new_t;
-		sigemptyset(&new_t);
-		sigaddset(&new_t, SIGUSR1);
-
-		if(f==NULL)
+	}
+	else{
+	
+		//code for the non-beacon node
+		FILE *f;
+		while(!shutDown)
 		{
-			printf("Neighbor List does not exist...Joining the network\n");
-			//			exit(EXIT_FAILURE);
-
-			//Adding Signal Handler for USR1 signal
-			accept_pid=getpid();
-
-			pthread_sigmask(SIG_UNBLOCK, &new_t, NULL);
-
-			signal(SIGUSR1, my_handler);
-
-			inJoinNetwork = 1;	
-			joinNetwork() ;	
-			inJoinNetwork = 0;
-
-			printf("Joining success\n");
-			myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
-			continue ;
-		}
-
-		myInfo->joinTimeOut = -1;
-		pthread_sigmask(SIG_BLOCK, &new_t, NULL);
-//=======
-//	}
-//		else{
-//			FILE *f;
-//			while(!shutDown)
-//			{
-//>>>>>>> 31988140f808708ddaf064e529477a15ecad8d67
-
-//				unsigned char nodeName[256];
-//				memset(&nodeName, '\0', 256);
-//				printf("A regular node coming up...\n") ;
-//
-//				//checking if the init_neighbor_list exsits or not
-//
-//				f=fopen("init_neighbor_list", "r");
-//				sigset_t new_t;
-//				if(f==NULL)
-//				{
-//					printf("Neighbor List does not exist...Joining the network\n");
-//					//			exit(EXIT_FAILURE);
-//
-//					//Adding Signal Handler for USR1 signal
-//					accept_pid=getpid();
-//					signal(SIGUSR1, my_handler);
-//
-//					inJoinNetwork = 1;	
-//					joinNetwork() ;	
-//					inJoinNetwork = 0;
-//
-//					printf("Joining success\n");
-////					continue ;
-//				}
-//
-//				myInfo->joinTimeOut = -1;
-//				sigemptyset(&new_t);
-//				sigaddset(&new_t, SIGUSR1);
-//				pthread_sigmask(SIG_BLOCK, &new_t, NULL);
+	
+			unsigned char nodeName[256];
+			memset(&nodeName, '\0', 256);
+			//printf("A regular node coming up...\n") ;
+	
+			//checking if the init_neighbor_list exsits or not
+	
+			f=fopen((char *)tempInitFile, "r");
+			sigset_t new_t;
+			sigemptyset(&new_t);
+			sigaddset(&new_t, SIGUSR1);
+	
+			if(f==NULL)
+			{
+				//printf("Neighbor List does not exist...Joining the network\n");
+				//			exit(EXIT_FAILURE);
+				writeLogEntry((unsigned char *)"//Initiating the Join process, since Init_Neighbor file not present\n");
+	
+				//Adding Signal Handler for USR1 signal
+				accept_pid=getpid();
+	
+				pthread_sigmask(SIG_UNBLOCK, &new_t, NULL);
+	
+				signal(SIGUSR1, my_handler);
+	
+				inJoinNetwork = 1;	
+				joinNetwork() ;	
+				inJoinNetwork = 0;
+	
+				//printf("Joining success\n");
+				writeLogEntry((unsigned char *)"//Terminating the Join process, Init Neighbors identified\n");
+				myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
+				continue ;
+			}
+	
+			myInfo->joinTimeOut = -1;
+			pthread_sigmask(SIG_BLOCK, &new_t, NULL);
 
 
 				// Call the Accept thread
@@ -857,7 +475,8 @@ else{
 				int res ;
 				res = pthread_create(&accept_thread, NULL, accept_connectionsT , (void *)NULL);
 				if (res != 0) {
-					perror("Thread creation failed");
+					//perror("Thread creation failed");
+					writeLogEntry((unsigned char *)"//Accept Thread creation failed\n");
 					exit(EXIT_FAILURE);
 				}
 				childThreadList.push_front(accept_thread);
@@ -882,43 +501,6 @@ else{
 
 				}
 
-				/*if(tempNeighborsList->size() != myInfo->minNeighbor)
-				  {
-				  printf("Not enough neighbors alive\n");
-				// need to exit thread and do soft restart
-				exit(EXIT_FAILURE);
-				}*/
-
-/*				if(tempNeighborsList->size() < myInfo->minNeighbor)
-				{
-					fclose(f);
-					remove((char *)tempInitFile);
-					shutdown(nSocket_accept, SHUT_RDWR);
-					close(nSocket_accept);
-				
-					pthread_mutex_lock(&nodeConnectionMapLock) ;
-					for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
-						closeConnection((*it).second);
-					//Maybe send NOTIFY message beacouse of restart
-					nodeConnectionMap.clear();
-					pthread_mutex_unlock(&nodeConnectionMapLock) ;
-					
-					void *thread_result;
-					for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
-//						printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
-						res = pthread_join((*it), &thread_result);
-						if (res != 0) {
-							perror("Thread join failed");
-							exit(EXIT_FAILURE);
-							//continue;
-						}
-					}
-					childThreadList.clear();
-					myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
-					continue;
-				}
-*/
-
 				int nodeConnected = 0;
 				int resSock;
 				for(list<struct beaconList *>::iterator it = tempNeighborsList->begin(); it != tempNeighborsList->end() && shutDown!=1; it++){
@@ -926,7 +508,9 @@ else{
 					n.portNo = (*it)->portNo ;
 					strncpy((char *)n.hostname, (const char *)(*it)->hostName, 256) ;
 					pthread_mutex_lock(&nodeConnectionMapLock) ;
+					//neighbor already exist in the neighbor list
 					if (nodeConnectionMap.find(n)!=nodeConnectionMap.end()){
+						nodeConnected++;
 						it = tempNeighborsList->erase(it) ;
 						--it ;
 						pthread_mutex_unlock(&nodeConnectionMapLock) ;
@@ -934,13 +518,14 @@ else{
 					}
 					pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
-					printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
+					//printf("Connecting to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 					if(shutDown)
 					{
 						shutdown(resSock, SHUT_RDWR);
 						close(resSock);
 						break;
 					}
+					//trying to connect the host name and port no
 					resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
 					if(shutDown)
 					{
@@ -964,12 +549,14 @@ else{
 
 						int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
 						if (mres != 0){
-							perror("Mutex initialization failed");
+							//perror("Mutex initialization failed");
+							writeLogEntry((unsigned char *)"//Mutex Initializtaion failed\n");
 
 						}
 						int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
 						if (cres != 0){
-							perror("CV initialization failed") ;
+							//perror("CV initialization failed") ;
+							writeLogEntry((unsigned char *)"//CV Initializtaion failed\n");
 						}
 						//Shutdown initilazed to zero
 						cn.shutDown = 0 ;
@@ -994,7 +581,8 @@ else{
 						pthread_t re_thread ;
 						res = pthread_create(&re_thread, NULL, read_thread , (void *)resSock);
 						if (res != 0) {
-							perror("Thread creation failed");
+							//perror("Thread creation failed");
+							writeLogEntry((unsigned char *)"//Read Thread creation failed\n");
 							exit(EXIT_FAILURE);
 						}
 						pthread_mutex_lock(&connectionMapLock) ;
@@ -1006,7 +594,8 @@ else{
 						pthread_t wr_thread ;
 						res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
 						if (res != 0) {
-							perror("Thread creation failed");
+							//perror("Thread creation failed");
+							writeLogEntry((unsigned char *)"//Write Thread creation failed\n");
 							exit(EXIT_FAILURE);
 						}
 						childThreadList.push_front(wr_thread);
@@ -1020,28 +609,34 @@ else{
 						break;
 				}
 
-				// Join the accept connections thread
-
+				//succesfully conected to minNeighbors
 				if(nodeConnected == (int)myInfo->minNeighbor || shutDown)
 					break;
 				else
 				{
+					//coulndn't connect to the Min Neighbors, need to soft restart
 					fclose(f);
 					//remove((char *)tempInitFile);
 					shutDown = 1;
 					shutdown(nSocket_accept, SHUT_RDWR);
 					close(nSocket_accept);
+					
+					//Send NOTIFY message beacouse of restart
+					pthread_mutex_lock(&nodeConnectionMapLock);
+					for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
+						notifyMessageSend((*it).second, 3);
+					pthread_mutex_unlock(&nodeConnectionMapLock);						
 				
+					sleep(1);
+					
 					pthread_mutex_lock(&nodeConnectionMapLock) ;
 					for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it)
 						closeConnection((*it).second);
-					//Maybe send NOTIFY message beacouse of restart
 					nodeConnectionMap.clear();
 					pthread_mutex_unlock(&nodeConnectionMapLock) ;
 					
 					void *thread_result;
 					for (list<pthread_t >::iterator it = childThreadList.begin(); it != childThreadList.end(); ++it){
-//						printf("Value is : %d and SIze: %d\n", (int)(*it), (int)childThreadList.size());
 						res = pthread_join((*it), &thread_result);
 						if (res != 0) {
 							perror("Thread join failed");
@@ -1050,6 +645,7 @@ else{
 						}
 					}
 					childThreadList.clear();
+					joinResponse.clear();
 					//myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
 					resetValues();
 					continue;

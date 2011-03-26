@@ -15,6 +15,9 @@
 
 using namespace std ;
 
+//This thread is a keborad thread, which tajes input from user, such as
+// shutdown and STATUS NEIGHBORS.....
+// handling of SIGINT
 void *keyboard_thread(void *arg){
 	fd_set rfds;
 	//struct timeval tv;
@@ -35,9 +38,6 @@ void *keyboard_thread(void *arg){
 	while(!shutDown){
 	/*pthread_sigmask(SIG_UNBLOCK, &new_t, NULL);*/
         signal(SIGINT, my_handler);
-	//memset(&tv, 0, sizeof(tv));
-	//tv.tv_sec = 1;
-	//tv.tv_usec = 0;
 	printf("\nservant:%d> ", myInfo->portNo) ;
 	if(shutDown)
 		break;
@@ -50,29 +50,7 @@ void *keyboard_thread(void *arg){
 		break;
 	
 			
-/*			
-	int retval = select(1, &rfds, NULL, NULL, &tv);
-  
-
-           if (retval == -1)
-               perror("select()");
-           else 
-           {
-                if (retval)
-        	   {
-	        	   printf("servant:%d> ", myInfo->portNo) ;
-        	   	fgets(inp, 511, stdin);
-		   }
-  
-        	   else
-        	   {
-        	   	if(shutDown)
-	        	       	break;
-        	   }
-           }
-*/           
-           
-           
+		//User enters the 'shutdown' command, nodes shutdown after sending the notify message to it's neighbors
 		if(!strcasecmp((char *)inp, "shutdown\n"))
 		{
 			/*sigset_t new_t;
@@ -85,17 +63,16 @@ void *keyboard_thread(void *arg){
 			//for (map<int, struct connectionNode>::iterator it = connectionMap.begin(); it != connectionMap.end(); ++it)
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
-				//pthread_mutex_lock(&connectionMapLock) ;
-				//if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
 					notifyMessageSend((*it).second, 1);
-				//pthread_mutex_unlock(&connectionMapLock) ;
-				//printf("Hi I am here\n");
 			}
 			pthread_mutex_unlock(&nodeConnectionMapLock) ;
 			sleep(1);
+			//sending the SIGTERM signal to the main thread, for shutdown
 			kill(node_pid, SIGTERM);
 			break;
 		}
+		//user enters the status neighbors command, this inittates the flooding of status message
+		// creates the status file, nam file and shows the network
 		else if(strstr((char *)inp, "status neighbors")!=NULL)
 		{
 			
@@ -106,165 +83,51 @@ void *keyboard_thread(void *arg){
 			
 			unsigned char fileName[256];
 			memset(&fileName, '\0', 256);
-//			for(int i=0;i<3;i++)
-//			{
-				value = (unsigned char *)strtok(NULL, " ");
-				//printf("1. Value is : %s, strlen %d\n", value, strlen((char *)value));
-				if(value ==NULL)
-					continue;
-				
-//				(unsigned char *)strtok((char *)inp, " ");
-//				if(i==0)
-//				{
-//					if(strcasecmp((char*)value, "neighbors")==0)
-//						continue;
-//					else
-//						break;
-//				}
 
-//				if(i==1) 
-//				{
-//					int digitCheckFlag = 0;
-					for(int j=0;j<(int)strlen((char *)value);j++)
-						if(isdigit(value[j]) == 0)
-						{
-//							digitCheckFlag = 1;
-//							break;
-							continue;
-						}
-						
-//					if(digitCheckFlag)
-//						break;
-					myInfo->status_ttl = (uint8_t)atoi((char *)value);
-//				}
-				
-//				if(i==2)
-//				{
-					value = (unsigned char *)strtok(NULL, "\n");
-					//printf("2. Value is : %s, strlen %d\n", value, strlen((char *)value));					
-					if(value ==NULL)
-						continue;					
-					strncpy((char *)myInfo->status_file, (char *)value, strlen((char *)value)) ;
-					//strncpy((char *)myInfo->status_file, "status.out", strlen("status.out")) ;
-					myInfo->status_file[strlen((char *)myInfo->status_file)] = '\0';
-					
-					myInfo->statusResponseTimeout = myInfo->msgLifeTime + 10 ;
-					//myInfo->status_ttl = 5 ;
-					//strncpy((char *)myInfo->status_file, "status.out", 256) ;
-					FILE *fp = fopen((char *)myInfo->status_file, "w") ;
-					if (fp == NULL){
-						fprintf(stderr,"File open failed\n") ;
-						exit(0) ;
-					}
-					fputs("V -t * -v 1.0a5\n", fp) ;
-					fclose(fp) ;
-					getStatus() ;
-					
-					
-					// waiting for status time out, so that command prompt can be returned
-					pthread_mutex_lock(&statusMsgLock) ;
-					statusTimerFlag = 1 ;
-					pthread_cond_wait(&statusMsgCV, &statusMsgLock);
-					pthread_mutex_unlock(&statusMsgLock) ;
-					//sleep(myInfo->statusResponseTimeout);
-					//sleep(1);
-					printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
-					writeToStatusFile() ;
-					//break;
-//				}
-//			}
-			
-		}
-		
-		/*else if(strstr((char *)inp, "status")!=NULL)
-		{
-			istringstream iss(inpS);
-			vector<string> tokens;
-			copy(istream_iterator<string>(iss), istream_iterator<string>(), back_inserter<vector<string> >(tokens));
-			vector<string>::iterator it;
-			int i = 0;
-			for ( it=tokens.begin() ; it < tokens.end(); it++ , i++)
-			{
-				if(tokens.size()!=4)
-					break;
-				cout << " " << *it;
-				if(i==0 || i==1)
+			//gets the ttl value here
+			value = (unsigned char *)strtok(NULL, " ");
+			if(value ==NULL)
+				continue;
+			//check if the entered value id digit or not
+			for(int j=0;j<(int)strlen((char *)value);j++)
+				if(isdigit(value[j]) == 0)
 					continue;
-				if(i==2)
-				{
-					myInfo->status_ttl = atoi((*it).c_str()) ;
-					//myInfo->status_ttl = 5;
-				}
-				if(i==3)
-				{
-					//char temp[256];
-					//memset(&temp, '\0', 256);
-					strncpy((char *)myInfo->status_file, const_cast<char *> ((*it).c_str()), (*it).length());
-					//strncpy((char *)myInfo->status_file, "status.out", strlen("status.out")) ;
-					break;
-				}
-			}
-			cout << endl;
-		
-			if(i==3)
-			{
-					myInfo->statusResponseTimeout = myInfo->msgLifeTime + 10 ;
-					//myInfo->status_ttl = 5 ;
-					//strncpy((char *)myInfo->status_file, "status.out", 256) ;
-					printf("The values are : %s, %d\n", myInfo->status_file, myInfo->status_ttl);
-					FILE *fp = fopen((char *)myInfo->status_file, "w") ;
-					if (fp == NULL){
-						fprintf(stderr,"File open failed\n") ;
-						exit(0) ;
-					}
-					fputs("V -t * -v 1.0a5\n", fp) ;
-					fclose(fp) ;
-					getStatus() ;
-					
-					
-					// waiting for status time out, so that command prompt can be returned
-					//pthread_mutex_lock(&statusMsgLock) ;
-					//statusTimerFlag = 1 ;
-					//pthread_cond_wait(&statusMsgCV, &statusMsgLock);
-					//pthread_mutex_unlock(&statusMsgLock) ;
-					sleep((myInfo->msgLifeTime+10));
-					//sleep(1);
-					printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
-					//break;				
-			}			
-		}*/
+			myInfo->status_ttl = (uint8_t)atoi((char *)value);
 
-		/*else if(strcmp((char *)inp, "status")==0)
-		{
-			strncpy((char *)myInfo->status_file, "status.out", strlen("status.out")) ;
-					
+			//name of the status file
+			value = (unsigned char *)strtok(NULL, "\n");
+			if(value ==NULL)
+				continue;					
+			strncpy((char *)myInfo->status_file, (char *)value, strlen((char *)value)) ;
+			myInfo->status_file[strlen((char *)myInfo->status_file)] = '\0';
+				
 			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 10 ;
-			myInfo->status_ttl = 15 ;
-			//strncpy((char *)myInfo->status_file, "status.out", 256) ;
 			FILE *fp = fopen((char *)myInfo->status_file, "w") ;
 			if (fp == NULL){
-				fprintf(stderr,"File open failed\n") ;
+				//fprintf(stderr,"File open failed\n") ;
+				writeLogEntry((unsigned char *)"In Keyborad thread: Status File open failed\n");
 				exit(0) ;
 			}
 			fputs("V -t * -v 1.0a5\n", fp) ;
 			fclose(fp) ;
 			getStatus() ;
 					
-					
 			// waiting for status time out, so that command prompt can be returned
 			pthread_mutex_lock(&statusMsgLock) ;
 			statusTimerFlag = 1 ;
 			pthread_cond_wait(&statusMsgCV, &statusMsgLock);
 			pthread_mutex_unlock(&statusMsgLock) ;
-					//break;		
-		}*/
+			//printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
+			writeToStatusFile() ;
+		}
+		
 
 		memset(inp, '\0', 512) ;	
 		//cin.clear() ;
 		fflush(stdin);
 	}
 	
-	printf("KeyBoardThread Halted\n");
+	//printf("KeyBoardThread Halted\n");
 	pthread_exit(0);
 	return 0;
 }

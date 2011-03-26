@@ -6,9 +6,8 @@
 
 #include "iniParser.h"
 #include "main.h"
-//#include <thread.h>
 
-
+// Timer thread, decrements the value of timer for different timers
 void *timer_thread(void *arg){
 
 	while(!shutDown){
@@ -17,10 +16,11 @@ void *timer_thread(void *arg){
 
 		if(shutDown)
 		{
-			printf("Timer thread halted\n");
+			//printf("Timer thread halted\n");
 			break;
 		}
-		//JoinTimeOut
+		
+		//JoinTimeOut, only accessible when node is Joining
 		if(!myInfo->isBeacon && inJoinNetwork)
 		{
 			if(myInfo->joinTimeOut > 0)
@@ -33,20 +33,18 @@ void *timer_thread(void *arg){
 				{
 					if(myInfo->joinTimeOut==0)
 					{
-						printf("Timer out..: %d\n", (int)pthread_self()) ;
+						//printf("Timer out..: %d\n", (int)pthread_self()) ;
 						kill(accept_pid, SIGUSR1);
 						break;
-						//myInfo->joinTimeOut--;
 					}
 				}
 			}
 		}
 
-		//KeepAliveTimeOut
+		//KeepAliveTimeOut, monitors the value and then close the connection if the timeout becomes 0
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		if(!nodeConnectionMap.empty() && !inJoinNetwork)
 		{
-			//printf("My Map size is: %d\n", (int)nodeConnectionMap.size());
 			for (map<struct node, int >::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ){
 				//printf("Values in my mAP are: %s, %d\n", (*it).first.hostname, (*it).first.portNo);
 				pthread_mutex_lock(&connectionMapLock) ;
@@ -59,20 +57,12 @@ void *timer_thread(void *arg){
 				{
 					if(connectionMap[(*it).second].keepAliveTimeOut == 0)
 					{
-						//printf("Erasing entry from Map for : %d, %d\n", (*it).first, connectionMap[(*it).first].keepAliveTimeOut);
 						connectionMap[(*it).second].keepAliveTimeOut=-1;
 						pthread_mutex_unlock(&connectionMapLock) ;
 						closeConnection((*it).second);
 						//nodeConnectionMap.erase((*it).first);
 						nodeConnectionMap.erase(it++);
 						pthread_mutex_lock(&connectionMapLock) ;
-						//close((*it).first);
-						//toBeClosed = (*it).first;
-						//kill((*it).second.myId, SIGUSR2);
-						//kill((*it).second.myReadId, SIGUSR2);
-						//kill((*it).second.myWriteId, SIGUSR2);				
-						//connectionMap.erase((*it).first);
-						//it--;
 					}
 					else
 						it++;
@@ -92,6 +82,7 @@ void *timer_thread(void *arg){
 			{
 				if(!myInfo->autoShutDown)
 				{
+					//sends the SIGTERM when needs to autoshutdown
 					kill(node_pid, SIGTERM);
 				}
 			}
@@ -118,7 +109,7 @@ void *timer_thread(void *arg){
 		// CHECK timer flag
 		if (checkTimerFlag && !inJoinNetwork){
 			--myInfo->checkResponseTimeout ;
-						printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
+						//printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
 			if (myInfo->checkResponseTimeout <= 0){
 				// Reset the status timer flag
 				checkTimerFlag = 0 ;
@@ -126,14 +117,10 @@ void *timer_thread(void *arg){
 
 
 				// Write all the status responses in the output file
-				printf("No response from any beacon node. You are disconnected from the network. Connect again\n") ;
+				//printf("No response from any beacon node. You are disconnected from the network. Connect again\n") ;
 				pthread_mutex_lock(&nodeConnectionMapLock) ;
 				for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
-					//pthread_mutex_lock(&connectionMapLock) ;
-					//if(connectionMap[(*it).second].isReady == 2)	//closeConnection((*it).first);
 					notifyMessageSend((*it).second, 3);
-					//pthread_mutex_unlock(&connectionMapLock) ;
-					//printf("Hi I am here\n");
 				}
 				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 				sleep(1);
@@ -145,7 +132,7 @@ void *timer_thread(void *arg){
 
 		}
 
-		//MsgLifetime timer
+		//MsgLifetime timer, erases the message if the timer expires
 		if(!inJoinNetwork)
 		{
 			pthread_mutex_lock(&MessageDBLock) ;
@@ -162,12 +149,6 @@ void *timer_thread(void *arg){
 				{
 					if((*it_temp).second.msgLifeTime == 0)
 					{
-						//printf("This entry has been erased\n");
-						//it_temp = it;
-						//it++;	
-						//if(MessageDB.erase((it_temp)++)==0)
-						//	continue;
-						//printf("2. Hi I am here now\n");
 						MessageDB.erase((it_temp)++);
 					}
 					else

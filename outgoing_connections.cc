@@ -9,6 +9,8 @@
 unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, long unsigned int uoid_buf_sz) ;
 map<string, struct Packet> MessageDB ;
 
+//Write thread, picks the message from the queue and then process it and send to the destinations
+//if no message, it goes to sleep
 void *write_thread(void *args){
 	long sockfd = (long)args ;
 	struct Message mes ;
@@ -20,8 +22,8 @@ void *write_thread(void *args){
 	//connectionMap[sockfd].myWriteId = pthread_self();
 
 	while(!shutDown && !(connectionMap[sockfd].shutDown)){
+		//if no messages in the queue, it goes to sleep, wait
 		if(connectionMap[sockfd].MessageQ.size() <= 0){
-//			printf("Hi I am on wait!!!!\n");
 			pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
 			pthread_cond_wait(&connectionMap[sockfd].mesQCv, &connectionMap[sockfd].mesQLock) ;
 			if (connectionMap[sockfd].shutDown)
@@ -79,7 +81,7 @@ void *write_thread(void *args){
 
 		// Message of type Hello
 		if (mes.type == 0xfa){
-			printf("Sending Hello Message\n") ;
+			//printf("Sending Hello Message\n") ;
 			header[0] = 0xfa;
 			header[21] = 0x01 ;
 			unsigned char host[256] ;
@@ -91,14 +93,11 @@ void *write_thread(void *args){
 			buffer = (unsigned char *)malloc(len) ;
 			memset(buffer, '\0', len) ;
 			memcpy((char *)buffer, &(myInfo->portNo), 2) ;
-
-
-
-
-
-			//			sprintf((char *)&buffer[2], "%s",  host);
+			
+//			sprintf((char *)&buffer[2], "%s",  host);
 			for (int i = 0 ; i < (int)len - 2 ; ++i)
 				buffer[2+i] = host[i] ;
+			
 			//Incrementing Ready STatus
 			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[sockfd].isReady++;
@@ -136,8 +135,9 @@ void *write_thread(void *args){
 
 		}
 		else if (mes.type == 0xfb){
-			printf("Sending JOIN Response..\n") ;
+//			printf("Sending JOIN Response..\n") ;
 
+			//originated from somewhere else, just need to forward the message
 			if (mes.status == 1){
 				buffer = (unsigned char *)malloc(mes.buffer_len) ;
 				for (int i = 0 ; i < mes.buffer_len ; i++)
@@ -145,6 +145,7 @@ void *write_thread(void *args){
 				len = mes.buffer_len ;
 			}
 			else{
+			//originated from here, needs to send to destinations
 				unsigned char host[256] ;
 				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
@@ -169,24 +170,13 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
 		else if (mes.type == 0xf8){
-			//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
+//			printf("Sending KeepAlive request from : %d\n", (int)sockfd) ;
 
 			len = 0;
 			buffer = (unsigned char *)malloc(len) ;
 			memset(buffer, '\0', len) ;
-			//			len = strlen((const char *)buffer) ;
 
 			header[0] = 0xf8;
-			//printf("UOID: %s\n", GetUOID( const_cast<char *> ("msg"), buffer, len)) ;
-
-			//			unsigned char *uoid =  GetUOID( const_cast<char *> ("msg"), buffer, len);
-			//			struct Packet pk ;
-			//			pk.status = 0;
-			//			pthread_mutex_lock(&MessageDBLock) ;
-			//			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH)] = pk ;
-			//			pthread_mutex_unlock(&MessageDBLock) ;
-			//
-			//			memcpy((char *)&header[1], uoid, 20) ;
 			header[21]=0x01;
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
@@ -194,6 +184,7 @@ void *write_thread(void *args){
 		}
 		// Status Message request
 		else if (mes.type == 0xac){
+			//originted from somewhere else
 			if (mes.status == 1){
 				buffer = mes.buffer ;
 				len = mes.buffer_len ;
@@ -224,9 +215,7 @@ void *write_thread(void *args){
 				len = 0 ;
 			}
 
-
 			header[0] = 0xf6;
-
 
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
 			header[22] = 0x00 ;
@@ -234,7 +223,7 @@ void *write_thread(void *args){
 
 		}
 		else if (mes.type == 0xab){
-			printf("Sending Status Response..\n") ;
+//			printf("Sending Status Response..\n") ;
 
 			if (mes.status == 1){
 				buffer = (unsigned char *)malloc(mes.buffer_len) ;
@@ -259,6 +248,7 @@ void *write_thread(void *args){
 					buffer[i] = host[i-24] ;
 //				sprintf((char *)&buffer[24], "%s",  host);
 				len  =  len1 ;
+				
 				for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
 					unsigned int len2 = strlen((char *)((*it).first.hostname)) + 2  ;
 					len += len2+4 ;
@@ -287,7 +277,7 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
 		else if (mes.type == 0xf5){
-			printf("Sending CHECK Response..\n") ;
+//			printf("Sending CHECK Response..\n") ;
 
 			if (mes.status == 1){
 				buffer = (unsigned char *)malloc(mes.buffer_len) ;
@@ -316,17 +306,12 @@ void *write_thread(void *args){
 		}
 		else if (mes.type == 0xf7)
 		{
-			printf("Sending Notify message\n");
+//			printf("Sending Notify message\n");
 			len = 1;
 			buffer = (unsigned char *)malloc(len) ;
 			memset(buffer, '\0', len) ;
 			//memcpy(buffer, &mes.errorCode, sizeof(mes.errorCode));
 			buffer[0]=mes.errorCode;
-			//buffer[0]=0x01;
-			//memcpy(buffer, &mes.errorCode, sizeof(mes.errorCode));
-
-			//puts((char *)buffer);
-			//len = strlen((const char *)buffer) ;
 
 			header[0] = 0xf7;
 
@@ -336,29 +321,25 @@ void *write_thread(void *args){
 
 		//KeepAlive message sending
 		//Resst the keepAliveTimer for this connection
-		//map<int, struct connectionNode>::iterator found = connectionMap.find(sockfd);
 		if(connectionMap.find(sockfd)!=connectionMap.end())
 		{
-			//	if(connectionMap[sockfd].keepAliveTimer!=0)
 			pthread_mutex_lock(&connectionMapLock) ;
 			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/3;
 			pthread_mutex_unlock(&connectionMapLock) ;
-			//				printf("KeepAlive timer and timeout are: %d, %d\n", connectionMap[sockfd].keepAliveTimer, connectionMap[sockfd].keepAliveTimeOut);
 		}
 
-		/*if((mes.type == 0xfa && !inJoinNetwork))
-			sleep(1);*/
 		int return_code = 0 ;
 		return_code = (int)write(sockfd, header, HEADER_SIZE) ;
 		if (return_code != HEADER_SIZE){
-			fprintf(stderr, "Socket Write Error") ;
+			//fprintf(stderr, "Socket Write Error") ;
 		}
 
 		return_code = (int)write(sockfd, buffer, len) ;
 		if (return_code != (int)len){
-			fprintf(stderr, "Socket Write Error") ;
+			//fprintf(stderr, "Socket Write Error") ;
 		}
 
+		//logging the message sent from this node or forwarded from this node
 		unsigned char *logEntry = NULL;
 		if(!(mes.type == 0xfa && (inJoinNetwork || connectionMap[sockfd].joinFlag == 1)))
 		{
@@ -368,7 +349,6 @@ void *write_thread(void *args){
 			else
 				logEntry = createLogEntry('f', sockfd, header, buffer);
 			
-			//printf("<<<<<<<<<<<<LOG ENTRY IS: %s\n", logEntry);
 			if(logEntry!=NULL)
 				writeLogEntry(logEntry);	
 			pthread_mutex_unlock(&logEntryLock) ;				
@@ -378,7 +358,7 @@ void *write_thread(void *args){
 
 	}
 
-	printf("Write Thread exiting...\n") ;
+//	printf("Write Thread exiting...\n") ;
 
 	pthread_exit(0);
 	return 0;
@@ -393,7 +373,7 @@ int connectTo(unsigned char *hostName, unsigned int portN ) {
 
 	host = gethostbyname(const_cast<char *> ((char *)hostName)) ;
 	if (host == NULL){
-		fprintf(stderr, "Unknown host\n") ;
+		//fprintf(stderr, "Unknown host\n") ;
 		return -1 ;
 	}
 
@@ -412,7 +392,7 @@ int connectTo(unsigned char *hostName, unsigned int portN ) {
 	// Connect to the server
 	status = connect(nSocket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) ;
 	if (status < 0){
-		perror("Connect") ;
+		//perror("Connect") ;
 		return -1 ;
 	}
 	else {
@@ -420,9 +400,10 @@ int connectTo(unsigned char *hostName, unsigned int portN ) {
 
 	}
 
-
 }
 
+
+//get the UOID of the messages
 unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, long unsigned int uoid_buf_sz){
 	static unsigned long seq_no=(unsigned long)1;
 	unsigned char sha1_buf[SHA_DIGEST_LENGTH], str_buf[104];
@@ -440,13 +421,13 @@ unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, long unsigned in
 // Method to join the network
 // Case when then init_neighbor file is not present
 void joinNetwork(){
-	printf("In join network method\n") ;
+//	printf("In join network method\n") ;
 	int resSock = -1 ;
 	pthread_t re_thread ;
 	void *thread_result ;
 
 	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-		printf("Trying to connect to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
+//		printf("Trying to connect to %s:%d\n", (*it)->hostName, (*it)->portNo) ;
 		resSock = connectTo((*it)->hostName, (*it)->portNo) ; 
 		if (resSock == -1 ){
 			// Connection could not be established
@@ -463,12 +444,14 @@ void joinNetwork(){
 
 			int mres = pthread_mutex_init(&cn.mesQLock, NULL) ;
 			if (mres != 0){
-				perror("Mutex initialization failed");
+				//perror("Mutex initialization failed");
+				writeLogEntry((unsigned char *)"//Mutex initialization failed\n");
 
 			}
 			int cres = pthread_cond_init(&cn.mesQCv, NULL) ;
 			if (cres != 0){
-				perror("CV initialization failed") ;
+				//perror("CV initialization failed") ;
+				writeLogEntry((unsigned char *)"//CV initialization failed\n");
 			}
 
 			cn.shutDown = 0 ;
@@ -486,7 +469,8 @@ void joinNetwork(){
 			// Create a read thread for this connection
 			int res = pthread_create(&re_thread, NULL, read_thread , (void *)resSock);
 			if (res != 0) {
-				perror("Thread creation failed");
+				//perror("Thread creation failed");
+				writeLogEntry((unsigned char *)"//In Join Network: Read Thread Creation Failed\n");
 				exit(EXIT_FAILURE);
 			}
 			childThreadList.push_front(re_thread);
@@ -494,7 +478,8 @@ void joinNetwork(){
 			pthread_t wr_thread ;
 			res = pthread_create(&wr_thread, NULL, write_thread , (void *)resSock);
 			if (res != 0) {
-				perror("Thread creation failed");
+				//perror("Thread creation failed");
+				writeLogEntry((unsigned char *)"//In Join Network: Write Thread Creation Failed\n");
 				exit(EXIT_FAILURE);
 			}
 			childThreadList.push_front(wr_thread);
@@ -503,7 +488,8 @@ void joinNetwork(){
 	}
 
 	if (resSock == -1){
-		fprintf(stderr,"No Beacon node up\n") ;
+		//fprintf(stderr,"No Beacon node up\n") ;
+		writeLogEntry((unsigned char *)"//NO Beacon Node is up, shuting down\n");
 		exit(0) ;
 	}
 	int res;
@@ -512,7 +498,8 @@ void joinNetwork(){
 	pthread_t t_thread ;
 	res = pthread_create(&t_thread, NULL, timer_thread , (void *)NULL);
 	if (res != 0) {
-		perror("Thread creation failed");
+		//perror("Thread creation failed");
+		writeLogEntry((unsigned char *)"//In Join Network: Timer Thread Creation Failed\n");		
 		exit(EXIT_FAILURE);
 	}
 	childThreadList.push_front(t_thread);
@@ -523,26 +510,29 @@ void joinNetwork(){
 		//printf("Value is : %d\n", (pthread_t)(*it).second.myReadId);
 		int res = pthread_join((*it), &thread_result);
 		if (res != 0) {
-			perror("Thread join failed");
+			//perror("Thread join failed");
+			writeLogEntry((unsigned char *)"//In Join Network: Thread Joining Failed\n");
 			exit(EXIT_FAILURE);
 		}
 	}
 
 
 	joinTimeOutFlag = 0;
-	printf("Join process exiting..\n") ;
+//	printf("Join process exiting..\n") ;
 
 	// Sort the output and write them in the file
 	//FILE *fp = fopen("init_neighbor_list", "w") ;
 	FILE *fp = fopen((char *)tempInitFile, "w");
 	if (fp==NULL){
-		fprintf(stderr, "Error in file open") ;
+		//fprintf(stderr, "Error in file open") ;
+		writeLogEntry((unsigned char *)"//In Join Network: Failed to open Init_Neighbor_list file\n");
+		exit(EXIT_FAILURE);
 	}
 	unsigned char tempPort[10] ;
 	if (joinResponse.size() < myInfo->initNeighbor){
 	//if (joinResponse.size() < 1){
 		//fprintf(stderr, "Failed to locate minimum number of nodes\n") ;
-		writeLogEntry((unsigned char *)"//Failed to locate minimum number of nodes\n");
+		writeLogEntry((unsigned char *)"//Failed to locate Init Neighbor number of nodes\n");
 		fclose(f_log);
 		exit(0) ;
 	}
@@ -552,7 +542,7 @@ void joinNetwork(){
 		if(counter==myInfo->minNeighbor)
 			break;
 
-		printf("Hostname: %s, Port: %d, location: %d\n", (*it).hostname, (*it).portNo, (*it).location) ;
+		//printf("Hostname: %s, Port: %d, location: %d\n", (*it).hostname, (*it).portNo, (*it).location) ;
 		fputs((char *)(*it).hostname , fp) ;
 		fputs(":", fp) ;
 		sprintf((char *)tempPort, "%d", (*it).portNo) ;
@@ -586,6 +576,7 @@ void getStatus(){
 	MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
 	pthread_mutex_unlock(&MessageDBLock) ;
 	
+	//sending the status request message to all of it's neighbor
 	pthread_mutex_lock(&nodeConnectionMapLock) ;
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
 		struct Message m ;
@@ -622,11 +613,11 @@ void initiateCheck(){
 //	myInfo->checkResponseTimeout = myInfo->joinTimeOut ;
 
 	
-	printf("here1\n") ;
+	//printf("here1\n") ;
 //	pthread_mutex_lock(&nodeConnectionMapLock) ;
-	printf("here2\n") ;
+	//printf("here2\n") ;
 	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
-	printf("here3\n") ;
+	//printf("here3\n") ;
 		struct Message m ;
 		m.type = 0xf6 ;
 		m.status = 2 ;
@@ -641,13 +632,14 @@ void initiateCheck(){
 }
 
 
-
+//Writing the status response to the file, creating the nam file
 void writeToStatusFile(){
-	printf("Writing to the file\n") ;
+//	printf("Writing to the file\n") ;
 	pthread_mutex_lock(&statusMsgLock) ;
 	FILE *fp = fopen((char *)myInfo->status_file, "a") ;
 	if (fp == NULL){
-		fprintf(stderr, "File open failed\n") ;
+		//fprintf(stderr, "File open failed\n") ;
+		writeLogEntry((unsigned char *)"//Failed to open STATUS FILE\n");
 		exit(0) ;
 	}
 
@@ -668,9 +660,11 @@ void writeToStatusFile(){
 		unsigned char portS[20] ;
 		sprintf((char *)portS, "%d", myInfo->portNo) ;
 		fputs((char *)portS, fp) ;
+		//Beacon node is represnted by BLUE NODES
 		if (myInfo->isBeacon){
 			fputs(" -c blue -i blue\n", fp) ;
 		}
+		//NON-Beacon ndoe is represented by BLACK nodes
 		else{
 			fputs(" -c black -i black\n", fp) ;
 		}		
@@ -681,10 +675,12 @@ void writeToStatusFile(){
 		unsigned char portS[20] ;
 		sprintf((char *)portS, "%d", (*it).portNo) ;
 		fputs((char *)portS, fp) ;
+		//Beacon node is represnted by BLUE NODES		
 		if (isBeaconNode(*it) ){
 			fputs(" -c blue -i blue\n", fp) ;
 		}
 		else{
+		//NON-Beacon node is represnted by BLACK NODES
 			fputs(" -c black -i black\n", fp) ;
 		}
 	}
@@ -722,5 +718,5 @@ void writeToStatusFile(){
 	fclose(fp) ;
 	statusResponse.erase( statusResponse.begin(), statusResponse.end()) ;
 	pthread_mutex_unlock(&statusMsgLock) ;
-	printf("status file written\n") ;
+//	printf("status file written\n") ;
 }
