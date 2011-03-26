@@ -1,0 +1,91 @@
+Team:-
+Aaveg Mittal - aavegmit@usc.edu (1523097378)
+Manu Bhadoria - mbhadori@usc.edu (7151287551)
+
+Peer to Peer File sharing System - Final Project Part(1) 
+CSCI 551, Computer Compunication 
+Spring 2011
+
+
+
+FILES:
+
+Below are the files in this prject, Part 1:-
+
+-main.cc
+	
+	This file includes the main body of the peer to peer file system. This is the main thread, and it creates multiple child thread which goes on to accept connection and other goes on to connect to the hostname and port number supplied. This file consist of Init() and cleanup() code which is used in Soft restart.
+	
+-main.h
+	
+	Consist of declaration of multiple data structres used throughout the program and these data structres have been extern. Declaration of functions, variables. This header file is included in multiple files
+	
+-incoming_connection.cc
+
+	This file consist of accept thread, which accpets the connection and then creates the read and write threads for every incomming connections. This file includes read Thread which reads on the connected socket for the data and passes the data to function, which processes the header and the buffer part of the message, so as to respond or put the response in the message queue of the write thread accordingly. This file consist of message dispatcher, which puts the message into the queue of the write thread
+	
+-outgoing_connection.cc
+
+	consist of function which attempts to connect to the given hostname and port no. consist of write thread which process the message in the queue and then writes on the sockets accordingly. This file consist of join network function which is called whenever the init_neighbor_list is not given. GETUOID function is also present in this file, alongwith the function which write to the status file whenevr the user enters the "status neighbors" command on the command prompt
+	
+-connectBeacon.cc
+
+	This file is for Beacon Node, and consist of the part which attempts to send connect request to the other beacon node, so that fully connected mesh could be formed. Whenever the beacon node goes down, this thread retries conecting after the given retry period.
+	
+-iniParser.cc
+
+	This file consist of the complete iniParser, which parses the ".ini" file given at the command promopt, function has been self written. Not used the "Nicolas Devillard's iniparser". Consist of the function which removes the white spaces, and new line charcaters from the line read from the file. This file consist of function which sets the parameters of the node equal to the values read from the .ini file
+	
+-iniParser.h
+
+	declarartion of parameters for the node, data structre and iniParser function declaration
+	
+-keepAliveTimer.cc
+
+	consist of a thread which sends keepalive messages to the neighbors on the interval of keepAliveTimeOut/3.
+
+-keepAliveTimer.h
+	
+	declaration of the keepAliveTimer function
+
+-keyboard.cc
+
+	thread which takes the user input by simulating the command prompt, either "shutdown" or "status neighbor" command
+	
+-logEntry.cc
+
+	This function is called to enter the formatted text into the log file, named "servant.log" present in the HOME DIRECTORY
+	
+-signalHandler.cc
+
+	handles the varios signals generated during the program flow, such as SIGINT or SIGTERM, for shutdown
+	
+-signalHandler.h
+
+	declaration of signal handler function
+	
+-timer.cc
+
+	timer thread which decrements the counter every 1 sec for multiple timers, such as autoShutDown, KeepAliveTimeOut, joinTimeOut, CheckResponseTimeout, statusTimeOut, messageLifeTimeTimer. and performs action when value reaches to 0, indicating timeout.
+	
+
+
+
+DESIGN DECISIONS :
+
+For BEACON NODE:-
+	
+	Parent thread creates the thread for Accept and creates thread for Connect, which keeps on trying whenever the connection breaks with the other beacon node, this thread gaurantees to attempt connection if any beacon node gets disconnected. Whenevr the connection takes place, a read and write thread is also created, which reads and writes on the connection to the neighbor.
+	
+For NON-BEACN NODE:-
+
+	Parent thread creats the accpet thread and then tries to connect to the neighbors as per the init_neighbor_list. If it does not get connected to min Neighbors, it inittaies the Soft Restart, which free up all the other resources. Whenevr the connection takes place, a read and write thread is also created, which reads and writes on the connection to the neighbor.
+		
+
+
+Refrences abd Credits
+
+
+	- Refered to "Begining Linux programming" by Wrox, taken thread code from that book
+	- UOID code fragment used from: http://merlot.usc.edu/cs551-s11/projects/final.html#uoid   	
+
