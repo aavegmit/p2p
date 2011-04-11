@@ -11,6 +11,7 @@
 #include "iniParser.h"
 #include "signalHandler.h"
 #include "keepAliveTimer.h"
+#include "indexSearch.h"
 
 bool resetFlag = 0;
 bool shutDown = 0 ;
@@ -23,10 +24,10 @@ int node_pid;
 int nSocket_accept = 0;
 int statusTimerFlag = 0 ;
 int checkTimerFlag = 0 ;
+int globalFileNumber = 0;
 unsigned char *fileName = NULL;
 unsigned char tempLogFile[512], tempInitFile[512];
 int softRestartFlag = 0 ;
-
 
 pthread_t k_thread;
 FILE *f_log = NULL;
@@ -38,6 +39,11 @@ list<pthread_t > childThreadList ;
 map<pthread_t, bool > myConnectThread;
 set<struct joinResNode> joinResponse ;
 set< set<struct node> > statusResponse ;
+map<string, list<int> > bitVectorIndexMap;
+map<string, list<int> > fileNameIndexMap;
+map<string, list<int> > sha1IndexMap;
+map<string, int> fileIDMap;
+list<int > cacheLRU;
 
 pthread_mutex_t connectionMapLock ;
 pthread_mutex_t nodeConnectionMapLock ;
@@ -48,6 +54,10 @@ pthread_cond_t statusMsgCV;
 
 void my_handler(int nSig);
 void resetValues();
+unsigned char  *createBitVector(unsigned char *keyword);
+list<int> keywordSearch(unsigned char *completeStr);
+list<int> fileNameSearch(unsigned char *fileName);
+list<int> sha1Search(unsigned char *sha1String);
 
 int usage()
 {
@@ -137,6 +147,11 @@ void eraseValueInMap(int val)
 // Main body of the PEER TO PEER file sharing system
 int main(int argc, char *argv[])
 {
+
+	map<string, list<int> > bitVectorIndexMap;
+	map<string, list<int> > fileNameIndexMap;
+	map<string, list<int> > sha1IndexMap;
+
 	//Checks if the command arguments are correct or not
 	if(!processCommandLine(argc, (unsigned char**)argv))
 		exit(0);
@@ -157,7 +172,18 @@ int main(int argc, char *argv[])
 	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
 	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
 	
-	
+	/******************************************************/
+/*	struct metaData metadata = populateMetaData(33);
+	populateBitVectorIndexMap(metadata.bitVector, 33);
+	populateSha1IndexMap(metadata.sha1, 33);
+	populateFileNameIndexMap(metadata.fileName, 33);
+
+	writeIndexToFile();
+*/
+	//readIndexFromFile();
+	//writeIndexToFile();
+	/******************************************************/
+		
 	//Log file and init_neighbors_file
 	memset(&tempLogFile, '\0', 512);
 	memset(&tempInitFile, '\0', 512);
@@ -256,6 +282,8 @@ int main(int argc, char *argv[])
 	// Call the init function
 	while(!shutDown || softRestartFlag){
 	
+		readIndexFromFile();
+		
 		softRestartFlag = 0 ;
 		signal(SIGTERM, my_handler);
 		
@@ -287,7 +315,8 @@ int main(int argc, char *argv[])
 		memset(stopLogging, '\0', 256);
 		sprintf((char *)stopLogging, "// %10ld.%03ld : Logging Stopped\n", tv.tv_sec, (tv.tv_usec/1000));
 		writeLogEntry(stopLogging);
-
+		
+		writeIndexToFile();
 	}
 
 

@@ -413,7 +413,6 @@ unsigned char *GetUOID(char *obj_type, unsigned char *uoid_buf, long unsigned in
 	memset(uoid_buf, 0, uoid_buf_sz);
 	memcpy(uoid_buf, sha1_buf,min(uoid_buf_sz,sizeof(sha1_buf)));
 	return uoid_buf;
-
 }
 
 

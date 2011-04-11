@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <set>
+#include <queue>
 
 #define HEADER_SIZE 27
 #define SHA_DIGEST_LENGTH 20
@@ -87,6 +88,18 @@ struct connectionNode{
 	struct node n;
 };
 
+struct metaData
+{
+	unsigned char fileID[20];
+	unsigned char fileName[256];
+	unsigned long int fileSize;
+	unsigned char sha1[20];
+	unsigned char nonce[20];
+	list<string > *keywords;
+	//map<string, int> keywords;
+	unsigned char bitVector[128];
+};
+
 extern unsigned char tempLogFile[512], tempInitFile[512];
 extern bool shutDown ;
 extern int accept_pid;
@@ -99,10 +112,16 @@ extern int statusTimerFlag ;
 extern int checkTimerFlag ;
 extern int node_pid;
 extern int softRestartFlag ;
+extern int globalFileNumber ;
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
 extern map<pthread_t , bool > myConnectThread ;
+extern map<string, list<int> > bitVectorIndexMap;
+extern map<string, list<int> > fileNameIndexMap;
+extern map<string, list<int> > sha1IndexMap;
+extern map<string, int> fileIDMap;
+extern list<int > cacheLRU;
 extern pthread_mutex_t connectionMapLock ;
 extern pthread_mutex_t statusMsgLock ;
 extern pthread_mutex_t logEntryLock ;
@@ -146,4 +165,12 @@ extern unsigned char *GetUOID(char *, unsigned char *, long unsigned int) ;
 void initiateCheck() ;
 void init() ;
 void cleanup() ;
+void writeMetaData(struct metaData metadata);
+void updateGlobalFileNumber();
+void writeData(struct metaData);
+void populateBitVectorIndexMap(unsigned char*, unsigned int);
+void populateSha1IndexMap(unsigned char*, unsigned int);
+void populateFileNameIndexMap(unsigned char*, unsigned int);
+unsigned char* toHex(unsigned char *str, int len);
+struct metaData populateMetaData(int fileNumber);
 
