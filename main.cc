@@ -44,6 +44,8 @@ map<string, list<int> > fileNameIndexMap;
 map<string, list<int> > sha1IndexMap;
 map<string, int> fileIDMap;
 list<int > cacheLRU;
+map<int, struct metaData> getFileIDMap;
+//list<struct metaData> metadataList;
 
 pthread_mutex_t connectionMapLock ;
 pthread_mutex_t nodeConnectionMapLock ;
@@ -151,7 +153,7 @@ int main(int argc, char *argv[])
 	map<string, list<int> > bitVectorIndexMap;
 	map<string, list<int> > fileNameIndexMap;
 	map<string, list<int> > sha1IndexMap;
-
+	
 	//Checks if the command arguments are correct or not
 	if(!processCommandLine(argc, (unsigned char**)argv))
 		exit(0);
@@ -173,12 +175,31 @@ int main(int argc, char *argv[])
 	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
 	
 	/******************************************************/
-/*	struct metaData metadata = populateMetaData(33);
-	populateBitVectorIndexMap(metadata.bitVector, 33);
-	populateSha1IndexMap(metadata.sha1, 33);
-	populateFileNameIndexMap(metadata.fileName, 33);
+	/*struct metaData metadata = populateMetaData(33);
+	metadataList.push_back(metadata);
+	memset(&metadata, 0, sizeof(metadata));
+	metadata = populateMetaData(34);
+	metadataList.push_back(metadata);	
+	searchResponseDisplay();
 
-	writeIndexToFile();
+	unsigned char temp_str[20];
+	for(map<int, string>::iterator it = getFileIDMap.begin(); it!=getFileIDMap.end();it++)
+	{
+		printf("%d ", (*it).first);
+		printf("%s ", (((*it).second).c_str()));
+		for(int i=0;i<20;i++)
+		{
+			temp_str[i] = ((*it).second).c_str()[i];
+			printf("%02x", temp_str[i]);
+		}
+		printf("\n\n");
+	}
+		exit(0);*/
+	/*populateBitVectorIndexMap(metadata.bitVector, 33);
+	populateSha1IndexMap(metadata.sha1, 33);
+	populateFileNameIndexMap(metadata.fileName, 33);*/
+
+/*	writeIndexToFile();
 */
 	//readIndexFromFile();
 	//writeIndexToFile();
@@ -283,6 +304,7 @@ int main(int argc, char *argv[])
 	while(!shutDown || softRestartFlag){
 	
 		readIndexFromFile();
+		readLRUFromFile();
 		
 		softRestartFlag = 0 ;
 		signal(SIGTERM, my_handler);
@@ -317,6 +339,7 @@ int main(int argc, char *argv[])
 		writeLogEntry(stopLogging);
 		
 		writeIndexToFile();
+		writeLRUToFile();
 	}
 
 

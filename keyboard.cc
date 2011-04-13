@@ -371,15 +371,36 @@ void *keyboard_thread(void *arg){
 			unsigned char *value;
 			unsigned char temp_str[256];
 			unsigned char message[256];
+			unsigned char *saveptr1, *saveptr2;
 			memset(temp_str, '\0', sizeof(temp_str));
 			memset(message, '\0', sizeof(message));
-			value = (unsigned char *)strtok(inp, " ");
-			while((value = (unsigned char *)strtok(NULL, " "))!=NULL)
+			value = (unsigned char *)strtok_r(inp, " ", (char **)&saveptr1);
+			while((value = (unsigned char *)strtok_r(NULL, " ", (char **)&saveptr1))!=NULL)
 			{
-				sprintf((char *)temp_str, "%s\r\n", value);
-				strcat((char *)message, (char *)temp_str);
+				if(strstr((char *)value, "FileName=")!=NULL)
+				{
+					sprintf((char *)temp_str, "%s\r\n", value);
+					strcat((char *)message, (char *)temp_str);
+					unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+					key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+					
+				}
 			}
+			
 			printf("Message to be passed is: %s", message);
+		}
+		else if(strstr((char *)inp, "get ")!=NULL)
+		{
+			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
+			value = (unsigned char *)strtok(NULL, " ");
+			int indexNumber = atoi((char *)value);
+			if(getFileIDMap.find(indexNumber)==getFileIDMap.end())
+			{
+				printf("No such entry\n");
+				continue;
+			}
+			struct metaData metadata = getFileIDMap[indexNumber];
+			printf("You have found the entry and now flood to get it!!!\n");
 		}
 
 		memset(inp, '\0', 1024) ;
