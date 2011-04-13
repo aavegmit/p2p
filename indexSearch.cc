@@ -177,6 +177,14 @@ memset(bitVector, 0, sizeof(bitVector));
 			}
 		}
 	}
+	
+if(returnList.size()!=0)
+{
+	for(list<int >::iterator it = returnList.begin();it!=returnList.end();it++)
+	{
+		updateLRU((*it));
+	}
+}
 return returnList;
 }
 
@@ -197,6 +205,13 @@ list<int> tempList;
 		}
 		return tempList;
 	}
+if(tempList.size()!=0)
+{
+	for(list<int >::iterator it = tempList.begin();it!=tempList.end();it++)
+	{
+		updateLRU((*it));
+	}
+}
 return tempList;
 }
 
@@ -216,6 +231,13 @@ list<int > tempList;
 		return tempList;
 	}
 	
+if(tempList.size()!=0)
+{
+	for(list<int >::iterator it = tempList.begin();it!=tempList.end();it++)
+	{
+		updateLRU((*it));
+	}
+}
 return tempList;
 }
 
@@ -224,29 +246,23 @@ void populateBitVectorIndexMap(unsigned char *bitVector, unsigned int fileNumber
 {
 	string str((char *)bitVector, 128);
 	bitVectorIndexMap[str].push_back((int)fileNumber);
-	for (map<string, list<int> >::iterator it1 = bitVectorIndexMap.begin(); it1 != bitVectorIndexMap.end(); ++it1){
+	/*for (map<string, list<int> >::iterator it1 = bitVectorIndexMap.begin(); it1 != bitVectorIndexMap.end(); ++it1){
 		for(int i=0;i<128;i++)
 		{
 			//printf("%02x", ((*it1).first).c_str()[i]);
 			bitVector[i]=((*it1).first).c_str()[i];
 		}
-	}
+	}*/
 }
 
 void populateSha1IndexMap(unsigned char *sha1, unsigned int fileNumber)
 {
-/*for(int i=0;i<20;i++)
-	printf("%02x", sha1[i]);*/
-	
 	string str((char *)sha1, 20);
 	sha1IndexMap[str].push_back((int)fileNumber);
 }
 
 void populateFileNameIndexMap(unsigned char *fileName, unsigned int fileNumber)
 {
-	/*for(int i=0;fileName[i]!='\0';i++)
-		fileName[i]=tolower(fileName[i]);*/
-
 	fileNameIndexMap[string((char *)fileName)].push_back((int)fileNumber);
 }
 
@@ -346,25 +362,28 @@ int size;
 list<int > tempList;
 unsigned char str[129];
 memset(str, 0, sizeof(str));
-while(fscanf(f, " %d ",&size)!=EOF)
+if(f!=NULL)
 {
-	for(int i=0;i<128;i++)
-		fscanf(f, "%c", &str[i]);
-	for(int i=0;i<size;i++)
+	while(fscanf(f, " %d ",&size)!=EOF)
 	{
-		fscanf(f," %d", &ret);
-		tempList.push_back(ret);
-	}
-	/*ret = (int)fread(&str,sizeof(str), 1,f);
-	ret = (int)fread(&tempList,sizeof(tempList), 1,f);*/
-	/*for(int i=0;i<128;i++)
-		printf("%02x", str[i]);*/
-	//cout<<string((char*)str, 128)<<endl;
-	bitVectorIndexMap[string((char*)str, 128)] = tempList;
-	tempList.clear();
-}
+		for(int i=0;i<128;i++)
+			fscanf(f, "%c", &str[i]);
+		for(int i=0;i<size;i++)
+		{
+			fscanf(f," %d", &ret);
+			tempList.push_back(ret);
+		}
+		/*ret = (int)fread(&str,sizeof(str), 1,f);
+		ret = (int)fread(&tempList,sizeof(tempList), 1,f);*/
+		/*for(int i=0;i<128;i++)
+			printf("%02x", str[i]);*/
+		//cout<<string((char*)str, 128)<<endl;
+		bitVectorIndexMap[string((char*)str, 128)] = tempList;
+		tempList.clear();
+	}	
 
 fclose(f);
+}
 //write to NAME FILE
 /*unsigned char name_index[256];
 memset(name_index, '\0', sizeof(name_index));
@@ -377,18 +396,21 @@ unsigned char fileName_str[256];
 memset(fileName_str, 0, sizeof(fileName_str));
 tempList.clear();
 f = fopen("name_index", "r");
-while(fscanf(f, "%d %s ",&size,fileName_str)!=EOF)
+if(f!=NULL)
 {
-	for(int i=0;i<size;i++)
-	{
-		fscanf(f,"%d ", &ret);
-		tempList.push_back(ret);
-	}
-	fileNameIndexMap[string((char*)fileName_str, strlen((char *)fileName_str))] = tempList;
-	tempList.clear();
+	while(fscanf(f, "%d %s ",&size,fileName_str)!=EOF)
+	{	
+		for(int i=0;i<size;i++)
+		{
+			fscanf(f,"%d ", &ret);
+			tempList.push_back(ret);
+		}
+		fileNameIndexMap[string((char*)fileName_str, strlen((char *)fileName_str))] = tempList;
+		tempList.clear();
+	}	
+	
+	fclose(f);
 }
-
-fclose(f);
 //write to SHA1 FILE
 /*unsigned char sha1_index[256];
 memset(sha1_index, '\0', sizeof(sha1_index));
@@ -401,18 +423,40 @@ unsigned char sha1_str[20];
 memset(sha1_str, 0, sizeof(sha1_str));
 tempList.clear();
 f = fopen("sha1_index", "rb");
-while(fscanf(f, "%d ",&size)!=EOF)
+if(f!=NULL)
 {
-	for(int i=0;i<20;i++)
-		fscanf(f, "%c",&sha1_str[i]);
-	for(int i=0;i<size;i++)
+	while(fscanf(f, "%d ",&size)!=EOF)
 	{
-		fscanf(f," %d ", &ret);
-		tempList.push_back(ret);
-	}
-	sha1IndexMap[string((char*)sha1_str, 20)] = tempList;
-	tempList.clear();
+		for(int i=0;i<20;i++)
+			fscanf(f, "%c",&sha1_str[i]);
+		for(int i=0;i<size;i++)
+		{
+			fscanf(f," %d ", &ret);
+			tempList.push_back(ret);
+		}
+		sha1IndexMap[string((char*)sha1_str, 20)] = tempList;
+		tempList.clear();
 //printf("size: %d, sha1: %s\n", size, sha1_str);
+	}
+	fclose(f);
 }
-fclose(f);
+}
+
+list<int> getAllFiles()
+{
+list<int > fileSystemList;
+
+	for(map<string, list<int> >::iterator it = fileNameIndexMap.begin();it!=fileNameIndexMap.end();it++)
+	{
+		for(list<int >::iterator it1 = (*it).second.begin();it1!=(*it).second.end();it1++)
+		{
+			fileSystemList.push_back((*it1));
+		}
+	}
+return fileSystemList;
+}
+
+void deleteFromIndex()
+{
+
 }

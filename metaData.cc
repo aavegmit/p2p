@@ -140,6 +140,7 @@ unsigned char *key;
 
 sprintf((char *)fileName, "%s%d.meta", "files/", fileNumber);
 
+metadata.fileNumber = (unsigned int)fileNumber;
 memset(metadata.fileID, '\0', sizeof(metadata.fileID));
 GetUOID( const_cast<char *> ("FileID"), metadata.fileID, sizeof(metadata.fileID)) ;
 		
@@ -225,9 +226,164 @@ printf("\n");*/
 return metadata;
 }
 
-void updateLRU(unsigned int fileNumber)
+
+struct metaData populateMetaDataFromString(unsigned char *input1)
 {
-//	list<int >::iterator result = find(cacheLRU.begin(), cacheLRU.end(), (int)fileNumber);
-	cacheLRU.remove(fileNumber);
+struct metaData metadata;
+memset(&metadata, 0, sizeof(metaData));
+unsigned char *buffer;
+unsigned char *key, *saveptr1, *saveptr2;
+unsigned char input[strlen((char *)input1)];
+strncpy((char *)metadata.fileID, (char *)input1, 20);
+strncpy((char *)input, (char *)input1+20, strlen((char *)input1)-20);
+
+/*memset(metadata.fileID, '\0', sizeof(metadata.fileID));
+GetUOID( const_cast<char *> ("FileID"), metadata.fileID, sizeof(metadata.fileID)) ;*/
+		
+	buffer = (unsigned char *)strtok_r((char *)input, "\n", (char **)&saveptr1);
+	while((buffer = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr1))!=NULL)
+	{
+		printf("value is: %s\n", buffer);
+		if(strstr((char *)buffer, "FileName=")!=NULL)
+		{
+			key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);
+			key = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr2);
+			strncpy((char *)metadata.fileName, (char *)key, strlen((char *)key));
+		}
+		else if(strstr((char *)buffer, "FileSize=")!=NULL)
+		{
+			key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);
+			key = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr2);
+			//strncpy(metadata->fileName, key, strlen(key));		
+			metadata.fileSize = atol((char *)key);
+		}
+		else if(strstr((char *)buffer, "SHA1=")!=NULL)
+		{
+			key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);
+			key = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr2);
+			unsigned char *str = toHex(key, 20);
+			strncpy((char *)metadata.sha1, (char *)str, 20);
+			free(str);
+		}
+		else if(strstr((char *)buffer, "Nonce=")!=NULL)
+		{
+			key = (unsigned char *)strtok_r((char *)buffer, "=",(char **)&saveptr2);
+			key = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr2);
+			unsigned char *str = toHex(key, 20);
+			strncpy((char *)metadata.nonce, (char *)str, 20);
+			free(str);
+		}
+		else if(strstr((char *)buffer, "Keywords=")!=NULL)
+		{
+			key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);
+			key = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr2);
+			//strncpy(metadata->fileName, key, strlen(key));		
+			unsigned char *key1 = NULL;
+			metadata.keywords = new list<string>();
+			while((key1 = (unsigned char*)strtok((char *)key, " "))!=NULL)
+			{
+				metadata.keywords->push_back(string((char *)key1));
+				key=NULL;
+			}
+		}
+		else if(strstr((char *)buffer, "Bit-vector=")!=NULL)
+		{
+			key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);
+			key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+			
+			unsigned char *str = toHex(key, 128);
+			for(int i=0;i<128;i++)
+				metadata.bitVector[i] = str[i];
+						
+			free(str);
+		}
+	}
+/*printf("Some values are: \n\n");
+printf("%s\n%ld\n", metadata.fileName, metadata.fileSize);
+for(int i=0;i<20;i++)
+	printf("%02x", metadata.sha1[i]);
+printf("\n");
+for(int i=0;i<20;i++)
+	printf("%02x", metadata.nonce[i]);
+printf("\n");
+for (list<string >::iterator it = metadata.keywords->begin(); it != metadata.keywords->end(); ++it){
+	printf("%s ", (*it).c_str());
+}
+printf("\n");
+for(int i=0;i<128;i++)
+	printf("%02x", metadata.bitVector[i]);
+printf("\n");*/
+return metadata;
+}
+
+void updateLRU(int fileNumber)
+{
+	list<int >::iterator result = find(cacheLRU.begin(), cacheLRU.end(), (int)fileNumber);
+	if(result!=cacheLRU.end())
+	{
+		cacheLRU.erase(result);
+		cacheLRU.push_back(fileNumber);
+	}
+}
+
+void storeInLRU(struct metaData metadata, unsigned int fileNumber)
+{
+	if(metadata.fileSize > myInfo->cacheSize)
+		return;
 	cacheLRU.push_back(fileNumber);
+}
+
+void removeFromLRU()
+{
+	cacheLRU.pop_front();
+}
+
+void writeLRUToFile()
+{
+FILE *f = fopen("cacheLRU", "w");
+	for(list<int > :: iterator it = cacheLRU.begin(); it!=cacheLRU.end();it++)
+	{
+			fprintf(f, "%d ", (*it));
+	}
+fclose(f);
+}
+
+void readLRUFromFile()
+{
+int temp;
+FILE *f = fopen("cacheLRU", "r");
+if(f!=NULL)
+{
+	while(fscanf(f, "%d ", &temp)!=EOF)
+	{
+		cacheLRU.push_back(temp);
+	}
+fclose(f);
+}
+}
+
+int searchResponseDisplay(list<struct metaData> metadataList, int count)
+{
+	for(list<struct metaData>::iterator it = metadataList.begin(); it!=metadataList.end(); ++it, count++)
+	{
+		getFileIDMap[count] = (*it);
+		printf("[%d] FileID=", count);
+		for(int i=0;i<20;i++)
+			printf("%02x", (*it).fileID[i]);
+		printf("\n    FileName=%s", (*it).fileName);
+		printf("\n    FileSize=%ld", (*it).fileSize);
+		printf("\n    SHA1=");
+		for(int i=0;i<20;i++)
+			printf("%02x", (*it).sha1[i]);
+		printf("\n    Nonce=");
+		for(int i=0;i<20;i++)
+			printf("%02x", (*it).nonce[i]);
+		printf("\n    Keywords=");
+		for(list<string > ::iterator it1 = (*it).keywords->begin(); it1!=(*it).keywords->end();++it1)
+		{
+			printf("%s ", (*it1).c_str());
+		}
+		printf("\n");
+	}
+return count;
 }

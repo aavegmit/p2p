@@ -90,6 +90,7 @@ struct connectionNode{
 
 struct metaData
 {
+	unsigned int fileNumber;
 	unsigned char fileID[20];
 	unsigned char fileName[256];
 	unsigned long int fileSize;
@@ -121,7 +122,9 @@ extern map<string, list<int> > bitVectorIndexMap;
 extern map<string, list<int> > fileNameIndexMap;
 extern map<string, list<int> > sha1IndexMap;
 extern map<string, int> fileIDMap;
+extern map<int, struct metaData> getFileIDMap;
 extern list<int > cacheLRU;
+//extern list<struct metaData> metadataList;
 extern pthread_mutex_t connectionMapLock ;
 extern pthread_mutex_t statusMsgLock ;
 extern pthread_mutex_t logEntryLock ;
@@ -173,4 +176,8 @@ void populateSha1IndexMap(unsigned char*, unsigned int);
 void populateFileNameIndexMap(unsigned char*, unsigned int);
 unsigned char* toHex(unsigned char *str, int len);
 struct metaData populateMetaData(int fileNumber);
-
+struct metaData populateMetaDataFromString(unsigned char *input);
+int searchResponseDisplay(list<struct metaData> metadataList, int count);
+void writeLRUToFile();
+void readLRUFromFile();
+void updateLRU(int fileNumber);
