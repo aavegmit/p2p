@@ -62,6 +62,7 @@ extern pthread_mutex_t nodeConnectionMapLock ;
 struct Message{
 	uint8_t type;
 	unsigned char *buffer ;
+	unsigned char *query ;
 	uint8_t ttl ;
 	uint32_t location ;
 	int status ;								// 0 - originated from here
@@ -70,6 +71,7 @@ struct Message{
 										// initiated the connection
 	int buffer_len ;
 	uint8_t status_type ;	
+	unsigned char query_type ;
 	uint8_t errorCode;
 } ;
 
@@ -173,4 +175,5 @@ void populateSha1IndexMap(unsigned char*, unsigned int);
 void populateFileNameIndexMap(unsigned char*, unsigned int);
 unsigned char* toHex(unsigned char *str, int len);
 struct metaData populateMetaData(int fileNumber);
-
+void initiateSearch(unsigned char, unsigned char *) ;
+string MetaDataToStr(struct metaData) ;

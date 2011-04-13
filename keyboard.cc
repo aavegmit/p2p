@@ -300,26 +300,29 @@ void *keyboard_thread(void *arg){
 			if(strcasecmp((char *)value, "filename")==0)
 			{
 				value = (unsigned char *)strtok(NULL, "=");
-				list<int> tempList = fileNameSearch(value);
-				for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-				{
-					printf("File name is: %d\n", (*it));
-					//now updating the FILEID MAP
-					struct metaData metadata = populateMetaData((*it));
-					fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
-				}
+//				list<int> tempList = fileNameSearch(value);
+//				for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
+//				{
+//					printf("File name is: %d\n", (*it));
+//					//now updating the FILEID MAP
+//					struct metaData metadata = populateMetaData((*it));
+//					fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
+//				}
+				// Initiate the search method with the type filename
+				initiateSearch(0x01, value) ;	
 			}
 			else if(strcasecmp((char *)value, "sha1hash")==0)
 			{
 				value = (unsigned char *)strtok(NULL, "=");
 				unsigned char *str = toHex(value, 20);
-				list<int> tempList = sha1Search(str);
-				for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-				{
-					printf("File name is: %d\n", (*it));
-					struct metaData metadata = populateMetaData((*it));
-					fileIDMap[string((char *)metadata.fileID, 20)] = (*it);					
-				}
+//				list<int> tempList = sha1Search(str);
+//				for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
+//				{
+//					printf("File name is: %d\n", (*it));
+//					struct metaData metadata = populateMetaData((*it));
+//					fileIDMap[string((char *)metadata.fileID, 20)] = (*it);					
+//				}
+				initiateSearch(0x02, str) ;	
 			}
 			else if(strcasecmp((char *)value, "keywords")==0)
 			{
@@ -331,26 +334,28 @@ void *keyboard_thread(void *arg){
 					unsigned char *temp = (unsigned char *)malloc(sizeof(unsigned char)*(strlen((char *)value)-2));
 					strncpy((char *)temp, (char *)value+1, strlen((char *)value)-2);
 					temp[strlen((char *)value)-2]='\0';
+					initiateSearch(0x03, temp) ;
 					
-					list<int > tempList = keywordSearch(temp);
-					for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-					{
-						printf("File name is: %d\n", (*it));
-						struct metaData metadata = populateMetaData((*it));
-						fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
-					}					
-					
+//					list<int > tempList = keywordSearch(temp);
+//					for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
+//					{
+//						printf("File name is: %d\n", (*it));
+//						struct metaData metadata = populateMetaData((*it));
+//						fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
+//					}					
+//					
 					free(temp);
 				}
 				else
 				{
-					list<int > tempList = keywordSearch(value);
-					for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-					{
-						printf("File name is: %d\n", (*it));
-						struct metaData metadata = populateMetaData((*it));
-						fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
-					}
+					initiateSearch(0x03, value) ;
+//					list<int > tempList = keywordSearch(value);
+//					for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
+//					{
+//						printf("File name is: %d\n", (*it));
+//						struct metaData metadata = populateMetaData((*it));
+//						fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
+//					}
 				}
 			}
 		}

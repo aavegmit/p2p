@@ -1,6 +1,7 @@
 #include "main.h"
 #include "iniParser.h"
 #include "signalHandler.h"
+#include "indexSearch.h"
 
 #ifndef min
 #define min(A,B) (((A)>(B)) ? (B) : (A))
@@ -54,9 +55,6 @@ void *write_thread(void *args){
 		if (mes.status == 0){
 			unsigned char uoid[SHA_DIGEST_LENGTH] ;
 			GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
-			//			memcpy((char *)&header[1], uoid, 20) ;
-			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
-				header[1+i] = uoid[i] ;
 			struct Packet pk;
 			pk.status = 0 ;
 			pk.msgLifeTime = myInfo->msgLifeTime;
@@ -205,6 +203,32 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 
 		}
+		// Search Message request
+		else if (mes.type == 0xec){
+			printf("Sending Search request\n") ;
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+			}
+			else{
+				len = mes.buffer_len + 1 ;
+				buffer = (unsigned char *)malloc(len) ;
+				memset(buffer, '\0', len) ;
+				buffer[0] = mes.query_type ;
+			printf("Sending req: %02x\n", mes.query_type) ;
+				for (unsigned int i = 1 ; i < len ; ++i)
+					buffer[i] = mes.query[i-1] ;
+			}
+
+
+			header[0] = 0xec;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
 		// CHECK Message request
 		else if (mes.type == 0xf6){
 			if (mes.status == 1){
@@ -276,6 +300,77 @@ void *write_thread(void *args){
 			header[22] = 0x00 ;
 			memcpy((char *)&header[23], &(len), 4) ;
 		}
+		else if (mes.type == 0xeb){
+			printf("Sending Search Response..\n") ;
+
+			if (mes.status == 1){
+				buffer = (unsigned char *)malloc(mes.buffer_len) ;
+				for (int i = 0 ; i < mes.buffer_len ; i++)
+					buffer[i] = mes.buffer[i] ;
+				len = mes.buffer_len ;
+			}
+			else{
+				// Construct the response
+				len = 20 ;
+				buffer = (unsigned char *)malloc(len) ;
+				for(unsigned int i=0;i<20;i++)
+					buffer[i] = mes.uoid[i];
+				list<int> tempList ;
+				switch(mes.query_type){
+					case 0x01:
+						tempList = fileNameSearch(mes.query) ;
+						break;
+					case 0x02:
+						tempList = sha1Search(mes.query) ;
+						break ;
+					case 0x03:
+						tempList = keywordSearch(mes.query) ;
+						break ;
+				}
+				if (tempList.size() == 0){
+					printf("No records found\n") ;
+//					free(buffer) ;
+					continue;
+				}
+				struct metaData metadata ;
+				string metaStr("")  ;
+				for(list<int>::iterator it = tempList.begin(); it != tempList.end(); it++){
+					metadata = populateMetaData(*it) ;
+					fileIDMap[string((char *)metadata.fileID, 20)] = (*it) ;
+					metaStr = MetaDataToStr(metadata) ;
+					uint32_t len1 = metaStr.size() ;
+					len = len + len1 + 24 ;
+					buffer = (unsigned char *)realloc(buffer, len) ;
+
+					++it ;
+					if( it == tempList.end()){
+						uint32_t zeroLen = 0 ;
+						memcpy(&buffer[len - len1 - 24], &zeroLen, 4) ;
+					}
+					else{
+						memcpy(&buffer[len - len1 - 24], &len1, 4) ;
+					}
+					--it ;
+					printf("%d\n", len) ;
+//					memcpy(&buffer[len - len1 - 24], &len1, 4) ;
+					for(unsigned int h = (len-len1-20) ; h < (len - len1) ; ++h)
+						buffer[h] = metadata.fileID[h - (len-len1-20)] ;
+					for(int h = (len-len1) ; h < len ; ++h){
+						buffer[h] = metaStr[h-len+len1] ;
+						printf("%c", buffer[h]) ;
+					}
+//					memcpy(&buffer[len-24], metaStr.c_str(), len1) ;
+				}
+				
+
+			}
+
+
+			header[0] = 0xeb;
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+		}
 		else if (mes.type == 0xf5){
 //			printf("Sending CHECK Response..\n") ;
 
@@ -336,7 +431,7 @@ void *write_thread(void *args){
 
 		return_code = (int)write(sockfd, buffer, len) ;
 		if (return_code != (int)len){
-			//fprintf(stderr, "Socket Write Error") ;
+			fprintf(stderr, "Socket Write Error") ;
 		}
 
 		//logging the message sent from this node or forwarded from this node
@@ -629,6 +724,45 @@ void initiateCheck(){
 	checkTimerFlag = 1 ;
 
 }
+
+
+void initiateSearch(unsigned char type, unsigned char *value){
+	printf("here\n") ;
+	unsigned char uoid[SHA_DIGEST_LENGTH] ;
+	GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+
+
+	struct Packet pk;
+	pk.status = 0 ;
+	pk.msgLifeTime = myInfo->msgLifeTime;
+
+
+	pthread_mutex_lock(&MessageDBLock) ;
+	MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+	pthread_mutex_unlock(&MessageDBLock) ;
+
+	//sending the status request message to all of it's neighbor
+	pthread_mutex_lock(&nodeConnectionMapLock) ;
+	for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+		struct Message m ;
+		m.type = 0xec ;
+		m.status = 2 ;
+		m.ttl = myInfo->ttl ;
+		m.query_type = type ;
+		m.buffer_len = strlen((char *)value) ;
+		m.query = (unsigned char *)malloc(m.buffer_len) ;
+		for(int l = 0 ; l < m.buffer_len; ++l)
+			m.query[l] = value[l] ;
+		for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+			m.uoid[i] = uoid[i] ;
+		pushMessageinQ( (*it).second, m) ;
+	}
+	pthread_mutex_unlock(&nodeConnectionMapLock) ;
+	
+
+}
+
+
 
 
 //Writing the status response to the file, creating the nam file

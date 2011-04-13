@@ -56,6 +56,12 @@ void messageType(uint8_t message_type)
 		case 0xab : 	//strncpy((char *)msg_type, "STRS", 4);
 			temp_msg_type ="STRS";
 			break;
+		case 0xec : 	//strncpy((char *)msg_type, "STRS", 4);
+			temp_msg_type ="SHRQ";
+			break;
+		case 0xeb : 	//strncpy((char *)msg_type, "STRS", 4);
+			temp_msg_type ="SHRS";
+			break;
 		default : break;
 	}
 	for(unsigned int i=0;i<4;i++)

@@ -128,7 +128,7 @@ void *accept_connectionsT(void *){
 			connectionMap[newsockfd] = cn ;
 			pthread_mutex_unlock(&connectionMapLock) ;
 
-			
+
 			//creating the read thread after accepting the connection
 			int res ;
 			pthread_t re_thread ;
@@ -158,7 +158,7 @@ void *accept_connectionsT(void *){
 			//		close(newsockfd) ;
 			connectionMap[newsockfd].myWriteId = wr_thread;
 			childThreadList_accept.push_front(wr_thread);
-			
+
 			//sleep(1);
 
 		}
@@ -221,9 +221,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		else{
 
 			/*if(nodeConnectionMap.find(n)!=nodeConnectionMap.end()){
-				pthread_mutex_unlock(&nodeConnectionMapLock) ;
-				return;
-			}*/
+			  pthread_mutex_unlock(&nodeConnectionMapLock) ;
+			  return;
+			  }*/
 			// break one connection
 			if (myInfo->portNo < n.portNo){
 				// dissconect this connection
@@ -241,15 +241,15 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				unsigned char host[256] ;
 				gethostname((char *)host, 256) ;
 				host[255] = '\0' ;
-				
+
 				if (strcmp((char *)host, (char *)n.hostname) < 0){
-				
+
 					closeConnection(sockfd) ;
 					nodeConnectionMap[n] = nodeConnectionMap[n] ;
 					//printf("Have to break jj one connection\n") ;
 				}
 				else if(strcmp((char *)host, (char *)n.hostname) > 0){
-				
+
 					nodeConnectionMap[n] = sockfd;
 					//printf("Have to break one connection with %d\n", n.portNo) ;					
 				}
@@ -370,7 +370,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 		//Message not found in the cache
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-//			printf("JOIN request was never forwarded from this node.\n") ;
+			//			printf("JOIN request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{
@@ -385,7 +385,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				joinResponse.insert(j)  ;
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){ //message originated from somewhere else
-//				printf("Sending back the response to %d\n" ,MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].receivedFrom.portNo) ;
+				//				printf("Sending back the response to %d\n" ,MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].receivedFrom.portNo) ;
 				// Message was forwarded from this node, see the receivedFrom member
 				struct Message m;
 				pthread_mutex_lock(&MessageDBLock) ;
@@ -410,12 +410,12 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		//		printf("Keep Alive Message Received from : %d\n", sockfd);
 	}
 	else if(type == 0xac){
-//		printf("Status request received\n") ;
+		//		printf("Status request received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
 		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
-//			printf("Message has already been received.\n") ;
+			//			printf("Message has already been received.\n") ;
 			pthread_mutex_unlock(&MessageDBLock) ;
 			return ;
 		}
@@ -441,7 +441,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
 		for(unsigned int i = 0;i<SHA_DIGEST_LENGTH;i++)
 			m.uoid[i] = uoid[i];
-			
+
 		pushMessageinQ(sockfd, m ) ;
 
 		--ttl ;
@@ -450,7 +450,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
 				if( !((*it).second == sockfd)){
-//					printf("Status req send to: %d\n", (*it).first.portNo) ;
+					//					printf("Status req send to: %d\n", (*it).first.portNo) ;
 
 					struct Message m ;
 					m.type = 0xac ;
@@ -462,8 +462,77 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 						m.buffer[i] = buffer[i] ;
 					m.status = 1 ;
 					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
-//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
-//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+					for (int i = 0 ; i < 20 ; i++)
+						m.uoid[i] = uoid[i] ;
+					pushMessageinQ((*it).second, m) ;
+				}
+			}
+			pthread_mutex_unlock(&nodeConnectionMapLock);
+		}
+
+	}
+	else if(type == 0xec){
+		printf("Search request received\n") ;
+
+		// Check if the message has already been received or not
+		pthread_mutex_lock(&MessageDBLock) ;
+		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
+			//			printf("Message has already been received.\n") ;
+			pthread_mutex_unlock(&MessageDBLock) ;
+			return ;
+		}
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		uint8_t status_type = 0 ;
+		memcpy(&status_type, buffer, 1) ;
+
+		struct Packet pk;
+		pk.status = 1 ;
+		pk.sockfd = sockfd ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ; 
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		// Respond the sender with the Search response
+		struct Message m ;
+		m.type = 0xeb ;
+		m.status = 0;
+		m.query_type = status_type ;
+		m.ttl = 1 ;
+		m.buffer_len = buf_len ;
+		m.query = (unsigned char *)malloc(buf_len) ;
+		for (int i = 0 ; i < (int)buf_len-1 ; i++)
+			m.query[i] = buffer[i+1] ;
+		m.query[buf_len-1] = '\0' ;
+		//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+		for(unsigned int j = 0;j<SHA_DIGEST_LENGTH;j++)
+			m.uoid[j] = uoid[j];
+
+		pushMessageinQ(sockfd, m ) ;
+
+		--ttl ;
+		// Push the request message in neighbors queue
+		if (ttl >= 1 && myInfo->ttl > 0){
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+				if( !((*it).second == sockfd)){
+					//					printf("Status req send to: %d\n", (*it).first.portNo) ;
+
+					struct Message m ;
+					m.type = 0xec ;
+					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+					m.buffer = (unsigned char *)malloc(buf_len) ;
+					m.buffer_len = buf_len ;
+					//					strncpy( (char *)m.buffer , (const char *)buffer , sizeof(buffer));
+					for (int i = 0 ; i < (int)buf_len ; i++)
+						m.buffer[i] = buffer[i] ;
+					m.status = 1 ;
+					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
+					//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
 					for (int i = 0 ; i < 20 ; i++)
 						m.uoid[i] = uoid[i] ;
 					pushMessageinQ((*it).second, m) ;
@@ -474,7 +543,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if (type == 0xab){
-//		printf("Status response received\n") ;
+		//		printf("Status response received\n") ;
 		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;
 		//		memcpy((unsigned char *)original_uoid, buffer, SHA_DIGEST_LENGTH) ;
 		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
@@ -495,7 +564,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-//			printf("Status request was never forwarded from this node.\n") ;
+			//			printf("Status request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{
@@ -554,13 +623,76 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			}
 		}
 	}
+	else if (type == 0xeb){
+		//		printf("Search response received\n") ;
+		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;
+		//		memcpy((unsigned char *)original_uoid, buffer, SHA_DIGEST_LENGTH) ;
+		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
+			original_uoid[i] = buffer[i] ;
+
+
+
+		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
+						printf("Search request was never forwarded from this node.\n") ;
+			return ;
+		}
+		else{
+			//message origiated from here
+			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
+				pthread_mutex_lock(&statusMsgLock) ;
+//				if (statusTimerFlag){
+					unsigned int i = 20 ;
+					while ( i < buf_len){
+						uint32_t templen = 0 ;
+						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
+						if (templen == 0){
+							templen = buf_len - i -20-4 ;
+						}
+						i += 4 ;
+						unsigned char fileIDtemp[20] ;
+						for(int f = 0 ; f < 20 ; ++f)
+							fileIDtemp[f] = buffer[i+f] ;
+
+						i += 20 ;
+						string metaStr((const char *)&buffer[i], templen) ;
+						for(unsigned int u = i ; u < (i + templen) ; ++u){
+							printf("%c", buffer[u]) ;
+						}
+						i = i +templen;
+
+					}
+				
+				pthread_mutex_unlock(&statusMsgLock) ;
+
+			}
+			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){	//Message originated from somewhere else, needs to be forwarded
+				// Message was forwarded from this node, see the receivedFrom member
+				struct Message m;
+				pthread_mutex_lock(&MessageDBLock) ;
+				int return_sock = MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].sockfd ;
+				pthread_mutex_unlock(&MessageDBLock) ;
+
+				m.type = type ;
+				m.buffer = (unsigned char *)malloc((buf_len + 1)) ;
+				m.buffer[buf_len] = '\0' ;
+				m.buffer_len = buf_len ;
+				for (int i = 0 ; i < (int)buf_len; i++)
+					m.buffer[i] = buffer[i] ;
+				for (int i = 0 ; i < SHA_DIGEST_LENGTH ; ++i)
+					m.uoid[i] = uoid[i] ;
+				m.ttl = 1 ;
+				m.status = 1 ;
+				pushMessageinQ(return_sock, m) ;
+			}
+		}
+	}
 	else if(type == 0xf6){
-//		printf("CHECK message received\n") ;
+		//		printf("CHECK message received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
 		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
-//			printf("Message has already been received.\n") ;
+			//			printf("Message has already been received.\n") ;
 			pthread_mutex_unlock(&MessageDBLock) ;
 			return ;
 		}
@@ -596,7 +728,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				pthread_mutex_lock(&nodeConnectionMapLock) ;
 				for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
 					if( !((*it).second == sockfd)){
-//						printf("Check msg send to: %d\n", (*it).first.portNo) ;
+						//						printf("Check msg send to: %d\n", (*it).first.portNo) ;
 
 						struct Message m ;
 						m.type = 0xf6 ;
@@ -618,14 +750,14 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if (type == 0xf5){
-//		printf("Check response received\n") ;
+		//		printf("Check response received\n") ;
 		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;
 		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
 			original_uoid[i] = buffer[i] ;
 
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-//			printf("Status request was never forwarded from this node.\n") ;
+			//			printf("Status request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{
@@ -636,7 +768,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 					// is required to prove that the node is still connected
 					// to the core network
 					checkTimerFlag = 0 ;
-//					printf("Dont worry!! You are still connected to the core SERVANT network\n") ;
+					//					printf("Dont worry!! You are still connected to the core SERVANT network\n") ;
 				}
 
 			}
@@ -663,7 +795,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 	{
 		//unsigned char ch = buffer[0];
 		//memcpy(&ch, &buffer, buf_len);
-//		printf("Recieved Notify message : %02x\n", ch);
+		//		printf("Recieved Notify message : %02x\n", ch);
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		eraseValueInMap(sockfd);				
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;			
@@ -676,187 +808,187 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		connectionMap[sockfd].keepAliveTimeOut = myInfo->keepAliveTimeOut;
 	pthread_mutex_unlock(&connectionMapLock) ;
 	//	if(connectionMap[sockfd].keepAliveTimer!=0)
-}
-
-
-void *read_thread(void *args){
-
-	long nSocket = (long)args ;
-	unsigned char header[HEADER_SIZE];
-	unsigned char *buffer ;
-	//signal(SIGUSR1, my_handler);
-	//printf("My Id is read: %d\n", (int)pthread_self());
-
-	//Initilizing the header elements
-	uint8_t message_type=0;
-	uint8_t ttl=0;
-	uint32_t data_len=0;
-	unsigned char uoid[20] ;
-	map<struct node, int>::iterator it;
-	//connectionMap[nSocket].myReadId = pthread_self();
-	//while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
-	while(!(connectionMap[nSocket].shutDown)  ){
-		memset(header, 0, HEADER_SIZE) ;
-		memset(uoid, 0, 20) ;
-
-		//Check for the JoinTimeOutFlag
-		pthread_mutex_lock(&connectionMapLock) ;
-		//close conncetion if either of the condition occurs, jointime out, shutdown
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
-		{
-			pthread_mutex_unlock(&connectionMapLock) ;
-
-			pthread_mutex_lock(&nodeConnectionMapLock) ;
-			//it = nodeConnectionMap.find(nSocket);
-			//nodeConnectionMap.erase(it);
-			eraseValueInMap(nSocket);
-			pthread_mutex_unlock(&nodeConnectionMapLock) ;
-
-			closeConnection(nSocket);
-			break;
-		}
-		pthread_mutex_unlock(&connectionMapLock) ;
-
-		int return_code=(int)read(nSocket, header, HEADER_SIZE);
-		//Check for the JoinTimeOutFlag
-		pthread_mutex_lock(&connectionMapLock) ;
-		//close conncetion if either of the condition occurs, jointime out, shutdown
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
-		{
-			pthread_mutex_unlock(&connectionMapLock) ;
-			pthread_mutex_lock(&nodeConnectionMapLock) ;
-			//it = nodeConnectionMap.find(nSocket);
-			//nodeConnectionMap.erase(it);
-			eraseValueInMap(nSocket);
-			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
-			closeConnection(nSocket);
-			break;
-		}
-		pthread_mutex_unlock(&connectionMapLock) ;
-
-		if (return_code != HEADER_SIZE){
-//			printf("Socket Read error...from header\n") ;
-			pthread_mutex_lock(&nodeConnectionMapLock) ;
-			//it = nodeConnectionMap.find(nSocket);
-			//nodeConnectionMap.erase(it);
-			eraseValueInMap(nSocket);				
-			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
-			closeConnection(nSocket);
-			//pthread_exit(0);
-			break;
-			//return 0;
-		}
-		memcpy(&message_type, header, 1);
-		//memcpy(uoid,       header+1, 20);
-		for(int i=0;i<20;i++)
-			uoid[i] = header[i+1];
-		memcpy(&ttl,       header+21, 1);
-		memcpy(&data_len,  header+23, 4);
-
-		buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
-		memset(buffer, 0, data_len) ;
-
-		//Check for the JoinTimeOutFlag
-		pthread_mutex_lock(&connectionMapLock) ;
-		//close conncetion if either of the condition occurs, jointime out, shutdown		
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
-		{
-			pthread_mutex_unlock(&connectionMapLock) ;
-			pthread_mutex_lock(&nodeConnectionMapLock) ;
-			//it = nodeConnectionMap.find(nSocket);
-			//nodeConnectionMap.erase(it);
-			eraseValueInMap(nSocket);				
-			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
-			closeConnection(nSocket);
-			break;
-		}
-		pthread_mutex_unlock(&connectionMapLock) ;
-		return_code=(int)read(nSocket, buffer, data_len);
-		//printf("Reading Buffer on : %d\n", (int)nSocket);		
-		//Check for the JoinTimeOutFlag
-		pthread_mutex_lock(&connectionMapLock) ;
-		//close conncetion if either of the condition occurs, jointime out, shutdown
-		if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
-		{
-			pthread_mutex_unlock(&connectionMapLock) ;
-			pthread_mutex_lock(&nodeConnectionMapLock) ;
-			//it = nodeConnectionMap.find(nSocket);
-			//nodeConnectionMap.erase(it);
-			eraseValueInMap(nSocket);				
-			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
-			closeConnection(nSocket);
-			break;
-		}
-		pthread_mutex_unlock(&connectionMapLock) ;
-
-		if (return_code != (int)data_len){
-//			printf("Socket Read error...from data\n") ;
-			pthread_mutex_lock(&nodeConnectionMapLock) ;
-			//it = nodeConnectionMap.find(nSocket);
-			//nodeConnectionMap.erase(it);
-			eraseValueInMap(nSocket);				
-			pthread_mutex_unlock(&nodeConnectionMapLock) ;			
-			closeConnection(nSocket);
-			break;
-		}
-		buffer[data_len] = '\0' ;
-
-		//call for function which process the messages and respond correspondingly
-		process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;
-
-		//logging the infomation, at the recievers end
-		if(!(inJoinNetwork && message_type == 0xfa))
-		{
-			pthread_mutex_lock(&logEntryLock) ;
-			// Writing data to log file, but first creating log entry
-			unsigned char *logEntry = createLogEntry('r', nSocket, header, buffer);
-			if(logEntry!=NULL)
-				writeLogEntry(logEntry);
-			pthread_mutex_unlock(&logEntryLock) ;				
-		}
-
-		free(buffer) ;
 	}
 
 
+	void *read_thread(void *args){
 
-	//printf("Read thread exiting..\n") ;
+		long nSocket = (long)args ;
+		unsigned char header[HEADER_SIZE];
+		unsigned char *buffer ;
+		//signal(SIGUSR1, my_handler);
+		//printf("My Id is read: %d\n", (int)pthread_self());
 
-	pthread_exit(0);
-	return 0;
-}
+		//Initilizing the header elements
+		uint8_t message_type=0;
+		uint8_t ttl=0;
+		uint32_t data_len=0;
+		unsigned char uoid[20] ;
+		map<struct node, int>::iterator it;
+		//connectionMap[nSocket].myReadId = pthread_self();
+		//while(!shutDown && !(connectionMap[nSocket].shutDown)  ){
+		while(!(connectionMap[nSocket].shutDown)  ){
+			memset(header, 0, HEADER_SIZE) ;
+			memset(uoid, 0, 20) ;
 
-//This fnction pushes the NOTIFY message at the very begining of the message queue, so as to send it at priority
-void notifyMessageSend(int resSock, uint8_t errorCode)
-{
-	struct Message mes ; 
-	memset(&mes, 0, sizeof(mes));
-	mes.type = 0xf7 ;
-	mes.status = 0 ;
-	mes.errorCode = errorCode ;
-	//pushMessageinQ(resSock, m) ;
+			//Check for the JoinTimeOutFlag
+			pthread_mutex_lock(&connectionMapLock) ;
+			//close conncetion if either of the condition occurs, jointime out, shutdown
+			if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
+			{
+				pthread_mutex_unlock(&connectionMapLock) ;
 
-	//pushing the message and signaling the write thread
-	pthread_mutex_lock(&connectionMap[resSock].mesQLock) ;
-	(connectionMap[resSock]).MessageQ.push_front(mes) ;
-	pthread_cond_signal(&connectionMap[resSock].mesQCv) ;
-	pthread_mutex_unlock(&connectionMap[resSock].mesQLock) ;
-}
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
-//Pushes the message in the message queue at the very back of the queue
-void pushMessageinQ(int sockfd, struct Message mes){
-	pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
-	(connectionMap[sockfd]).MessageQ.push_back(mes) ;
-	pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
-	pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
-}
+				closeConnection(nSocket);
+				break;
+			}
+			pthread_mutex_unlock(&connectionMapLock) ;
 
-//checks if the node is a BEACON node or a regular node
-int isBeaconNode(struct node n)
-{
-	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
-		if((strcasecmp((char *)n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
-			return true;
+			int return_code=(int)read(nSocket, header, HEADER_SIZE);
+			//Check for the JoinTimeOutFlag
+			pthread_mutex_lock(&connectionMapLock) ;
+			//close conncetion if either of the condition occurs, jointime out, shutdown
+			if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
+			{
+				pthread_mutex_unlock(&connectionMapLock) ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;			
+				closeConnection(nSocket);
+				break;
+			}
+			pthread_mutex_unlock(&connectionMapLock) ;
+
+			if (return_code != HEADER_SIZE){
+				//			printf("Socket Read error...from header\n") ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;			
+				closeConnection(nSocket);
+				//pthread_exit(0);
+				break;
+				//return 0;
+			}
+			memcpy(&message_type, header, 1);
+			//memcpy(uoid,       header+1, 20);
+			for(int i=0;i<20;i++)
+				uoid[i] = header[i+1];
+			memcpy(&ttl,       header+21, 1);
+			memcpy(&data_len,  header+23, 4);
+
+			buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
+			memset(buffer, 0, data_len) ;
+
+			//Check for the JoinTimeOutFlag
+			pthread_mutex_lock(&connectionMapLock) ;
+			//close conncetion if either of the condition occurs, jointime out, shutdown		
+			if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
+			{
+				pthread_mutex_unlock(&connectionMapLock) ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;			
+				closeConnection(nSocket);
+				break;
+			}
+			pthread_mutex_unlock(&connectionMapLock) ;
+			return_code=(int)read(nSocket, buffer, data_len);
+			//printf("Reading Buffer on : %d\n", (int)nSocket);		
+			//Check for the JoinTimeOutFlag
+			pthread_mutex_lock(&connectionMapLock) ;
+			//close conncetion if either of the condition occurs, jointime out, shutdown
+			if(joinTimeOutFlag || connectionMap[nSocket].keepAliveTimeOut == -1 || shutDown)
+			{
+				pthread_mutex_unlock(&connectionMapLock) ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;			
+				closeConnection(nSocket);
+				break;
+			}
+			pthread_mutex_unlock(&connectionMapLock) ;
+
+			if (return_code != (int)data_len){
+				//			printf("Socket Read error...from data\n") ;
+				pthread_mutex_lock(&nodeConnectionMapLock) ;
+				//it = nodeConnectionMap.find(nSocket);
+				//nodeConnectionMap.erase(it);
+				eraseValueInMap(nSocket);				
+				pthread_mutex_unlock(&nodeConnectionMapLock) ;			
+				closeConnection(nSocket);
+				break;
+			}
+			buffer[data_len] = '\0' ;
+
+			//call for function which process the messages and respond correspondingly
+			process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;
+
+			//logging the infomation, at the recievers end
+			if(!(inJoinNetwork && message_type == 0xfa))
+			{
+				pthread_mutex_lock(&logEntryLock) ;
+				// Writing data to log file, but first creating log entry
+				unsigned char *logEntry = createLogEntry('r', nSocket, header, buffer);
+				if(logEntry!=NULL)
+					writeLogEntry(logEntry);
+				pthread_mutex_unlock(&logEntryLock) ;				
+			}
+
+			free(buffer) ;
+		}
+
+
+
+		//printf("Read thread exiting..\n") ;
+
+		pthread_exit(0);
+		return 0;
 	}
-	return false;
-}
+
+	//This fnction pushes the NOTIFY message at the very begining of the message queue, so as to send it at priority
+	void notifyMessageSend(int resSock, uint8_t errorCode)
+	{
+		struct Message mes ; 
+		memset(&mes, 0, sizeof(mes));
+		mes.type = 0xf7 ;
+		mes.status = 0 ;
+		mes.errorCode = errorCode ;
+		//pushMessageinQ(resSock, m) ;
+
+		//pushing the message and signaling the write thread
+		pthread_mutex_lock(&connectionMap[resSock].mesQLock) ;
+		(connectionMap[resSock]).MessageQ.push_front(mes) ;
+		pthread_cond_signal(&connectionMap[resSock].mesQCv) ;
+		pthread_mutex_unlock(&connectionMap[resSock].mesQLock) ;
+	}
+
+	//Pushes the message in the message queue at the very back of the queue
+	void pushMessageinQ(int sockfd, struct Message mes){
+		pthread_mutex_lock(&connectionMap[sockfd].mesQLock) ;
+		(connectionMap[sockfd]).MessageQ.push_back(mes) ;
+		pthread_cond_signal(&connectionMap[sockfd].mesQCv) ;
+		pthread_mutex_unlock(&connectionMap[sockfd].mesQLock) ;
+	}
+
+	//checks if the node is a BEACON node or a regular node
+	int isBeaconNode(struct node n)
+	{
+		for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+			if((strcasecmp((char *)n.hostname, (char *)(*it)->hostName)==0) && (n.portNo == (*it)->portNo))
+				return true;
+		}
+		return false;
+	}

@@ -137,6 +137,7 @@ void *timer_thread(void *arg){
 		{
 			pthread_mutex_lock(&MessageDBLock) ;
 			//map<string, struct Packet>::iterator it_temp;
+			map<string, struct Packet>::iterator tempIt ;
 			for(map<string, struct Packet>::iterator it_temp = MessageDB.begin(); it_temp != MessageDB.end(); )
 			{
 				if((*it_temp).second.msgLifeTime > 0)
@@ -149,7 +150,9 @@ void *timer_thread(void *arg){
 				{
 					if((*it_temp).second.msgLifeTime == 0)
 					{
-						MessageDB.erase((it_temp)++);
+						tempIt = it_temp ;
+						++it_temp ;
+						MessageDB.erase(tempIt);
 					}
 					else
 						++it_temp;
