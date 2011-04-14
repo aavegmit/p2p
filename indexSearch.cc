@@ -533,3 +533,34 @@ bool breakFlag = 0;
 	sprintf((char *)removeString, "files/%d.pass", fileNumber);
 	remove((char *)removeString);
 }
+
+void deleteAllFiles()
+{
+	unsigned char removeString[256];
+
+	for(map<string, list<int > >::iterator it1 = bitVectorIndexMap.begin();it1!=bitVectorIndexMap.end();it1++)
+	{
+		for(list<int >::iterator it2 = (*it1).second.begin();it2!=(*it1).second.end();it2++)
+		{
+			memset(removeString, '\0', 256);
+			sprintf((char *)removeString, "files/%d.data", (*it2));
+			remove((char *)removeString);
+	
+			memset(removeString, '\0', 256);
+			sprintf((char *)removeString, "files/%d.meta", (*it2));
+			remove((char *)removeString);
+	
+			memset(removeString, '\0', 256);
+			sprintf((char *)removeString, "files/%d.pass", (*it2));
+			remove((char *)removeString);
+		}
+	}	
+	bitVectorIndexMap.clear();
+	sha1IndexMap.clear();
+	fileNameIndexMap.clear();
+	cacheLRU.clear();
+	remove("name_index");
+	remove("kwrd_index");
+	remove("sha1_index");
+	remove("cacheLRU");
+}

@@ -278,12 +278,15 @@ void writeMetaData(struct metaData metadata)
 		return metadata;
 	}
 
-	void updateLRU(unsigned int fileNumber)
+	/*void updateLRU(unsigned int fileNumber)
 	{
-		//	list<int >::iterator result = find(cacheLRU.begin(), cacheLRU.end(), (int)fileNumber);
-		cacheLRU.remove(fileNumber);
-		cacheLRU.push_back(fileNumber);
-	}
+		list<int >::iterator result = find(cacheLRU.begin(), cacheLRU.end(), (int)fileNumber);
+		if(result!=cacheLRU.end())
+		{
+			cacheLRU.remove(fileNumber);
+			cacheLRU.push_back(fileNumber);
+		}
+	}*/
 
 
 	struct metaData populateMetaDataFromString(unsigned char *input1)
@@ -389,12 +392,32 @@ void writeMetaData(struct metaData metadata)
 	{
 		if(metadata.fileSize > myInfo->cacheSize)
 			return;
+		while((metadata.fileSize + currentCacheSize) > myInfo->cacheSize)
+		{
+			removeFromLRU();
+		}
 		cacheLRU.push_back(fileNumber);
 	}
 
 	void removeFromLRU()
 	{
+		int toBeRemoved = cacheLRU.front();
+		struct metaData metadata = populateMetaData(toBeRemoved);
+		currentCacheSize -= metadata.fileSize;
 		cacheLRU.pop_front();
+		unsigned char removeString[256];
+		
+		memset(removeString, '\0', 256);
+		sprintf((char *)removeString, "files/%d.data", (toBeRemoved));
+		remove((char *)removeString);
+	
+		memset(removeString, '\0', 256);
+		sprintf((char *)removeString, "files/%d.meta", toBeRemoved);
+		remove((char *)removeString);
+	
+		memset(removeString, '\0', 256);
+		sprintf((char *)removeString, "files/%d.pass", toBeRemoved);
+		remove((char *)removeString);
 	}
 
 	void writeLRUToFile()

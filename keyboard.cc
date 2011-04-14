@@ -27,6 +27,7 @@ void *keyboard_thread(void *arg){
 	fd_set rfds;
 	//struct timeval tv;
 	//char *inp = new char[512] ;
+	bool checkFlag = 0;
 	char *inp;
 	inp = (char *)malloc(1024 * sizeof(char)) ;
 	memset(inp, '\0', 1024) ;
@@ -82,6 +83,7 @@ void *keyboard_thread(void *arg){
 		{
 			
 			//fprintf(stdin, "%s ", inp);
+			checkFlag = 0;
 			
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
 			value = (unsigned char *)strtok(NULL, " ");
@@ -129,6 +131,7 @@ void *keyboard_thread(void *arg){
 		{
 			
 			//fprintf(stdin, "%s ", inp);
+			checkFlag = 0;
 			
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
 			value = (unsigned char *)strtok(NULL, " ");
@@ -174,6 +177,8 @@ void *keyboard_thread(void *arg){
 		else if(strncasecmp((char *)inp, "store ", 6) == 0)
 		{
 			//inp[strlen((char *)inp)-1] = '\0';
+			checkFlag = 0;
+			
 			struct metaData metadata;
 			unsigned char *key;
 			memset(&metadata, 0, sizeof(metadata));
@@ -356,12 +361,14 @@ void *keyboard_thread(void *arg){
 //				}
 				// Initiate the search method with the type filename
 				initiateSearch(0x01, value) ;	
+				checkFlag = 1;
 			}
 			else if(strcasecmp((char *)value, "sha1hash")==0)
 			{
 				value = (unsigned char *)strtok(NULL, "=");
 				unsigned char *str = toHex(value, 20);
 				initiateSearch(0x02, str) ;	
+				checkFlag = 1;
 			}
 			else if(strcasecmp((char *)value, "keywords")==0)
 			{
@@ -376,25 +383,29 @@ void *keyboard_thread(void *arg){
 					initiateSearch(0x03, temp) ;
 					
 					free(temp);
+					checkFlag = 1;
 				}
 				else
 				{
 					initiateSearch(0x03, value) ;
+					checkFlag = 1;
 				}
 			}
 			pthread_mutex_lock(&searchMsgLock) ;
 			pthread_cond_wait(&searchMsgCV, &searchMsgLock);
 			pthread_mutex_unlock(&searchMsgLock) ;
 		}
-		else if(strstr((char *) inp, "find ")!=NULL)
+		/*else if(strstr((char *) inp, "find ")!=NULL)
 		{
 			unsigned char *value = (unsigned char *)strtok(inp, " ");
 			value = (unsigned char *)strtok(NULL, "\n");
 			unsigned char *temp_value = toHex(value, 20);
 			printf("The value is : %d\n", fileIDMap[string((char*)temp_value, 20)]);
-		}
+		}*/
 		else if(strstr((char *) inp, "delete ")!=NULL)
 		{
+			checkFlag = 0;
+			
 			unsigned char *value;
 			unsigned char temp_str[256];
 			unsigned char message[256];
@@ -479,7 +490,8 @@ void *keyboard_thread(void *arg){
 									strcat((char *)message, (char *)temp_str);
 								}
 								else
-									continue;
+									//continue;
+									break;
 							}
 						}
 					}
@@ -498,6 +510,8 @@ void *keyboard_thread(void *arg){
 		}
 		else if(strstr((char *)inp, "get ")!=NULL)
 		{
+			if(checkFlag==0)
+				continue;
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
 			value = (unsigned char *)strtok(NULL, " ");
 			int indexNumber = atoi((char *)value);
@@ -508,6 +522,7 @@ void *keyboard_thread(void *arg){
 			}
 			struct metaData metadata = getFileIDMap[indexNumber];
 			printf("You have found the entry and now flood to get it!!!\n");
+			checkFlag = 1;
 		}
 
 		memset(inp, '\0', 1024) ;

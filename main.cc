@@ -30,6 +30,7 @@ unsigned char *fileName = NULL;
 unsigned char tempLogFile[512], tempInitFile[512];
 int softRestartFlag = 0 ;
 int globalSearchCount = 0 ;
+int currentCacheSize = 0;
 
 pthread_t k_thread;
 FILE *f_log = NULL;
@@ -209,7 +210,10 @@ int main(int argc, char *argv[])
 	//readIndexFromFile();
 	//writeIndexToFile();
 	/******************************************************/
-		
+	
+	//creates the directory, homedirectory
+	mkdir((char *)myInfo->homeDir, 0777);
+	
 	//Log file and init_neighbors_file
 	memset(&tempLogFile, '\0', 512);
 	memset(&tempInitFile, '\0', 512);
@@ -221,6 +225,9 @@ int main(int argc, char *argv[])
 	strcat((char *)tempLogFile, (char *)myInfo->logFileName);
 	strcat((char *)tempInitFile, "/init_neighbor_list");	
 
+	readIndexFromFile();
+	readLRUFromFile();
+
 		//if reset option at the commnad prompt given, delets the log file, init neighbor file
 	if(resetFlag)
 	{
@@ -228,9 +235,11 @@ int main(int argc, char *argv[])
 		remove((char *)tempLogFile);
 		if(!myInfo->isBeacon)
 			remove((char *)tempInitFile);
+		deleteAllFiles();
 	}
 	//Opening the log file
-	f_log = fopen((char *)tempLogFile, "a");
+	//f_log = fopen((char *)tempLogFile, "a");
+	f_log = fopen((char *)myInfo->logFileName, "a");
 
 	if(strcmp((char *)myInfo->homeDir, "\0")==0 || myInfo->portNo == 0 || myInfo->location == 0)
 	{
@@ -238,8 +247,6 @@ int main(int argc, char *argv[])
 		writeLogEntry((unsigned char *)"//Madatory elements of Nodes were not populated\n");
 		exit(0);
 	}
-	//creates the directory, homedirectory
-	mkdir((char *)myInfo->homeDir, 0777);
 	
 //	printf("Created a directory %s\n", (char *)myInfo->homeDir);
 //		exit(0);
@@ -320,8 +327,6 @@ int main(int argc, char *argv[])
 	// Call the init function
 	while(!shutDown || softRestartFlag){
 	
-		readIndexFromFile();
-		readLRUFromFile();
 		
 		softRestartFlag = 0 ;
 		signal(SIGTERM, my_handler);
@@ -355,12 +360,12 @@ int main(int argc, char *argv[])
 		sprintf((char *)stopLogging, "// %10ld.%03ld : Logging Stopped\n", tv.tv_sec, (tv.tv_usec/1000));
 		writeLogEntry(stopLogging);
 		
-		writeIndexToFile();
-		writeLRUToFile();
+		
 	}
 
 
-
+		writeIndexToFile();
+		writeLRUToFile();
 
 	//printf("Complete Shutdown!!!!\n");
 	fclose(f_log);
@@ -376,7 +381,7 @@ void resetValues()
 	myInfo->checkResponseTimeout = myInfo->joinTimeOut_permanent;
 	checkTimerFlag = 0;
 	nSocket_accept = 0;
-	remove((char *)tempInitFile);
+	//remove((char *)tempInitFile);
 }
 
 void cleanup(){
@@ -506,7 +511,8 @@ void init(){
 	
 			//checking if the init_neighbor_list exsits or not
 	
-			f=fopen((char *)tempInitFile, "r");
+			//f=fopen((char *)tempInitFile, "r");
+			f=fopen("init_neighbor_list", "r");
 			sigset_t new_t;
 			sigemptyset(&new_t);
 			sigaddset(&new_t, SIGUSR1);

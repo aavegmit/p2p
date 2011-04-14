@@ -644,7 +644,8 @@ void joinNetwork(){
 
 	// Sort the output and write them in the file
 	//FILE *fp = fopen("init_neighbor_list", "w") ;
-	FILE *fp = fopen((char *)tempInitFile, "w");
+	//FILE *fp = fopen((char *)tempInitFile, "w");
+	FILE *fp = fopen("init_neighbor_list", "w");
 	if (fp==NULL){
 		//fprintf(stderr, "Error in file open") ;
 		writeLogEntry((unsigned char *)"//In Join Network: Failed to open Init_Neighbor_list file\n");
