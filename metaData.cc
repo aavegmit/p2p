@@ -229,7 +229,9 @@ void writeMetaData(struct metaData metadata)
 				key = (unsigned char *)strtok((char *)buffer, "=");
 				key = (unsigned char *)strtok(NULL, "\n");
 				unsigned char *str = toHex(key, 20);
-				strncpy((char *)metadata.nonce, (char *)str, 20);
+				for(int i=0;i<20;i++)
+					metadata.nonce[i] = str[i];
+				//strncpy((char *)metadata.nonce, (char *)str, 20);
 				free(str);
 			}
 			else if(strstr((char *)buffer, "Keywords=")!=NULL)
@@ -443,4 +445,70 @@ void writeMetaData(struct metaData metadata)
 			printf("\n");
 		}
 		return count;
+	}
+	
+	struct parsedDeleteMessage parseDeleteMessage(unsigned char *message)
+	{
+		struct parsedDeleteMessage pd;
+		memset(&pd, 0, sizeof(pd));
+		unsigned char *value = NULL;
+		unsigned char *saveptr1, *saveptr2;
+		while((value = (unsigned char *)strtok_r((char *)message, "\r\n", (char **)&saveptr1))!=NULL)
+		{
+			if(strstr((char *)value, "FileName=")!=NULL)
+			{
+				unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+				key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+				strncpy((char *)pd.fileName, (char *)key, strlen((char *)key));
+			}
+			else if(strstr((char *)value, "SHA1=")!=NULL)
+			{
+				unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+				key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);			
+				strncpy((char *)pd.sha1, (char *)toHex(key, 20), 20);
+			}
+			else if(strstr((char *)value, "Nonce=")!=NULL)
+			{
+				unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+				key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);			
+				strncpy((char *)pd.nonce, (char *)toHex(key, 20), 20);
+			}
+			else if(strstr((char *)value, "Password=")!=NULL)
+			{
+				unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+				key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);			
+				strncpy((char *)pd.password, (char *)toHex(key, 20), 20);
+			}
+			message = NULL;
+			saveptr2 = NULL;
+		}
+		return pd;
+	}
+	
+	void deleteFile(struct parsedDeleteMessage pd)
+	{
+		unsigned char *nonce = toSHA1(pd.password);
+		if(strncmp((char *)nonce, (char *)pd.nonce, 20)==0)
+		{
+			int fileNumber = getFileNumberFromIndex(pd.fileName, pd.nonce);
+			if(fileNumber!=-1)
+				deleteFromIndex(fileNumber);
+		}
+	}
+	
+	int getFileNumberFromIndex(unsigned char *fileName, unsigned char *nonce)
+	{
+		int ret = -1;
+		list<int > tempList = fileNameIndexMap[string((char *)fileName)];
+		
+		for(list<int> ::iterator it = tempList.begin();it!=tempList.end();it++)
+		{
+			struct metaData metadata = populateMetaData((*it));
+			if(strncmp((char *)nonce,(char *)metadata.nonce, 20)==0)
+			{
+				return (*it);
+			}
+		}
+	
+		return ret;
 	}

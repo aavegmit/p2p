@@ -456,7 +456,80 @@ list<int > fileSystemList;
 return fileSystemList;
 }
 
-void deleteFromIndex()
+void deleteFromIndex(int fileNumber)
 {
-
+bool breakFlag = 0;
+	printf("\nJust need to delete\n");
+	
+	//delete from the Indexes and also from LRU + from harddisk
+	for(map<string, list<int > >::iterator it1 = bitVectorIndexMap.begin();it1!=bitVectorIndexMap.end();it1++)
+	{
+		for(list<int >::iterator it2 = (*it1).second.begin();it2!=(*it1).second.end();it2++)
+		{
+			if((*it2) == fileNumber)
+			{
+				(*it1).second.remove((*it2));
+				breakFlag = 1;
+				if((*it1).second.size() == 0)
+					bitVectorIndexMap.erase((*it1).first);
+				break;
+			}
+		}
+		if(breakFlag)
+			break;
+	}
+	
+	breakFlag = 0;
+	//deleting from FileNameIndexMap
+	for(map<string, list<int > >::iterator it1 = fileNameIndexMap.begin();it1!=fileNameIndexMap.end();it1++)
+	{
+		for(list<int >::iterator it2 = (*it1).second.begin();it2!=(*it1).second.end();it2++)
+		{
+			if((*it2) == fileNumber)
+			{
+				(*it1).second.remove((*it2));
+				breakFlag = 1;
+				if((*it1).second.size() == 0)
+					fileNameIndexMap.erase((*it1).first);				
+				break;
+			}
+		}
+		if(breakFlag)
+			break;
+	}
+	
+	breakFlag = 0;
+	//deleting from sha1IndexMap
+	for(map<string, list<int > >::iterator it1 = sha1IndexMap.begin();it1!=sha1IndexMap.end();it1++)
+	{
+		for(list<int >::iterator it2 = (*it1).second.begin();it2!=(*it1).second.end();it2++)
+		{
+			if((*it2) == fileNumber)
+			{
+				(*it1).second.remove((*it2));
+				breakFlag = 1;
+				if((*it1).second.size() == 0)
+					sha1IndexMap.erase((*it1).first);
+				break;
+			}
+		}
+		if(breakFlag)
+			break;
+	}
+	
+	//remove from cache
+	cacheLRU.remove((fileNumber));
+	
+	unsigned char removeString[256];
+	memset(removeString, '\0', 256);
+	sprintf((char *)removeString, "files/%d.data", fileNumber);
+	remove((char *)removeString);
+	
+	memset(removeString, '\0', 256);
+	sprintf((char *)removeString, "files/%d.meta", fileNumber);
+	remove((char *)removeString);
+	
+	memset(removeString, '\0', 256);
+	sprintf((char *)removeString, "files/%d.pass", fileNumber);
+	remove((char *)removeString);
 }

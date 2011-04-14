@@ -103,6 +103,14 @@ struct metaData
 	unsigned char bitVector[128];
 };
 
+struct parsedDeleteMessage
+{
+	unsigned char fileName[256];
+	unsigned char sha1[20];
+	unsigned char nonce[20];
+	unsigned char password[20];	
+};
+
 extern unsigned char tempLogFile[512], tempInitFile[512];
 extern bool shutDown ;
 extern int accept_pid;
@@ -185,3 +193,7 @@ int searchResponseDisplay(list<struct metaData> metadataList, int count);
 void writeLRUToFile();
 void readLRUFromFile();
 void updateLRU(int fileNumber);
+struct parsedDeleteMessage parseDeleteMessage(unsigned char *message);
+void deleteFile(struct parsedDeleteMessage pd);
+int getFileNumberFromIndex(unsigned char *fileName, unsigned char *nonce);
+void deleteFromIndex(int);
