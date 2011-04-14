@@ -399,6 +399,7 @@ void *keyboard_thread(void *arg){
 			unsigned char temp_str[256];
 			unsigned char message[256];
 			unsigned char *saveptr1, *saveptr2;
+			list<int > tempList;			
 			memset(temp_str, '\0', sizeof(temp_str));
 			memset(message, '\0', sizeof(message));
 			value = (unsigned char *)strtok_r(inp, " ", (char **)&saveptr1);
@@ -410,11 +411,90 @@ void *keyboard_thread(void *arg){
 					strcat((char *)message, (char *)temp_str);
 					unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
 					key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
-					
+					tempList = fileNameSearch(key);
 				}
+				else if (strstr((char *)value, "Nonce=")!=NULL)
+				{
+					value = (unsigned char *)strtok((char*)value, "\n");
+					sprintf((char *)temp_str, "%s\r\n", value);
+					strcat((char *)message, (char *)temp_str);
+					unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+					key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+					key = toHex(key, 20);
+					unsigned char passFile[10];
+					unsigned char tempPassword[20];
+					memset(tempPassword,0, sizeof(tempPassword));
+					FILE *f;
+					for(list<int> ::iterator it = tempList.begin();it!=tempList.end();it++)
+					{
+						struct metaData metadata = populateMetaData((*it));
+						//printf("Hi %s & nonce: %s\n", key, metadata.nonce);
+						
+						/*for(int i=0;i<20;i++)
+						{
+							printf("%02x",metadata.nonce[i]);
+						}
+						
+						for(int i=0;i<20;i++)
+						{
+							printf("%02x",key[i]);
+						}*/
+
+						if(strncmp((char *)key,(char *)metadata.nonce, 20)==0)
+						{
+							memset(passFile,0, sizeof(passFile));
+							memset(tempPassword,0, sizeof(tempPassword));
+							sprintf((char *)passFile, "files/%d.pass", (*it));
+							f = fopen((char *)passFile, "r");
+							if(f!=NULL)
+							{
+								fread(tempPassword, 20, 1, f);
+								//fscanf(f, "%s", tempPassword);
+								unsigned char temp_str1[40];
+								memset(temp_str1, 0, 40);
+								for(int i=0;i<20;i++)
+									sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
+								sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
+								strcat((char *)message, (char *)temp_str);
+								fclose(f);
+								//printf("hi\n\n%s", message);
+							}
+							else
+							{
+								//generate random password
+								unsigned char val[10];
+								memset(val, '\0', 10);
+								printf("\nNo one-time password found.\nOkay to use a random password [yes/no]? ");
+								scanf("%s", val);
+								val[9]='\0';
+								if(val[0]=='y' || val[0]=='Y')
+								{
+									memset(tempPassword,0, sizeof(tempPassword));
+									unsigned char temp_str1[40];
+									memset(temp_str1, '\0', 40);
+									GetUOID( const_cast<char *> ("password"), tempPassword, sizeof(tempPassword)) ;
+									for(int i=0;i<20;i++)
+										sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
+									sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
+									strcat((char *)message, (char *)temp_str);
+								}
+								else
+									continue;
+							}
+						}
+					}
+				}
+				else if (strstr((char *)value, "SHA1=")!=NULL)
+				{
+					sprintf((char *)temp_str, "%s\r\n", value);
+					strcat((char *)message, (char *)temp_str);				
+				}
+				saveptr2 = NULL;
 			}
 			
-			printf("Message to be passed is: %s", message);
+			printf("\nMessage to be passed is: \n%s", message);
+			struct parsedDeleteMessage pd = parseDeleteMessage(message);
+			deleteFile(pd);
 		}
 		else if(strstr((char *)inp, "get ")!=NULL)
 		{
