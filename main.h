@@ -206,3 +206,4 @@ struct parsedDeleteMessage parseDeleteMessage(unsigned char *message);
 void deleteFile(struct parsedDeleteMessage pd);
 int getFileNumberFromIndex(unsigned char *fileName, unsigned char *nonce);
 void deleteFromIndex(int);
+void initiateDelete(unsigned char *) ;
