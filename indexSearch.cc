@@ -564,3 +564,12 @@ void deleteAllFiles()
 	remove("sha1_index");
 	remove("cacheLRU");
 }
+
+void writeFileToPermanent(unsigned char *fileName)
+{
+
+}
+
+void wrtieFileToCache(unsigned char *fileName)
+{
+}

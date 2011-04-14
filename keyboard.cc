@@ -410,6 +410,7 @@ void *keyboard_thread(void *arg){
 			unsigned char temp_str[256];
 			unsigned char message[256];
 			unsigned char *saveptr1, *saveptr2;
+			int toFloodFlag = 0 ;
 			list<int > tempList;			
 			memset(temp_str, '\0', sizeof(temp_str));
 			memset(message, '\0', sizeof(message));
@@ -466,6 +467,7 @@ void *keyboard_thread(void *arg){
 								for(int i=0;i<20;i++)
 									sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
 								sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
+								toFloodFlag = 1 ;
 								strcat((char *)message, (char *)temp_str);
 								fclose(f);
 								//printf("hi\n\n%s", message);
@@ -487,10 +489,10 @@ void *keyboard_thread(void *arg){
 									for(int i=0;i<20;i++)
 										sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
 									sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
+									toFloodFlag = 1 ;
 									strcat((char *)message, (char *)temp_str);
 								}
 								else
-									//continue;
 									break;
 							}
 						}
@@ -505,6 +507,9 @@ void *keyboard_thread(void *arg){
 			}
 			
 			printf("\nMessage to be passed is: \n%s", message);
+			string tempMes((char *)message) ;
+			if (toFloodFlag)
+				initiateDelete((unsigned char *)tempMes.c_str()) ;
 			struct parsedDeleteMessage pd = parseDeleteMessage(message);
 			deleteFile(pd);
 		}

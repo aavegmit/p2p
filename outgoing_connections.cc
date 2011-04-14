@@ -227,6 +227,32 @@ void *write_thread(void *args){
 			memcpy((char *)&header[23], &(len), 4) ;
 
 		}
+		// Delete Message request
+		else if (mes.type == 0xbc){
+			printf("Sending delete message\n") ;
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+			}
+			else{
+				len = mes.buffer_len  ;
+				buffer = (unsigned char *)malloc(len) ;
+				memset(buffer, '\0', len) ;
+				for (unsigned int i = 0 ; i < len ; ++i){
+					buffer[i] = mes.query[i] ;
+					printf("%c", buffer[i]) ;
+				}
+			}
+
+
+			header[0] = 0xbc;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
 		// CHECK Message request
 		else if (mes.type == 0xf6){
 			if (mes.status == 1){
@@ -1002,3 +1028,40 @@ void joinNetwork(){
 		//	printf("status file written\n") ;
 	}
 
+
+void initiateDelete(unsigned char *message){
+		unsigned char uoid[SHA_DIGEST_LENGTH] ;
+		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+
+
+		struct Packet pk;
+		pk.status = 0 ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+
+
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		//sending the status request message to all of it's neighbor
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+		for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+			struct Message m ;
+			m.type = 0xbc ;
+			m.status = 2 ;
+			m.ttl = myInfo->ttl ;
+			printf("%s\n", message) ;
+			m.buffer_len = strlen((char *)message) ;
+			m.query = (unsigned char *)malloc(m.buffer_len);
+			for (int i = 0 ; i < m.buffer_len ; ++i){
+				m.query[i] = message[i] ;
+				printf("%c", m.query[i]) ;
+			}
+
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				m.uoid[i] = uoid[i] ;
+			pushMessageinQ( (*it).second, m) ;
+		}
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;
+
+}

@@ -541,6 +541,64 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		}
 
 	}
+	else if(type == 0xbc){
+//		printf("Delete request received\n") ;
+ 
+		// Check if the message has already been received or not
+		pthread_mutex_lock(&MessageDBLock) ;
+		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
+			//			printf("Message has already been received.\n") ;
+			pthread_mutex_unlock(&MessageDBLock) ;
+			return ;
+		}
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+
+		struct Packet pk;
+		pk.status = 1 ;
+		pk.sockfd = sockfd ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ; 
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		// Perform the delete operation
+//		string fileSpec((char *)buffer, buf_len) ;
+		unsigned char tempFileSpec[buf_len] ;
+		strncpy((char *)tempFileSpec, (char *)buffer, buf_len) ;
+		printf("%s\n", tempFileSpec) ;
+		struct parsedDeleteMessage pd = parseDeleteMessage( tempFileSpec) ;
+		deleteFile( pd ) ;
+
+
+		--ttl ;
+		// Push the request message in neighbors queue
+		if (ttl >= 1 && myInfo->ttl > 0){
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+				if( !((*it).second == sockfd)){
+
+					struct Message m ;
+					m.type = 0xbc ;
+					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+					m.buffer = (unsigned char *)malloc(buf_len) ;
+					m.buffer_len = buf_len ;
+					//					strncpy( (char *)m.buffer , (const char *)buffer , sizeof(buffer));
+					for (int i = 0 ; i < (int)buf_len ; i++)
+						m.buffer[i] = buffer[i] ;
+					m.status = 1 ;
+					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
+					//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+					for (int i = 0 ; i < 20 ; i++)
+						m.uoid[i] = uoid[i] ;
+					pushMessageinQ((*it).second, m) ;
+				}
+			}
+			pthread_mutex_unlock(&nodeConnectionMapLock);
+		}
+
+	}
 	else if (type == 0xab){
 		//		printf("Status response received\n") ;
 		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;

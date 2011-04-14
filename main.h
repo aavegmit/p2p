@@ -210,3 +210,4 @@ void deleteFile(struct parsedDeleteMessage pd);
 int getFileNumberFromIndex(unsigned char *fileName, unsigned char *nonce);
 void deleteFromIndex(int);
 void deleteAllFiles();
+void initiateDelete(unsigned char *) ;

@@ -510,12 +510,16 @@ void writeMetaData(struct metaData metadata)
 	
 	void deleteFile(struct parsedDeleteMessage pd)
 	{
-		unsigned char *nonce = toSHA1(pd.password);
+		unsigned char *nonce = (unsigned char *)malloc(sizeof(unsigned char)*20);
+		SHA1(pd.password, 20, nonce);
+
 		if(strncmp((char *)nonce, (char *)pd.nonce, 20)==0)
 		{
+			
 			int fileNumber = getFileNumberFromIndex(pd.fileName, pd.nonce);
-			if(fileNumber!=-1)
+			if(fileNumber!=-1){
 				deleteFromIndex(fileNumber);
+			}
 		}
 	}
 	
