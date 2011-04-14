@@ -114,10 +114,10 @@ void writeMetaData(struct metaData metadata)
 		res.resize(len+256) ;
 		for(int i=0;i<128;i++)
 			sprintf(&res[len+i*2], "%02x", metadata.bitVector[i]);
-		res.resize(res.size()+2) ;
-		res[len+256] = '\n' ;
-		res[len+257] = '\0' ;
-		len = len +258 ;
+		res.resize(res.size()+1) ;
+		res[len+256] = '\0' ;
+//		res[len+257] = '\0' ;
+		len = len +257 ;
 
 		return res ;
 		//		strncpy((char *)str, res.c_str(), len) ;
@@ -300,7 +300,7 @@ void writeMetaData(struct metaData metadata)
 		buffer = (unsigned char *)strtok_r((char *)input, "\n", (char **)&saveptr1);
 		while((buffer = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr1))!=NULL)
 		{
-			printf("value is: %s\n", buffer);
+			//printf("value is: %s\n", buffer);
 			if(strstr((char *)buffer, "FileName=")!=NULL)
 			{
 				key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);

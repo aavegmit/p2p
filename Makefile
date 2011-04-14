@@ -19,6 +19,13 @@ sv_node: $(OBJ)
 	cp sv_node nonbnode1/
 	cp sv_node nonbnode2/	
 
+install:
+	cp sv_node bnode1/
+	cp sv_node bnode2/
+	cp sv_node bnode3/
+	cp sv_node nonbnode1/
+	cp sv_node nonbnode2/	
+
 clean:
 	rm -rf *.o sv_node 
 #	rm bnode1/sv_node

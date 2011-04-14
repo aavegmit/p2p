@@ -474,7 +474,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if(type == 0xec){
-		printf("Search request received\n") ;
+//		printf("Search request received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
@@ -519,7 +519,6 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			pthread_mutex_lock(&nodeConnectionMapLock) ;
 			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
 				if( !((*it).second == sockfd)){
-					//					printf("Status req send to: %d\n", (*it).first.portNo) ;
 
 					struct Message m ;
 					m.type = 0xec ;
@@ -570,6 +569,39 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		else{
 			//message origiated from here
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
+			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x02){
+				pthread_mutex_lock(&statusMsgLock) ;
+				if (statusTimerFlag){
+					int i = len1 + 22 ;
+					if (i == (int)buf_len)
+						statusResponseTypeFiles[n]  ;
+					while ( i < (int)buf_len){
+						unsigned int templen = 0 ;
+						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
+						if (templen == 0){
+							templen = buf_len - i ;
+						}
+						i += 4 ;
+//						n1.portNo = 0 ;
+//						memcpy((unsigned int *)&n1.portNo, &buffer[i], 2) ;
+//						i += 2 ;
+//						for (int h = 0 ; h < (int)templen - 2 ; ++h)
+//							n1.hostname[h] = buffer[i+h] ;
+//						n1.hostname[templen-2] = '\0' ;
+//						i = i +templen-2;
+						//					strncpy(n.hostname, const_cast<char *> ((char *)buffer+i) , templen - 2   ) ;
+						//printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
+						//			printf("%s\n", n1.hostname) ;
+						string record((char *)&buffer[i], templen) ;
+						i += templen ;
+						statusResponseTypeFiles[n].push_front(record);
+
+						//	++i ;
+					}
+				}
+				pthread_mutex_unlock(&statusMsgLock) ;
+			}
+			else if(MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x01){
 				pthread_mutex_lock(&statusMsgLock) ;
 				if (statusTimerFlag){
 					int i = len1 + 22 ;
@@ -600,6 +632,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 					}
 				}
 				pthread_mutex_unlock(&statusMsgLock) ;
+			}
 
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){	//Message originated from somewhere else, needs to be forwarded
@@ -633,15 +666,16 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-						printf("Search request was never forwarded from this node.\n") ;
+//						printf("Search request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{
 			//message origiated from here
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
-				pthread_mutex_lock(&statusMsgLock) ;
-//				if (statusTimerFlag){
+				pthread_mutex_lock(&searchMsgLock) ;
+				if (searchTimerFlag){
 					unsigned int i = 20 ;
+					list<struct metaData> searchResList ;
 					while ( i < buf_len){
 						uint32_t templen = 0 ;
 						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
@@ -654,15 +688,20 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 							fileIDtemp[f] = buffer[i+f] ;
 
 						i += 20 ;
-						string metaStr((const char *)&buffer[i], templen) ;
-						for(unsigned int u = i ; u < (i + templen) ; ++u){
-							printf("%c", buffer[u]) ;
-						}
+						string metaStr((const char *)&buffer[i-20], templen+20) ;
+//						for(unsigned int u = i ; u < (i + templen) ; ++u){
+//							printf("%c", buffer[u]) ;
+//						}
 						i = i +templen;
+						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
+						searchResList.push_front(newMeta) ;
 
 					}
-				
-				pthread_mutex_unlock(&statusMsgLock) ;
+					globalSearchCount = searchResponseDisplay(searchResList, globalSearchCount) ;
+				}
+				else
+					writeLogEntry((unsigned char *)"// Search response received after user hit CTR+C\n") ;
+				pthread_mutex_unlock(&searchMsgLock) ;
 
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){	//Message originated from somewhere else, needs to be forwarded
@@ -757,7 +796,6 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-			//			printf("Status request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{

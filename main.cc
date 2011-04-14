@@ -23,11 +23,13 @@ int inJoinNetwork = 0;
 int node_pid;
 int nSocket_accept = 0;
 int statusTimerFlag = 0 ;
+int searchTimerFlag = 0 ;
 int checkTimerFlag = 0 ;
 int globalFileNumber = 0;
 unsigned char *fileName = NULL;
 unsigned char tempLogFile[512], tempInitFile[512];
 int softRestartFlag = 0 ;
+int globalSearchCount = 0 ;
 
 pthread_t k_thread;
 FILE *f_log = NULL;
@@ -39,6 +41,7 @@ list<pthread_t > childThreadList ;
 map<pthread_t, bool > myConnectThread;
 set<struct joinResNode> joinResponse ;
 set< set<struct node> > statusResponse ;
+map< struct node, list<string> > statusResponseTypeFiles ;
 map<string, list<int> > bitVectorIndexMap;
 map<string, list<int> > fileNameIndexMap;
 map<string, list<int> > sha1IndexMap;
@@ -51,8 +54,10 @@ pthread_mutex_t connectionMapLock ;
 pthread_mutex_t nodeConnectionMapLock ;
 pthread_mutex_t MessageDBLock ;
 pthread_mutex_t statusMsgLock ;
+pthread_mutex_t searchMsgLock ;
 pthread_mutex_t logEntryLock ;
 pthread_cond_t statusMsgCV;
+pthread_cond_t searchMsgCV;
 
 void my_handler(int nSig);
 void resetValues();
@@ -298,6 +303,18 @@ int main(int argc, char *argv[])
 		//perror("CV initialization failed") ;
 		writeLogEntry((unsigned char *)"//CV initialization failed\n");		
 	}
+	lres = pthread_mutex_init(&searchMsgLock, NULL) ;
+	if (lres != 0){
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");
+	}
+
+	cres = pthread_cond_init(&searchMsgCV, NULL) ;
+	if (cres != 0){
+		//perror("CV initialization failed") ;
+		writeLogEntry((unsigned char *)"//CV initialization failed\n");		
+	}
+
 
 
 	// Call the init function

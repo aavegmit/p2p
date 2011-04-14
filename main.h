@@ -29,6 +29,7 @@ using namespace std ;
 extern set<struct joinResNode> joinResponse ;
 //keeps the status messgae
 extern set< set<struct node> > statusResponse ;
+extern map<struct node, list<string> > statusResponseTypeFiles ;
 
 struct node{
 	unsigned short int portNo;
@@ -113,9 +114,11 @@ extern int joinTimeOutFlag;
 extern int inJoinNetwork;
 extern int statusTimerFlag ;
 extern int checkTimerFlag ;
+extern int searchTimerFlag ;
 extern int node_pid;
 extern int softRestartFlag ;
 extern int globalFileNumber ;
+extern int globalSearchCount ;
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
@@ -129,8 +132,10 @@ extern list<int > cacheLRU;
 //extern list<struct metaData> metadataList;
 extern pthread_mutex_t connectionMapLock ;
 extern pthread_mutex_t statusMsgLock ;
+extern pthread_mutex_t searchMsgLock ;
 extern pthread_mutex_t logEntryLock ;
 extern pthread_cond_t statusMsgCV;
+extern pthread_cond_t searchMsgCV;
 
 //pakcet structre stored in the cache at the nodes
 struct Packet{
@@ -140,6 +145,7 @@ struct Packet{
 										//  1 - Forwarded from here, route back, else -1
 	int sockfd ;
 	int msgLifeTime;	
+	int status_type ;
 };
 
 extern map<string, struct Packet> MessageDB ;					// Keeps a track of all the messages it sends/forwards
@@ -163,6 +169,8 @@ void closeConnection(int) ;
 void joinNetwork() ;
 void getStatus() ;
 void writeToStatusFile() ;
+void getStatusTypeFiles() ;
+void writeToStatusFile_TypeFiles() ;
 unsigned char *createLogEntry(unsigned char mode, int origin, unsigned char header[HEADER_SIZE], unsigned char *buffer);
 void writeLogEntry(unsigned char *logEntry);
 void eraseValueInMap(int val);
@@ -185,3 +193,4 @@ int searchResponseDisplay(list<struct metaData> metadataList, int count);
 void writeLRUToFile();
 void readLRUFromFile();
 void updateLRU(int fileNumber);
+list<int> getAllFiles() ;

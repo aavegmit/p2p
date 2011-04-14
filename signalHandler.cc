@@ -64,6 +64,10 @@ void my_handler(int nSig)
 		if(statusTimerFlag)
 			myInfo->statusResponseTimeout = 0;
 		pthread_mutex_unlock(&statusMsgLock) ;
+		pthread_mutex_lock(&searchMsgLock) ;
+		searchTimerFlag = 0 ;
+		pthread_cond_signal(&searchMsgCV) ;
+		pthread_mutex_unlock(&searchMsgLock) ;
 	}
 
 }

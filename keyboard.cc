@@ -125,6 +125,52 @@ void *keyboard_thread(void *arg){
 			//printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
 			writeToStatusFile() ;
 		}
+		else if(strstr((char *)inp, "status files")!=NULL)
+		{
+			
+			//fprintf(stdin, "%s ", inp);
+			
+			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
+			value = (unsigned char *)strtok(NULL, " ");
+			
+			unsigned char fileName[256];
+			memset(&fileName, '\0', 256);
+
+			//gets the ttl value here
+			value = (unsigned char *)strtok(NULL, " ");
+			if(value ==NULL)
+				continue;
+			//check if the entered value id digit or not
+			for(int j=0;j<(int)strlen((char *)value);j++)
+				if(isdigit(value[j]) == 0)
+					continue;
+			myInfo->status_ttl = (uint8_t)atoi((char *)value);
+
+			//name of the status file
+			value = (unsigned char *)strtok(NULL, "\n");
+			if(value ==NULL)
+				continue;					
+			strncpy((char *)myInfo->status_file, (char *)value, strlen((char *)value)) ;
+			myInfo->status_file[strlen((char *)myInfo->status_file)] = '\0';
+				
+			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 10 ;
+			FILE *fp = fopen((char *)myInfo->status_file, "w") ;
+			if (fp == NULL){
+				//fprintf(stderr,"File open failed\n") ;
+				writeLogEntry((unsigned char *)"In Keyborad thread: Status File open failed\n");
+				exit(0) ;
+			}
+			fclose(fp) ;
+			getStatusTypeFiles() ;
+					
+			// waiting for status time out, so that command prompt can be returned
+			pthread_mutex_lock(&statusMsgLock) ;
+			statusTimerFlag = 1 ;
+			pthread_cond_wait(&statusMsgCV, &statusMsgLock);
+			pthread_mutex_unlock(&statusMsgLock) ;
+			//printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
+			writeToStatusFile_TypeFiles() ;
+		}
 		else if(strncasecmp((char *)inp, "store ", 6) == 0)
 		{
 			//inp[strlen((char *)inp)-1] = '\0';
@@ -315,13 +361,6 @@ void *keyboard_thread(void *arg){
 			{
 				value = (unsigned char *)strtok(NULL, "=");
 				unsigned char *str = toHex(value, 20);
-//				list<int> tempList = sha1Search(str);
-//				for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-//				{
-//					printf("File name is: %d\n", (*it));
-//					struct metaData metadata = populateMetaData((*it));
-//					fileIDMap[string((char *)metadata.fileID, 20)] = (*it);					
-//				}
 				initiateSearch(0x02, str) ;	
 			}
 			else if(strcasecmp((char *)value, "keywords")==0)
@@ -336,28 +375,16 @@ void *keyboard_thread(void *arg){
 					temp[strlen((char *)value)-2]='\0';
 					initiateSearch(0x03, temp) ;
 					
-//					list<int > tempList = keywordSearch(temp);
-//					for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-//					{
-//						printf("File name is: %d\n", (*it));
-//						struct metaData metadata = populateMetaData((*it));
-//						fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
-//					}					
-//					
 					free(temp);
 				}
 				else
 				{
 					initiateSearch(0x03, value) ;
-//					list<int > tempList = keywordSearch(value);
-//					for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
-//					{
-//						printf("File name is: %d\n", (*it));
-//						struct metaData metadata = populateMetaData((*it));
-//						fileIDMap[string((char *)metadata.fileID, 20)] = (*it);
-//					}
 				}
 			}
+			pthread_mutex_lock(&searchMsgLock) ;
+			pthread_cond_wait(&searchMsgCV, &searchMsgLock);
+			pthread_mutex_unlock(&searchMsgLock) ;
 		}
 		else if(strstr((char *) inp, "find ")!=NULL)
 		{
