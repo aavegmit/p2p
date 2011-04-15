@@ -235,15 +235,20 @@ void *write_thread(void *args){
 		// Store Message request
 		else if (mes.type == 0xcc){
 			if (mes.status == 1){
-				//				buffer = mes.buffer ;
-				//				len = mes.buffer_len ;
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+				fp = fopen((char *)mes.fileName, "rb") ;
+				if(fp==NULL){
+					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
+					continue ;
+				}
+				stat((char *)mes.fileName, &st) ;
+				len += st.st_size ;
 			}
 			else{
 				printf("Sending store request\n") ;
 				fp = fopen((char *)mes.fileName, "rb") ;
-				printf("up: %s\n", mes.fileName) ;
 				if(fp==NULL){
-					printf("uff file hi ni mili\n") ;
 					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
 					continue ;
 				}
@@ -251,9 +256,9 @@ void *write_thread(void *args){
 				string metaStr((char *)mes.metadata) ;
 				uint32_t templen = metaStr.size() ;
 				len = 4 + templen ;
-				memcpy(&buffer[0], &templen, 4) ;
 				buffer = (unsigned char *)malloc(len ) ;
 				memset(buffer, '\0', len) ;
+				memcpy(&buffer[0], &templen, 4) ;
 				for (unsigned int i = 0 ; i < templen ; ++i)
 					buffer[i+4] = metaStr[i] ;
 				len += st.st_size ;
@@ -261,6 +266,32 @@ void *write_thread(void *args){
 
 
 			header[0] = 0xcc;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
+		// get Message request
+		else if (mes.type == 0xdc){
+			printf("Sending get request\n") ;
+			if (mes.status == 1){
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+			}
+			else{
+				len = 40  ;
+				buffer = (unsigned char *)malloc(len) ;
+				memset(buffer, '\0', len) ;
+				for (unsigned int i = 0 ; i < len ; ++i){
+					buffer[i] = mes.query[i] ;
+					buffer[i+20] = mes.metadata[i] ;
+				}
+			}
+
+
+			header[0] = 0xdc;
 
 
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
@@ -1146,11 +1177,9 @@ void joinNetwork(){
 			strncpy((char *)m.metadata, metadata.c_str(), metadata.size()) ;
 			m.metadata[metadata.size()] = '\0' ;
 		
-			printf("ini: %s\n", fileName.c_str()) ;	
 			m.fileName = (unsigned char *)malloc(fileName.size()+1) ;
 			strncpy((char *)m.fileName, fileName.c_str(), fileName.size()) ;
 			m.fileName[fileName.size()] = '\0' ;
-			printf("ini1: %s\n", m.fileName) ;	
 			
 
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
@@ -1158,5 +1187,45 @@ void joinNetwork(){
 			pushMessageinQ( (*it).second, m) ;
 		}
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;
+
+	}
+
+	void initiateGet(struct metaData metadata){
+		printf("Initiating get method\n") ;
+		unsigned char uoid[SHA_DIGEST_LENGTH] ;
+		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+
+
+		struct Packet pk;
+		pk.status = 0 ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+
+
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		//sending the store message to all of it's neighbor
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+		for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+			struct Message m ;
+			m.type = 0xdc ;
+			m.status = 2 ;
+			m.ttl = myInfo->ttl ;
+			m.metadata = (unsigned char *)malloc(20) ;
+			m.query = (unsigned char *)malloc(20) ;
+			for(int i = 0 ; i < 20 ; ++i){
+				m.metadata[i] = metadata.sha1[i] ;
+				m.query[i] = metadata.fileID[i] ;
+			}
+		
+			
+
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				m.uoid[i] = uoid[i] ;
+			pushMessageinQ( (*it).second, m) ;
+		}
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;
+
 
 	}

@@ -533,6 +533,7 @@ void *keyboard_thread(void *arg){
 			struct metaData metadata = getFileIDMap[indexNumber];
 			printf("You have found the entry and now flood to get it!!!\n");
 			checkFlag = 1;
+			initiateGet(metadata) ;
 		}
 
 		memset(inp, '\0', 1024) ;

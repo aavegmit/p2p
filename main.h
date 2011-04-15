@@ -216,3 +216,4 @@ void initiateDelete(unsigned char *) ;
 void initiateStore(string, string) ;
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName);
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName);
+void initiateGet(struct metaData) ;
