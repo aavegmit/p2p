@@ -1188,6 +1188,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				return_code += tempFileLen ;
 				fflush(tempFp) ;
 				fclose(tempFp) ;
+				data_len = metaStr.size()+4;
 
 				// Pass the temp file name to mau function
 				// Do the prob thing here, else just pass

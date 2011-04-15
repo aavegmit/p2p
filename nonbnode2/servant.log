@@ -322,3 +322,16 @@ r 1302903777.597 localhost_12318 HLLO 38 1 00000000 12318 localhost
 r 1302903802.908 localhost_12318 CKRQ 27 20 2ce768c7 
 // 1302903826.443 : Logging Stopped
 // 1302903826.443 : Logging Started
+// 1302906602.798 : Logging Started
+s 1302906602.799 localhost_12318 HLLO 38 1 00000000 12319 localhost
+r 1302906603.799 localhost_12318 HLLO 38 1 00000000 12318 localhost
+r 1302906643.733 localhost_12318 CKRQ 27 20 51f005db 
+r 1302906648.101 localhost_12318 NTFY 28 1 00000000 3
+// 1302906656.650 : Logging Stopped
+// 1302906656.650 : Logging Started
+//server: failed to bind socket
+// 1302906749.526 : Logging Started
+s 1302906749.530 localhost_12318 HLLO 38 1 00000000 12319 localhost
+r 1302906750.530 localhost_12318 HLLO 38 1 00000000 12318 localhost
+s 1302906781.653 localhost_12318 NTFY 28 1 00000000 1
+// 1302906782.653 : Logging Stopped
