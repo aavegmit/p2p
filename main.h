@@ -217,3 +217,4 @@ void initiateStore(string, string) ;
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName);
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName);
 void initiateGet(struct metaData) ;
+struct metaData populateMetaDataFromString_noFileID(unsigned char *input1);
