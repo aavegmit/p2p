@@ -565,11 +565,54 @@ void deleteAllFiles()
 	remove("cacheLRU");
 }
 
-void writeFileToPermanent(unsigned char *fileName)
+void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 {
+	updateGlobalFileNumber();
+	
+	struct metaData metadata = populateMetaDataFromString(metadata_str);
+	writeMetaData(metadata);
 
+	//writeData(metadata);	
+	char ch;
+	unsigned char tempFileName[10];
+	sprintf((char *)tempFileName, "%s%d.data", "files/", globalFileNumber);
+
+	FILE *f = fopen((char *)fileName, "rb");
+	FILE *f1 = fopen((char *)tempFileName, "wb");
+	while(fread(&ch,1,1,f)!=0)
+		fwrite(&ch, 1,1, f1);
+	fclose(f);
+	fclose(f1);
+		
+	populateBitVectorIndexMap(metadata.bitVector, globalFileNumber);
+	populateSha1IndexMap(metadata.sha1, globalFileNumber);
+	populateFileNameIndexMap(metadata.fileName, globalFileNumber);
 }
 
-void wrtieFileToCache(unsigned char *fileName)
+void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 {
+	struct metaData metadata = populateMetaDataFromString(metadata_str);
+	int ret = storeInLRU(metadata, globalFileNumber+1);
+	if(ret == -1)
+		return;
+		
+	updateGlobalFileNumber();		
+	writeMetaData(metadata);
+	
+	//writeData(metadata);
+	char ch;
+	unsigned char tempFileName[10];
+	sprintf((char *)tempFileName, "%s%d.data", "files/", globalFileNumber);
+
+	FILE *f = fopen((char *)fileName, "rb");
+	FILE *f1 = fopen((char *)tempFileName, "wb");
+	while(fread(&ch,1,1,f)!=0)
+		fwrite(&ch, 1,1, f1);
+	fclose(f);
+	fclose(f1);
+		
+	populateBitVectorIndexMap(metadata.bitVector, globalFileNumber);
+	populateSha1IndexMap(metadata.sha1, globalFileNumber);
+	populateFileNameIndexMap(metadata.fileName, globalFileNumber);
+
 }

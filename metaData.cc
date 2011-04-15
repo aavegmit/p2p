@@ -73,7 +73,7 @@ void writeMetaData(struct metaData metadata)
 
 	//fprintf(f, "\n%s=%s\n", "Bit-vector", metadata.bitVector);
 	fclose(f);
-	}
+}
 
 
 
@@ -388,15 +388,16 @@ void writeMetaData(struct metaData metadata)
 		}
 	}
 
-	void storeInLRU(struct metaData metadata, unsigned int fileNumber)
+	int storeInLRU(struct metaData metadata, unsigned int fileNumber)
 	{
 		if(metadata.fileSize > myInfo->cacheSize)
-			return;
+			return -1;
 		while((metadata.fileSize + currentCacheSize) > myInfo->cacheSize)
 		{
 			removeFromLRU();
 		}
 		cacheLRU.push_back(fileNumber);
+		return 1;
 	}
 
 	void removeFromLRU()
