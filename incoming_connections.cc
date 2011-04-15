@@ -592,6 +592,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		}
 		// Check if the file id exists
 		if (fileIDMap.find(string((const char *)fileID, 20) ) != fileIDMap.end() ){
+			// Compare the SHA1 also - TO DO
 			// if exists, Respond the sender with the Search response
 			struct metaData metadata = populateMetaData(fileIDMap[string((const char *)fileID, 20  ) ] ) ;
 			string metaStr = MetaDataToStr(metadata) ;
@@ -642,7 +643,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if(type == 0xcc){
-		//		printf("store request received\n") ;
+				printf("in up: store request received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
@@ -1171,6 +1172,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				buffer = (unsigned char *)realloc(buffer, 4+metaLen) ;
 				return_code += read(nSocket, &buffer[3], metaLen) ;
 				string metaStr((char *)&buffer[3], metaLen) ;
+				
 
 				// create a temp file to store the content = data_len - 4 - metaStr.size()
 				tempFn  = returnTmpFp() ;
@@ -1180,14 +1182,17 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				}
 				unsigned char chunk[8192] ;
 				int tempFileLen = 0, tempFileLen1 = 0 ;
+				printf("datalen: %d\n", data_len) ;
 				while(tempFileLen < (data_len - 4 - metaStr.size()) ){
 					tempFileLen1 = read(nSocket, chunk, 8192) ;
 					tempFileLen += tempFileLen1 ;
 					fwrite(chunk, 1, tempFileLen1, tempFp) ;
 				}
+				printf("datalen1: %d\n", data_len) ;
 				return_code += tempFileLen ;
 				fflush(tempFp) ;
 				fclose(tempFp) ;
+				data_len = metaStr.size() + 4 ;
 
 				// Pass the temp file name to mau function
 				// Do the prob thing here, else just pass

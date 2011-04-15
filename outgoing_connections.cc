@@ -235,6 +235,48 @@ void *write_thread(void *args){
 		// Store Message request
 		else if (mes.type == 0xcc){
 			if (mes.status == 1){
+				printf("Forwarding\n") ;
+				buffer = mes.buffer ;
+				len = mes.buffer_len ;
+				fp = fopen((char *)mes.fileName, "rb") ;
+				if(fp==NULL){
+					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
+					continue ;
+				}
+				stat((char *)mes.fileName, &st) ;
+				len += st.st_size ;
+			}
+			else{
+				printf("Sending store request\n") ;
+				fp = fopen((char *)mes.fileName, "rb") ;
+				if(fp==NULL){
+					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
+					continue ;
+				}
+				stat((char *)mes.fileName, &st) ;
+				string metaStr((char *)mes.metadata) ;
+				uint32_t templen = metaStr.size() ;
+				len = 4 + templen ;
+				buffer = (unsigned char *)malloc(len ) ;
+				memset(buffer, '\0', len) ;
+				memcpy(&buffer[0], &templen, 4) ;
+				for (unsigned int i = 0 ; i < templen ; ++i)
+					buffer[i+4] = metaStr[i] ;
+				len += st.st_size ;
+			}
+
+
+			header[0] = 0xcc;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
+		// Get Message response
+		else if (mes.type == 0xdb){
+			if (mes.status == 1){
 				buffer = mes.buffer ;
 				len = mes.buffer_len ;
 				fp = fopen((char *)mes.fileName, "rb") ;
