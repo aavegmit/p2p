@@ -2,6 +2,9 @@
 #include "iniParser.h"
 #include "signalHandler.h"
 #include "indexSearch.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef min
 #define min(A,B) (((A)>(B)) ? (B) : (A))
@@ -18,6 +21,8 @@ void *write_thread(void *args){
 	unsigned char header[HEADER_SIZE] ;
 	unsigned char *buffer ;
 	uint32_t len = 0 ;
+	FILE *fp;
+	struct stat st ;
 	//signal(SIGUSR1, my_handler);
 	//printf("My Id is write: %d\n", (int)pthread_self());
 	//connectionMap[sockfd].myWriteId = pthread_self();
@@ -72,7 +77,7 @@ void *write_thread(void *args){
 
 		}
 		// Done for status message
-		else if (mes.status == 2){
+		else if (mes.status == 2 || mes.status == 3){
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				header[1+i] = mes.uoid[i] ;
 		}
@@ -220,6 +225,42 @@ void *write_thread(void *args){
 
 
 			header[0] = 0xec;
+
+
+			memcpy((char *)&header[21], &(mes.ttl), 1) ;
+			header[22] = 0x00 ;
+			memcpy((char *)&header[23], &(len), 4) ;
+
+		}
+		// Store Message request
+		else if (mes.type == 0xcc){
+			if (mes.status == 1){
+				//				buffer = mes.buffer ;
+				//				len = mes.buffer_len ;
+			}
+			else{
+				printf("Sending store request\n") ;
+				fp = fopen((char *)mes.fileName, "rb") ;
+				printf("up: %s\n", mes.fileName) ;
+				if(fp==NULL){
+					printf("uff file hi ni mili\n") ;
+					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
+					continue ;
+				}
+				stat((char *)mes.fileName, &st) ;
+				string metaStr((char *)mes.metadata) ;
+				uint32_t templen = metaStr.size() ;
+				len = 4 + templen ;
+				memcpy(&buffer[0], &templen, 4) ;
+				buffer = (unsigned char *)malloc(len ) ;
+				memset(buffer, '\0', len) ;
+				for (unsigned int i = 0 ; i < templen ; ++i)
+					buffer[i+4] = metaStr[i] ;
+				len += st.st_size ;
+			}
+
+
+			header[0] = 0xcc;
 
 
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
@@ -483,10 +524,25 @@ void *write_thread(void *args){
 			//fprintf(stderr, "Socket Write Error") ;
 		}
 
-		return_code = (int)write(sockfd, buffer, len) ;
-		if (return_code != (int)len){
-			fprintf(stderr, "Socket Write Error") ;
+		if(mes.status == 3){
+			write(sockfd, buffer, len - st.st_size) ;
+			printf("File size %d\n", st.st_size) ;
+			unsigned char chunk[8192] ;
+			// read the content of the file and write on the socket
+			while(!feof(fp)){
+				memset(chunk, 0 , 8192) ;
+				int numBytes = fread(chunk, 1, 8192, fp) ;
+				write(sockfd, chunk, numBytes) ;
+			}
 		}
+		else{
+			return_code = (int)write(sockfd, buffer, len) ;
+			if (return_code != (int)len){
+//				fprintf(stderr, "Socket Write Error") ;
+			}
+		}
+
+
 
 		//logging the message sent from this node or forwarded from this node
 		unsigned char *logEntry = NULL;
@@ -1029,7 +1085,7 @@ void joinNetwork(){
 	}
 
 
-void initiateDelete(unsigned char *message){
+	void initiateDelete(unsigned char *message){
 		unsigned char uoid[SHA_DIGEST_LENGTH] ;
 		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
 
@@ -1050,12 +1106,10 @@ void initiateDelete(unsigned char *message){
 			m.type = 0xbc ;
 			m.status = 2 ;
 			m.ttl = myInfo->ttl ;
-			printf("%s\n", message) ;
 			m.buffer_len = strlen((char *)message) ;
 			m.query = (unsigned char *)malloc(m.buffer_len);
 			for (int i = 0 ; i < m.buffer_len ; ++i){
 				m.query[i] = message[i] ;
-				printf("%c", m.query[i]) ;
 			}
 
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
@@ -1064,4 +1118,45 @@ void initiateDelete(unsigned char *message){
 		}
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
-}
+	}
+
+	void initiateStore(string metadata, string fileName){
+		printf("Initiating store method\n") ;
+		unsigned char uoid[SHA_DIGEST_LENGTH] ;
+		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
+
+
+		struct Packet pk;
+		pk.status = 0 ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+
+
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		//sending the store message to all of it's neighbor
+		pthread_mutex_lock(&nodeConnectionMapLock) ;
+		for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
+			struct Message m ;
+			m.type = 0xcc ;
+			m.status = 3 ;
+			m.ttl = myInfo->ttl ;
+			m.metadata = (unsigned char *)malloc(metadata.size()+1) ;
+			strncpy((char *)m.metadata, metadata.c_str(), metadata.size()) ;
+			m.metadata[metadata.size()] = '\0' ;
+		
+			printf("ini: %s\n", fileName.c_str()) ;	
+			m.fileName = (unsigned char *)malloc(fileName.size()+1) ;
+			strncpy((char *)m.fileName, fileName.c_str(), fileName.size()) ;
+			m.fileName[fileName.size()] = '\0' ;
+			printf("ini1: %s\n", m.fileName) ;	
+			
+
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				m.uoid[i] = uoid[i] ;
+			pushMessageinQ( (*it).second, m) ;
+		}
+		pthread_mutex_unlock(&nodeConnectionMapLock) ;
+
+	}

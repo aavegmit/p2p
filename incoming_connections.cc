@@ -4,6 +4,27 @@
 
 using namespace std ;
 
+
+FILE *returnTmpFp(){
+	char sfn[19];
+	FILE *sfp;
+	int fd;
+
+	strncpy(sfn, "./tmp.XXXXXXXX", sizeof(sfn));
+	if ((fd = mkstemp(sfn)) == -1 ||
+			(sfp = fdopen(fd, "wb+")) == NULL) {
+		if (fd != -1) {
+			unlink(sfn);
+			printf("%s\n", sfn) ;
+			close(fd);
+		}
+		return (NULL);
+	}
+	return (sfp);
+}
+
+
+
 //Thread created which accepts the connection
 //on accepting conncetions, sends HELLO message to the neighbor
 void *accept_connectionsT(void *){
@@ -474,7 +495,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if(type == 0xec){
-//		printf("Search request received\n") ;
+		//		printf("Search request received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
@@ -541,9 +562,62 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		}
 
 	}
+	else if(type == 0xcc){
+		//		printf("store request received\n") ;
+
+		// Check if the message has already been received or not
+		pthread_mutex_lock(&MessageDBLock) ;
+		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
+			//			printf("Message has already been received.\n") ;
+			pthread_mutex_unlock(&MessageDBLock) ;
+			return ;
+		}
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+
+		struct Packet pk;
+		pk.status = 1 ;
+		pk.sockfd = sockfd ;
+		pk.msgLifeTime = myInfo->msgLifeTime;
+		pthread_mutex_lock(&MessageDBLock) ;
+		MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ; 
+		pthread_mutex_unlock(&MessageDBLock) ;
+
+		--ttl ;
+
+		// Check for the probability thing here and fwd the packet accordingly
+
+
+		// Push the request message in neighbors queue
+		if (ttl >= 1 && myInfo->ttl > 0){
+			pthread_mutex_lock(&nodeConnectionMapLock) ;
+			for (map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end(); ++it){
+				if( !((*it).second == sockfd)){
+
+					struct Message m ;
+					m.type = 0xec ;
+					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+					m.buffer = (unsigned char *)malloc(buf_len) ;
+					m.buffer_len = buf_len ;
+					//					strncpy( (char *)m.buffer , (const char *)buffer , sizeof(buffer));
+					for (int i = 0 ; i < (int)buf_len ; i++)
+						m.buffer[i] = buffer[i] ;
+					m.status = 1 ;
+					memset(m.uoid, 0, SHA_DIGEST_LENGTH) ;
+					//					memcpy((unsigned char *)m.uoid, (const unsigned char *)uoid, SHA_DIGEST_LENGTH) ;
+					//					strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+					for (int i = 0 ; i < 20 ; i++)
+						m.uoid[i] = uoid[i] ;
+					pushMessageinQ((*it).second, m) ;
+				}
+			}
+			pthread_mutex_unlock(&nodeConnectionMapLock);
+		}
+
+	}
 	else if(type == 0xbc){
-//		printf("Delete request received\n") ;
- 
+		//		printf("Delete request received\n") ;
+
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
 		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
@@ -563,7 +637,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		pthread_mutex_unlock(&MessageDBLock) ;
 
 		// Perform the delete operation
-//		string fileSpec((char *)buffer, buf_len) ;
+		//		string fileSpec((char *)buffer, buf_len) ;
 		unsigned char tempFileSpec[buf_len] ;
 		strncpy((char *)tempFileSpec, (char *)buffer, buf_len) ;
 		printf("%s\n", tempFileSpec) ;
@@ -627,70 +701,70 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		else{
 			//message origiated from here
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
-			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x02){
-				pthread_mutex_lock(&statusMsgLock) ;
-				if (statusTimerFlag){
-					int i = len1 + 22 ;
-					if (i == (int)buf_len)
-						statusResponseTypeFiles[n]  ;
-					while ( i < (int)buf_len){
-						unsigned int templen = 0 ;
-						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
-						if (templen == 0){
-							templen = buf_len - i ;
-						}
-						i += 4 ;
-//						n1.portNo = 0 ;
-//						memcpy((unsigned int *)&n1.portNo, &buffer[i], 2) ;
-//						i += 2 ;
-//						for (int h = 0 ; h < (int)templen - 2 ; ++h)
-//							n1.hostname[h] = buffer[i+h] ;
-//						n1.hostname[templen-2] = '\0' ;
-//						i = i +templen-2;
-						//					strncpy(n.hostname, const_cast<char *> ((char *)buffer+i) , templen - 2   ) ;
-						//printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
-						//			printf("%s\n", n1.hostname) ;
-						string record((char *)&buffer[i], templen) ;
-						i += templen ;
-						statusResponseTypeFiles[n].push_front(record);
+				if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x02){
+					pthread_mutex_lock(&statusMsgLock) ;
+					if (statusTimerFlag){
+						int i = len1 + 22 ;
+						if (i == (int)buf_len)
+							statusResponseTypeFiles[n]  ;
+						while ( i < (int)buf_len){
+							unsigned int templen = 0 ;
+							memcpy((unsigned int *)&templen, &buffer[i], 4) ;
+							if (templen == 0){
+								templen = buf_len - i ;
+							}
+							i += 4 ;
+							//						n1.portNo = 0 ;
+							//						memcpy((unsigned int *)&n1.portNo, &buffer[i], 2) ;
+							//						i += 2 ;
+							//						for (int h = 0 ; h < (int)templen - 2 ; ++h)
+							//							n1.hostname[h] = buffer[i+h] ;
+							//						n1.hostname[templen-2] = '\0' ;
+							//						i = i +templen-2;
+							//					strncpy(n.hostname, const_cast<char *> ((char *)buffer+i) , templen - 2   ) ;
+							//printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
+							//			printf("%s\n", n1.hostname) ;
+							string record((char *)&buffer[i], templen) ;
+							i += templen ;
+							statusResponseTypeFiles[n].push_front(record);
 
-						//	++i ;
-					}
-				}
-				pthread_mutex_unlock(&statusMsgLock) ;
-			}
-			else if(MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x01){
-				pthread_mutex_lock(&statusMsgLock) ;
-				if (statusTimerFlag){
-					int i = len1 + 22 ;
-					while ( i < (int)buf_len){
-						unsigned int templen = 0 ;
-						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
-						if (templen == 0){
-							templen = buf_len - i ;
+							//	++i ;
 						}
-						struct node n1 ;
-						i += 4 ;
-						n1.portNo = 0 ;
-						memcpy((unsigned int *)&n1.portNo, &buffer[i], 2) ;
-						i += 2 ;
-						for (int h = 0 ; h < (int)templen - 2 ; ++h)
-							n1.hostname[h] = buffer[i+h] ;
-						n1.hostname[templen-2] = '\0' ;
-						i = i +templen-2;
-						//					strncpy(n.hostname, const_cast<char *> ((char *)buffer+i) , templen - 2   ) ;
-						//printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
-						//			printf("%s\n", n1.hostname) ;
-						set <struct node> tempset ;
-						tempset.insert(n) ;
-						tempset.insert(n1) ;
-						statusResponse.insert(tempset) ;
-
-						//	++i ;
 					}
+					pthread_mutex_unlock(&statusMsgLock) ;
 				}
-				pthread_mutex_unlock(&statusMsgLock) ;
-			}
+				else if(MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x01){
+					pthread_mutex_lock(&statusMsgLock) ;
+					if (statusTimerFlag){
+						int i = len1 + 22 ;
+						while ( i < (int)buf_len){
+							unsigned int templen = 0 ;
+							memcpy((unsigned int *)&templen, &buffer[i], 4) ;
+							if (templen == 0){
+								templen = buf_len - i ;
+							}
+							struct node n1 ;
+							i += 4 ;
+							n1.portNo = 0 ;
+							memcpy((unsigned int *)&n1.portNo, &buffer[i], 2) ;
+							i += 2 ;
+							for (int h = 0 ; h < (int)templen - 2 ; ++h)
+								n1.hostname[h] = buffer[i+h] ;
+							n1.hostname[templen-2] = '\0' ;
+							i = i +templen-2;
+							//					strncpy(n.hostname, const_cast<char *> ((char *)buffer+i) , templen - 2   ) ;
+							//printf("%d  <-----> %d\n", n.portNo, n1.portNo) ;
+							//			printf("%s\n", n1.hostname) ;
+							set <struct node> tempset ;
+							tempset.insert(n) ;
+							tempset.insert(n1) ;
+							statusResponse.insert(tempset) ;
+
+							//	++i ;
+						}
+					}
+					pthread_mutex_unlock(&statusMsgLock) ;
+				}
 
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){	//Message originated from somewhere else, needs to be forwarded
@@ -724,7 +798,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-//						printf("Search request was never forwarded from this node.\n") ;
+			//						printf("Search request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{
@@ -747,9 +821,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 						i += 20 ;
 						string metaStr((const char *)&buffer[i-20], templen+20) ;
-//						for(unsigned int u = i ; u < (i + templen) ; ++u){
-//							printf("%c", buffer[u]) ;
-//						}
+						//						for(unsigned int u = i ; u < (i + templen) ; ++u){
+						//							printf("%c", buffer[u]) ;
+						//						}
 						i = i +templen;
 						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
 						searchResList.push_front(newMeta) ;
@@ -981,8 +1055,10 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			memcpy(&ttl,       header+21, 1);
 			memcpy(&data_len,  header+23, 4);
 
-			buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
-			memset(buffer, 0, data_len) ;
+			if(message_type != 0xcc){
+				buffer = (unsigned char *)malloc(sizeof(unsigned char)*(data_len+1)) ;
+				memset(buffer, 0, data_len) ;
+			}
 
 			//Check for the JoinTimeOutFlag
 			pthread_mutex_lock(&connectionMapLock) ;
@@ -999,8 +1075,42 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				break;
 			}
 			pthread_mutex_unlock(&connectionMapLock) ;
-			return_code=(int)read(nSocket, buffer, data_len);
-			//printf("Reading Buffer on : %d\n", (int)nSocket);		
+
+			if(message_type == 0xcc){
+				printf("Received Store request\n") ;
+				// Read the first 4 bytes - length of metadata
+				uint32_t metaLen = 0 ;
+				buffer = (unsigned char *)malloc(sizeof(unsigned char)*(4)) ;
+				return_code = read(nSocket, buffer, 4) ;
+				memcpy(&metaLen, buffer, 4) ;
+				// Read the metadata and copy it into buffer
+				buffer = (unsigned char *)realloc(buffer, 4+metaLen) ;
+				return_code += read(nSocket, &buffer[3], metaLen) ;
+				string metaStr((char *)&buffer[3], metaLen) ;
+				printf("%s\n", metaStr.c_str()) ;
+				// create a temp file to store the content = data_len - 4 - metaStr.size()
+				FILE *tempFp  = returnTmpFp() ;
+				unsigned char chunk[8192] ;
+				int tempFileLen = 0, tempFileLen1 = 0 ;
+				while(tempFileLen < (data_len - 4 - metaStr.size()) ){
+					tempFileLen1 = read(nSocket, chunk, 8192) ;
+					tempFileLen += tempFileLen1 ;
+					fwrite(chunk, 1, tempFileLen1, tempFp) ;
+				}
+				return_code += tempFileLen ;
+				fflush(tempFp) ;
+				exit(0) ;
+				// Pass the temp file name to mau function
+				
+				// Pass the file pointer to process recd message
+			}
+			else{
+				return_code=(int)read(nSocket, buffer, data_len);
+			}
+
+
+
+
 			//Check for the JoinTimeOutFlag
 			pthread_mutex_lock(&connectionMapLock) ;
 			//close conncetion if either of the condition occurs, jointime out, shutdown
@@ -1027,7 +1137,10 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				closeConnection(nSocket);
 				break;
 			}
-			buffer[data_len] = '\0' ;
+
+			if (message_type != 0xcc){
+				buffer[data_len] = '\0' ;
+			}
 
 			//call for function which process the messages and respond correspondingly
 			process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len) ;

@@ -339,6 +339,7 @@ void *keyboard_thread(void *arg){
 			populateBitVectorIndexMap(metadata.bitVector, globalFileNumber);
 			populateSha1IndexMap(metadata.sha1, globalFileNumber);
 			populateFileNameIndexMap(metadata.fileName, globalFileNumber);
+			initiateStore( MetaDataToStr(metadata), string((char *)metadata.fileName) ) ;
 		}
 		else if(strncasecmp((char *)inp, "search ", 6) == 0)
 		{

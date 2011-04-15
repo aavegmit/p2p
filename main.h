@@ -59,11 +59,25 @@ struct joinResNode{
 extern map<struct node, int> nodeConnectionMap ;				// To store all the neighboring nodes
 extern pthread_mutex_t nodeConnectionMapLock ;
 
+struct metaData
+{
+	unsigned int fileNumber;
+	unsigned char fileID[20];
+	unsigned char fileName[256];
+	unsigned long int fileSize;
+	unsigned char sha1[20];
+	unsigned char nonce[20];
+	list<string > *keywords;
+	//map<string, int> keywords;
+	unsigned char bitVector[128];
+};
 //message structure that goes into the messgae queues
 struct Message{
 	uint8_t type;
 	unsigned char *buffer ;
 	unsigned char *query ;
+	unsigned char *metadata;
+	unsigned char *fileName ;
 	uint8_t ttl ;
 	uint32_t location ;
 	int status ;								// 0 - originated from here
@@ -91,18 +105,6 @@ struct connectionNode{
 	struct node n;
 };
 
-struct metaData
-{
-	unsigned int fileNumber;
-	unsigned char fileID[20];
-	unsigned char fileName[256];
-	unsigned long int fileSize;
-	unsigned char sha1[20];
-	unsigned char nonce[20];
-	list<string > *keywords;
-	//map<string, int> keywords;
-	unsigned char bitVector[128];
-};
 
 struct parsedDeleteMessage
 {
@@ -211,3 +213,4 @@ int getFileNumberFromIndex(unsigned char *fileName, unsigned char *nonce);
 void deleteFromIndex(int);
 void deleteAllFiles();
 void initiateDelete(unsigned char *) ;
+void initiateStore(string, string) ;
