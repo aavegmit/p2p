@@ -223,6 +223,10 @@ void *keyboard_thread(void *arg){
 			
 			
 			value = (unsigned char *)strtok(NULL, " "); //ttl value
+			for(int i=0;i<strlen((char *)value);i++)
+				if(isdigit(value[i]) == 0)
+					continue;
+			
 			value = (unsigned char *)strtok(NULL, "\n");
 			//unsigned char *temp_temp_value = (unsigned char *)strtok((char *)value, "?");
 			//printf("Vlaue is: %s\n", value);
