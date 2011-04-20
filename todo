@@ -1,9 +1,5 @@
 - Nocheck, parameter
-
-- JNRS repeating, C-3-a
-
-# resolve ties
-# segfault in ini file
+- locks, extFile , gloablFileNumber
 
 
 

@@ -563,7 +563,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if(type == 0xdc){
-		//		printf("Get request received\n") ;
+		printf("Get request received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
@@ -596,21 +596,25 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			// if exists, Respond the sender with the Search response
 			struct metaData metadata = populateMetaData(fileIDMap[string((const char *)fileID, 20  ) ] ) ;
 			string metaStr = MetaDataToStr(metadata) ;
-			struct Message m ;
-			m.type = 0xdb ;
-			m.status = 3;
-			m.ttl = 1 ;
-			m.fileName = (unsigned char *)malloc(strlen((char *)metadata.fileName) + 1) ;
-			strncpy((char *)m.fileName, (char *)metadata.fileName, strlen((char *)metadata.fileName)) ;
+			if(!strncmp((char *)sha1, (char *)metadata.sha1, 20)){
+				printf("File found, send it biatch\n") ;
+				struct Message m ;
+				m.type = 0xdb ;
+				m.status = 3;
+				m.ttl = 1 ;
+				m.fileName = (unsigned char *)malloc(20) ;
+				sprintf((char *)m.fileName, "files/%d.data", fileIDMap[string((const char *)fileID, 20  ) ] ) ;
+//				strncpy((char *)m.fileName, (char *)metadata.fileName, strlen((char *)metadata.fileName)) ;
 
-			m.metadata = (unsigned char *)malloc(metaStr.size()+1) ;
-			for(int i = 0 ; i < metaStr.size() ; ++i)
-				m.metadata[i] = metaStr[i] ;
-			//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
-			for(unsigned int j = 0;j<SHA_DIGEST_LENGTH;j++)
-				m.uoid[j] = uoid[j];
+				m.metadata = (unsigned char *)malloc(metaStr.size()+1) ;
+				for(int i = 0 ; i < metaStr.size() ; ++i)
+					m.metadata[i] = metaStr[i] ;
+				//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
+				for(unsigned int j = 0;j<SHA_DIGEST_LENGTH;j++)
+					m.uoid[j] = uoid[j];
 
-			pushMessageinQ(sockfd, m ) ;
+				pushMessageinQ(sockfd, m ) ;
+			}
 		}
 		// TILL HERE
 
@@ -622,7 +626,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				if( !((*it).second == sockfd)){
 
 					struct Message m ;
-					m.type = 0xec ;
+					m.type = 0xdc ;
 					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
 					m.buffer = (unsigned char *)malloc(buf_len) ;
 					m.buffer_len = buf_len ;
@@ -643,12 +647,12 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if(type == 0xcc){
-				printf("in up: store request received\n") ;
+//		printf("Store msg recd\n"); 
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
 		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
-			//			printf("Message has already been received.\n") ;
+			printf("Message has already been received.\n") ;
 			pthread_mutex_unlock(&MessageDBLock) ;
 			return ;
 		}
@@ -903,11 +907,13 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 						i += 20 ;
 						string metaStr((const char *)&buffer[i-20], templen+20) ;
-						//						for(unsigned int u = i ; u < (i + templen) ; ++u){
-						//							printf("%c", buffer[u]) ;
-						//						}
+//												for(unsigned int u = i ; u < (i + templen) ; ++u){
+//													printf("%c", buffer[u]) ;
+//												}
+//						printf("here %d %d\n", strlen(metaStr.c_str()), metaStr.size() ) ;
 						i = i +templen;
-						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
+//						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
+						struct metaData newMeta = populateMetaDataFromCPPString(metaStr) ;
 						searchResList.push_front(newMeta) ;
 
 					}
@@ -933,6 +939,73 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 					m.buffer[i] = buffer[i] ;
 				for (int i = 0 ; i < SHA_DIGEST_LENGTH ; ++i)
 					m.uoid[i] = uoid[i] ;
+				m.ttl = 1 ;
+				m.status = 1 ;
+				pushMessageinQ(return_sock, m) ;
+			}
+		}
+	}
+	else if (type == 0xdb){
+		//		printf("Get response received\n") ;
+		unsigned char original_uoid[SHA_DIGEST_LENGTH] ;
+		//		memcpy((unsigned char *)original_uoid, buffer, SHA_DIGEST_LENGTH) ;
+		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
+			original_uoid[i] = buffer[i] ;
+
+
+
+		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
+									printf("Search request was never forwarded from this node.\n") ;
+			return ;
+		}
+		else{
+			//message origiated from here
+			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
+				pthread_mutex_lock(&searchMsgLock) ;
+//					unsigned int i = 20 ;
+//					list<struct metaData> searchResList ;
+//					while ( i < buf_len){
+//						uint32_t templen = 0 ;
+//						memcpy((unsigned int *)&templen, &buffer[i], 4) ;
+//						if (templen == 0){
+//							templen = buf_len - i -20-4 ;
+//						}
+//						i += 4 ;
+//						unsigned char fileIDtemp[20] ;
+//						for(int f = 0 ; f < 20 ; ++f)
+//							fileIDtemp[f] = buffer[i+f] ;
+//
+//						i += 20 ;
+//						string metaStr((const char *)&buffer[i-20], templen+20) ;
+//						//						for(unsigned int u = i ; u < (i + templen) ; ++u){
+//						//							printf("%c", buffer[u]) ;
+//						//						}
+//						i = i +templen;
+//						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
+//						searchResList.push_front(newMeta) ;
+//
+//					}
+				pthread_mutex_unlock(&searchMsgLock) ;
+
+			}
+			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){	//Message originated from somewhere else, needs to be forwarded
+				// Message was forwarded from this node, see the receivedFrom member
+				struct Message m;
+				pthread_mutex_lock(&MessageDBLock) ;
+				int return_sock = MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)].sockfd ;
+				pthread_mutex_unlock(&MessageDBLock) ;
+
+				m.type = type ;
+				m.buffer = (unsigned char *)malloc((buf_len + 1)) ;
+				m.buffer[buf_len] = '\0' ;
+				m.buffer_len = buf_len ;
+				for (int i = 0 ; i < (int)buf_len; i++)
+					m.buffer[i] = buffer[i] ;
+				for (int i = 0 ; i < SHA_DIGEST_LENGTH ; ++i)
+					m.uoid[i] = uoid[i] ;
+				m.fileName = (unsigned char *)malloc(strlen(tempFn)+1) ;
+				strncpy((char *)m.fileName, tempFn, strlen(tempFn)) ;
+				m.fileName[strlen(tempFn)] = '\0' ;
 				m.ttl = 1 ;
 				m.status = 1 ;
 				pushMessageinQ(return_sock, m) ;
@@ -1158,10 +1231,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			}
 			pthread_mutex_unlock(&connectionMapLock) ;
 
-			string tempFn ;
+			string tempFn("") ;
 
-			if(message_type == 0xcc){
-				printf("Received Store request\n") ;
+			if(message_type == 0xcc ){
 				// Read the first 4 bytes - length of metadata
 				uint32_t metaLen = 0 ;
 				buffer = (unsigned char *)malloc(sizeof(unsigned char)*(4)) ;
@@ -1169,10 +1241,10 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				memcpy(&metaLen, buffer, 4) ;
 
 				// Read the metadata and copy it into buffer
-				buffer = (unsigned char *)realloc(buffer, 4+metaLen) ;
-				return_code += read(nSocket, &buffer[3], metaLen) ;
-				string metaStr((char *)&buffer[3], metaLen) ;
-				
+				buffer = (unsigned char *)realloc(buffer, 4+metaLen+1) ;
+				return_code += read(nSocket, &buffer[4], metaLen) ;
+				string metaStr((char *)&buffer[4], metaLen) ;
+
 
 				// create a temp file to store the content = data_len - 4 - metaStr.size()
 				tempFn  = returnTmpFp() ;
@@ -1182,21 +1254,59 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				}
 				unsigned char chunk[8192] ;
 				int tempFileLen = 0, tempFileLen1 = 0 ;
-				printf("datalen: %d\n", data_len) ;
 				while(tempFileLen < (data_len - 4 - metaStr.size()) ){
 					tempFileLen1 = read(nSocket, chunk, 8192) ;
 					tempFileLen += tempFileLen1 ;
 					fwrite(chunk, 1, tempFileLen1, tempFp) ;
 				}
-				printf("datalen1: %d\n", data_len) ;
 				return_code += tempFileLen ;
 				fflush(tempFp) ;
 				fclose(tempFp) ;
 				data_len = metaStr.size() + 4 ;
+				return_code = data_len ;
 
 				// Pass the temp file name to mau function
 				// Do the prob thing here, else just pass
 				writeFileToCache((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn.c_str()) ;	
+				// Pass the file pointer to process recd message
+			}
+			else if(message_type == 0xdb){
+				// Read the first 4 bytes - length of metadata
+				printf("received get response\n") ;
+				uint32_t metaLen = 0 ;
+				buffer = (unsigned char *)malloc(sizeof(unsigned char)*(24)) ;
+				return_code = read(nSocket, buffer, 24) ;
+				memcpy(&metaLen, &buffer[20], 4) ;
+
+				// Read the metadata and copy it into buffer
+				buffer = (unsigned char *)realloc(buffer, 24+metaLen+1) ;
+				return_code += read(nSocket, &buffer[24], metaLen) ;
+				string metaStr((char *)&buffer[24], metaLen) ;
+
+
+				// create a temp file to store the content = data_len - 4 - metaStr.size()
+				tempFn  = returnTmpFp() ;
+				FILE *tempFp = fopen(tempFn.c_str(), "wb") ;
+				if(tempFp == NULL){
+					// Something here
+				}
+				unsigned char chunk[8192] ;
+				int tempFileLen = 0, tempFileLen1 = 0 ;
+				while(tempFileLen < (data_len - 24 - metaStr.size()) ){
+					tempFileLen1 = read(nSocket, chunk, 8192) ;
+					tempFileLen += tempFileLen1 ;
+					fwrite(chunk, 1, tempFileLen1, tempFp) ;
+				}
+				return_code += tempFileLen ;
+				fflush(tempFp) ;
+				fclose(tempFp) ;
+				data_len = metaStr.size() + 24 ;
+				return_code = data_len ;
+//				exit(0) ;
+
+				// Pass the temp file name to mau function
+				// Do the prob thing here, else just pass
+//				writeFileToCache((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn.c_str()) ;	
 				// Pass the file pointer to process recd message
 			}
 			else{
@@ -1233,9 +1343,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				break;
 			}
 
-			if (message_type != 0xcc){
-				buffer[data_len] = '\0' ;
-			}
+			buffer[data_len] = '\0' ;
 
 			//call for function which process the messages and respond correspondingly
 			process_received_message(nSocket, message_type, ttl,uoid, buffer, data_len, (char *)tempFn.c_str() ) ;

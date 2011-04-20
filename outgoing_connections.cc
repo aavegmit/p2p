@@ -235,7 +235,6 @@ void *write_thread(void *args){
 		// Store Message request
 		else if (mes.type == 0xcc){
 			if (mes.status == 1){
-				printf("Forwarding\n") ;
 				buffer = mes.buffer ;
 				len = mes.buffer_len ;
 				fp = fopen((char *)mes.fileName, "rb") ;
@@ -245,6 +244,7 @@ void *write_thread(void *args){
 				}
 				stat((char *)mes.fileName, &st) ;
 				len += st.st_size ;
+				mes.status = 3 ;
 			}
 			else{
 				printf("Sending store request\n") ;
@@ -286,28 +286,32 @@ void *write_thread(void *args){
 				}
 				stat((char *)mes.fileName, &st) ;
 				len += st.st_size ;
+				mes.status = 3 ;
 			}
 			else{
-				printf("Sending store request\n") ;
+				printf("Sending get response\n") ;
 				fp = fopen((char *)mes.fileName, "rb") ;
 				if(fp==NULL){
+					printf("Filename: %s\n", mes.fileName) ;
 					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
 					continue ;
 				}
 				stat((char *)mes.fileName, &st) ;
 				string metaStr((char *)mes.metadata) ;
 				uint32_t templen = metaStr.size() ;
-				len = 4 + templen ;
+				len = 24 + templen ;
 				buffer = (unsigned char *)malloc(len ) ;
 				memset(buffer, '\0', len) ;
-				memcpy(&buffer[0], &templen, 4) ;
+				for(int i = 0 ; i < 20 ; ++i)
+					buffer[i] = mes.uoid[i] ;
+				memcpy(&buffer[20], &templen, 4) ;
 				for (unsigned int i = 0 ; i < templen ; ++i)
-					buffer[i+4] = metaStr[i] ;
+					buffer[i+24] = metaStr[i] ;
 				len += st.st_size ;
 			}
 
 
-			header[0] = 0xcc;
+			header[0] = 0xdb;
 
 
 			memcpy((char *)&header[21], &(mes.ttl), 1) ;
@@ -326,7 +330,7 @@ void *write_thread(void *args){
 				len = 40  ;
 				buffer = (unsigned char *)malloc(len) ;
 				memset(buffer, '\0', len) ;
-				for (unsigned int i = 0 ; i < len ; ++i){
+				for (unsigned int i = 0 ; i < 20 ; ++i){
 					buffer[i] = mes.query[i] ;
 					buffer[i+20] = mes.metadata[i] ;
 				}
@@ -599,7 +603,6 @@ void *write_thread(void *args){
 
 		if(mes.status == 3){
 			write(sockfd, buffer, len - st.st_size) ;
-			printf("File size %d\n", st.st_size) ;
 			unsigned char chunk[8192] ;
 			// read the content of the file and write on the socket
 			while(!feof(fp)){
@@ -1132,7 +1135,7 @@ void joinNetwork(){
 
 		for(map<struct node, list<string> >::iterator it = statusResponseTypeFiles.begin(); it != statusResponseTypeFiles.end() ; ++it){
 			if( (*it).second.size() == 0)
-				fprintf(fp, "%s:%d has no file\n", (*it).first.hostname,  (*it).first.portNo, (*it).second.size()) ;
+				fprintf(fp, "%s:%d has no file\n", (*it).first.hostname,  (*it).first.portNo) ;
 			else if( (*it).second.size() == 1)
 				fprintf(fp, "%s:%d has 1 file\n", (*it).first.hostname,  (*it).first.portNo) ;
 			else

@@ -28,6 +28,7 @@ int checkTimerFlag = 0 ;
 int globalFileNumber = 0;
 unsigned char *fileName = NULL;
 unsigned char tempLogFile[512], tempInitFile[512];
+unsigned char extFile[256];
 int softRestartFlag = 0 ;
 int globalSearchCount = 0 ;
 int currentCacheSize = 0;

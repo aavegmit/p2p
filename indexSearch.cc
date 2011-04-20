@@ -567,26 +567,56 @@ void deleteAllFiles()
 
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 {
+	FILE *f_ext = fopen((char *)extFile, "rb");
+	unsigned char input[10];
+	memset(input, '\0', 10);
+	if(f_ext!=NULL)
+	{
+		printf("File Already exist, do you want to replace [Yes/No] ");
+		scanf("%s", input);
+		input[9] = '\0';
+		if(input[0] == 'y' || input[0] == 'Y')
+		{
+			fclose(f_ext);
+			f_ext = fopen((char *)extFile, "wb");
+			
+		}
+		else
+		{
+			fclose(f_ext);
+			return;
+		}
+	}
+	else
+	{
+		f_ext = fopen((char *)extFile, "wb");
+	}
+
 	updateGlobalFileNumber();
-	
+	int temp = globalFileNumber;
+		
 	struct metaData metadata = populateMetaDataFromString(metadata_str);
 	writeMetaData(metadata);
 
 	//writeData(metadata);	
 	char ch;
 	unsigned char tempFileName[10];
-	sprintf((char *)tempFileName, "%s%d.data", "files/", globalFileNumber);
+	sprintf((char *)tempFileName, "%s%d.data", "files/", temp);
 
 	FILE *f = fopen((char *)fileName, "rb");
 	FILE *f1 = fopen((char *)tempFileName, "wb");
 	while(fread(&ch,1,1,f)!=0)
+	{
 		fwrite(&ch, 1,1, f1);
+		fwrite(&ch, 1,1, f_ext);
+	}
 	fclose(f);
 	fclose(f1);
+	fclose(f_ext);
 		
-	populateBitVectorIndexMap(metadata.bitVector, globalFileNumber);
-	populateSha1IndexMap(metadata.sha1, globalFileNumber);
-	populateFileNameIndexMap(metadata.fileName, globalFileNumber);
+	populateBitVectorIndexMap(metadata.bitVector, temp);
+	populateSha1IndexMap(metadata.sha1, temp);
+	populateFileNameIndexMap(metadata.fileName, temp);
 }
 
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)

@@ -531,6 +531,11 @@ void *keyboard_thread(void *arg){
 				continue;
 			}
 			struct metaData metadata = getFileIDMap[indexNumber];
+			value = (unsigned char *)strtok(NULL, " ");
+			if(value == NULL)
+				strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));
+			else
+				strncpy((char *)extFile, (char *)value, strlen((char *)value));
 			printf("You have found the entry and now flood to get it!!!\n");
 			checkFlag = 1;
 			initiateGet(metadata) ;

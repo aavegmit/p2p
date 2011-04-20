@@ -130,6 +130,7 @@ extern int softRestartFlag ;
 extern int globalFileNumber ;
 extern int globalSearchCount ;
 extern int currentCacheSize;
+extern unsigned char extFile[256];
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;
@@ -200,6 +201,7 @@ struct metaData populateMetaData(int fileNumber);
 void initiateSearch(unsigned char, unsigned char *) ;
 string MetaDataToStr(struct metaData) ;
 struct metaData populateMetaDataFromString(unsigned char *input);
+struct metaData populateMetaDataFromCPPString(string);
 int searchResponseDisplay(list<struct metaData> metadataList, int count);
 void writeLRUToFile();
 void readLRUFromFile();
