@@ -25,7 +25,7 @@ int nSocket_accept = 0;
 int statusTimerFlag = 0 ;
 int searchTimerFlag = 0 ;
 int checkTimerFlag = 0 ;
-int globalFileNumber = 0;
+//int globalFileNumber = 0;
 unsigned char *fileName = NULL;
 unsigned char tempLogFile[512], tempInitFile[512];
 unsigned char extFile[256];

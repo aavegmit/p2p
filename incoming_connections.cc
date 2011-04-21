@@ -607,7 +607,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				//				strncpy((char *)m.fileName, (char *)metadata.fileName, strlen((char *)metadata.fileName)) ;
 
 				m.metadata = (unsigned char *)malloc(metaStr.size()+1) ;
-				for(int i = 0 ; i < metaStr.size() ; ++i)
+				for(int i = 0 ; i < (int)metaStr.size() ; ++i)
 					m.metadata[i] = metaStr[i] ;
 				//strncpy((char *)m.uoid, (const char *)uoid, SHA_DIGEST_LENGTH) ;
 				for(unsigned int j = 0;j<SHA_DIGEST_LENGTH;j++)
@@ -1247,7 +1247,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				}
 				unsigned char chunk[8192] ;
 				int tempFileLen = 0, tempFileLen1 = 0 ;
-				while(tempFileLen < (data_len - 4 - metaStr.size()) ){
+				while(tempFileLen < (int)(data_len - 4 - metaStr.size()) ){
 					tempFileLen1 = read(nSocket, chunk, 8192) ;
 					tempFileLen += tempFileLen1 ;
 					fwrite(chunk, 1, tempFileLen1, tempFp) ;
@@ -1285,7 +1285,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				}
 				unsigned char chunk[8192] ;
 				int tempFileLen = 0, tempFileLen1 = 0 ;
-				while(tempFileLen < (data_len - 24 - metaStr.size()) ){
+				while(tempFileLen < (int)(data_len - 24 - metaStr.size()) ){
 					tempFileLen1 = read(nSocket, chunk, 8192) ;
 					tempFileLen += tempFileLen1 ;
 					fwrite(chunk, 1, tempFileLen1, tempFp) ;

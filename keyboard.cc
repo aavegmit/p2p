@@ -135,7 +135,9 @@ void *keyboard_thread(void *arg){
 			
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
 			value = (unsigned char *)strtok(NULL, " ");
-			
+			if(value == NULL)
+				continue;
+				
 			unsigned char fileName[256];
 			memset(&fileName, '\0', 256);
 
@@ -144,9 +146,15 @@ void *keyboard_thread(void *arg){
 			if(value ==NULL)
 				continue;
 			//check if the entered value id digit or not
+			bool contFlag1 = 0;
 			for(int j=0;j<(int)strlen((char *)value);j++)
 				if(isdigit(value[j]) == 0)
-					continue;
+				{	
+					contFlag1 = 1;
+					break;
+				}
+			if(contFlag1)
+				continue;
 			myInfo->status_ttl = (uint8_t)atoi((char *)value);
 
 			//name of the status file
@@ -186,6 +194,8 @@ void *keyboard_thread(void *arg){
 						
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
 			value = (unsigned char *)strtok(NULL, " ");
+			if(value == NULL)
+				continue;
 			strncpy((char *)metadata.fileName, (char *)value, strlen((char *)value));//file Name stored
 			
 			//fileSize needed to be stored
@@ -221,13 +231,22 @@ void *keyboard_thread(void *arg){
 			GetUOID( const_cast<char *> ("password"), password, sizeof(password)) ;
 			strncpy((char *)metadata.nonce, (char *)toSHA1(password), 20);*/
 			
-			
+			bool contFlag1 = 0;
 			value = (unsigned char *)strtok(NULL, " "); //ttl value
-			for(int i=0;i<strlen((char *)value);i++)
+			for(int i=0;i<(int)strlen((char *)value);i++)
 				if(isdigit(value[i]) == 0)
-					continue;
+				{
+					contFlag1 = 1;
+					break;
+				}
+			
+			if(contFlag1)
+				continue;
 			
 			value = (unsigned char *)strtok(NULL, "\n");
+			
+			if(value == NULL)
+				continue;
 			//unsigned char *temp_temp_value = (unsigned char *)strtok((char *)value, "?");
 			//printf("Vlaue is: %s\n", value);
 			
@@ -263,7 +282,7 @@ void *keyboard_thread(void *arg){
 			}
 			//printf("value is now: %s\n", value);
 			unsigned char *saveptr1, *saveptr2, *saveptr3;
-			
+			bool contFlag = 0;
 			while((key = (unsigned char *)strtok_r((char *)value, " ", (char **)&saveptr1))!=NULL)
 			{
 				//printf("String is %s, len %d\n", key, (int)strlen((char *)key));
@@ -271,6 +290,12 @@ void *keyboard_thread(void *arg){
 				sprintf((char *)temp_temp_value, "%s", (char *)temp_temp_value);*/
 				//printf("String is %s, len %d\n", temp_value, (int)strlen((char *)temp_value));
 				unsigned char *temp_key = (unsigned char *)strtok_r((char *)key, "=", (char **)&saveptr2);
+				if(temp_key == NULL)
+				{
+					contFlag = 1;
+					break;
+				}
+				
 				//puts((char *)key);
 				//printf("String is %s, len %d\n", key, (int)strlen((char *)key));
 				//unsigned char temp_str[256];
@@ -281,6 +306,12 @@ void *keyboard_thread(void *arg){
 				//metadata.keywords[str_str] = 1;
 				
 				temp_key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+				if(temp_key == NULL)
+				{
+					contFlag = 1;
+					break;
+				}
+				
 				//if(key[0] == '"')
 				if(temp_key[0] == '"')
 				{
@@ -310,6 +341,9 @@ void *keyboard_thread(void *arg){
 					break;*/
 				value = NULL;
 			}
+				
+			if(contFlag)
+				continue;
 			
 			//populate BitVector
 			memset(metadata.bitVector, 0, sizeof(metadata.bitVector));
@@ -324,7 +358,7 @@ void *keyboard_thread(void *arg){
 			}
 			
 			//Update the global file Number
-			updateGlobalFileNumber();
+			int globalFileNumber = updateGlobalFileNumber();
 
 			//determine nonce
 			unsigned char password[SHA_DIGEST_LENGTH] ;
@@ -338,8 +372,8 @@ void *keyboard_thread(void *arg){
 		
 			strncpy((char *)metadata.nonce, (char *)toSHA1(password), 20);
 
-			writeMetaData(metadata);
-			writeData(metadata);
+			writeMetaData(metadata, globalFileNumber);
+			writeData(metadata, globalFileNumber);
 			populateBitVectorIndexMap(metadata.bitVector, globalFileNumber);
 			populateSha1IndexMap(metadata.sha1, globalFileNumber);
 			populateFileNameIndexMap(metadata.fileName, globalFileNumber);
@@ -350,12 +384,17 @@ void *keyboard_thread(void *arg){
 			unsigned char *value;
 			unsigned char *key = (unsigned char *)strtok((char *)inp, " ");
 			key = (unsigned char *)strtok(NULL, "\n");
+			if(key==NULL)
+				continue;
 			/*value = (unsigned char *)malloc(sizeof(unsigned char)*strlen((char *)key));
 			memset(value, '\0',sizeof(value));*/
 			value = (unsigned char *)strtok((char *)key, "=");
+			
 			if(strcasecmp((char *)value, "filename")==0)
 			{
 				value = (unsigned char *)strtok(NULL, "=");
+				if(value==NULL)
+					continue;
 //				list<int> tempList = fileNameSearch(value);
 //				for(list<int>::iterator it = tempList.begin();it!=tempList.end();it++)
 //				{
@@ -371,6 +410,8 @@ void *keyboard_thread(void *arg){
 			else if(strcasecmp((char *)value, "sha1hash")==0)
 			{
 				value = (unsigned char *)strtok(NULL, "=");
+				if(value == NULL)
+					continue;
 				unsigned char *str = toHex(value, 20);
 				initiateSearch(0x02, str) ;	
 				checkFlag = 1;
@@ -379,6 +420,8 @@ void *keyboard_thread(void *arg){
 			{
 				
 				value = (unsigned char *)strtok(NULL, "\0");
+				if(value==NULL)
+					continue;
 				if(value[0] == '"')
 				{
 				
@@ -420,6 +463,7 @@ void *keyboard_thread(void *arg){
 			memset(temp_str, '\0', sizeof(temp_str));
 			memset(message, '\0', sizeof(message));
 			value = (unsigned char *)strtok_r(inp, " ", (char **)&saveptr1);
+			bool contFlag = 0;
 			while((value = (unsigned char *)strtok_r(NULL, " ", (char **)&saveptr1))!=NULL)
 			{
 				if(strstr((char *)value, "FileName=")!=NULL)
@@ -427,16 +471,38 @@ void *keyboard_thread(void *arg){
 					sprintf((char *)temp_str, "%s\r\n", value);
 					strcat((char *)message, (char *)temp_str);
 					unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+					if(key == NULL)
+					{
+						contFlag = 1;
+						break;
+					}
 					key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+					if(key == NULL)
+					{
+						contFlag = 1;
+						break;
+					}
+					
 					tempList = fileNameSearch(key);
 				}
 				else if (strstr((char *)value, "Nonce=")!=NULL)
 				{
 					value = (unsigned char *)strtok((char*)value, "\n");
+					
 					sprintf((char *)temp_str, "%s\r\n", value);
 					strcat((char *)message, (char *)temp_str);
 					unsigned char *key = (unsigned char *)strtok_r((char *)value, "=", (char **)&saveptr2);
+					if(key == NULL)
+					{
+						contFlag = 1;
+						break;
+					}
 					key = (unsigned char *)strtok_r(NULL, "=", (char **)&saveptr2);
+					if(key == NULL)
+					{
+						contFlag = 1;
+						break;
+					}
 					key = toHex(key, 20);
 					unsigned char passFile[10];
 					unsigned char tempPassword[20];
@@ -511,6 +577,9 @@ void *keyboard_thread(void *arg){
 				saveptr2 = NULL;
 			}
 			
+			if(contFlag)
+				continue;
+				
 			printf("\nMessage to be passed is: \n%s", message);
 			string tempMes((char *)message) ;
 			if (toFloodFlag)
@@ -524,6 +593,8 @@ void *keyboard_thread(void *arg){
 				continue;
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
 			value = (unsigned char *)strtok(NULL, " ");
+			if(value == NULL)
+				continue;
 			int indexNumber = atoi((char *)value);
 			if(getFileIDMap.find(indexNumber)==getFileIDMap.end())
 			{
@@ -531,6 +602,19 @@ void *keyboard_thread(void *arg){
 				continue;
 			}
 			struct metaData metadata = getFileIDMap[indexNumber];
+
+			map<string, int>::iterator result = fileIDMap.find(string((char *)metadata.fileID, 20));
+			if(result != fileIDMap.end())
+			{
+				//updateLRU((*result).second);
+				list<int >::iterator result1 = find(cacheLRU.begin(), cacheLRU.end(), (int)(*result).second);
+				if(result1!=cacheLRU.end())
+				{
+					cacheLRU.erase(result1);
+				}
+				continue;
+			}
+
 			value = (unsigned char *)strtok(NULL, "\n");
 			if(value == NULL)
 				strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));

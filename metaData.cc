@@ -16,8 +16,9 @@
 #include <strings.h>
 #include <algorithm>
 
-void updateGlobalFileNumber()
+int updateGlobalFileNumber()
 {
+int globalFileNumber = 0;
 
 	FILE *f = fopen(".fileNumber", "r");
 	if(f==NULL)
@@ -38,10 +39,12 @@ void updateGlobalFileNumber()
 	}
 	fprintf(f, "%d", globalFileNumber);
 	fclose(f);
+	
+	return globalFileNumber;
 }
 
 
-void writeMetaData(struct metaData metadata)
+void writeMetaData(struct metaData metadata, int globalFileNumber)
 {
 	unsigned char dir[10] = "files/";
 
@@ -127,7 +130,7 @@ void writeMetaData(struct metaData metadata)
 
 
 
-	void writeData(struct metaData metadata)
+	void writeData(struct metaData metadata, int globalFileNumber)
 	{
 		char ch;
 		unsigned char fileName[10];
@@ -298,7 +301,7 @@ void writeMetaData(struct metaData metadata)
 		unsigned char input[strlen((char *)input1)];
 		strncpy((char *)metadata.fileID, (char *)input1, 20);
 //		strncpy((char *)input, (char *)input1+20, strlen((char *)input1)-20);
-		for(int i = 0 ; i < (strlen((char *)input1)-20) ; ++i)
+		for(int i = 0 ; i < (int)(strlen((char *)input1)-20) ; ++i)
 			input[i] = input1[i+20] ;
 
 		/*memset(metadata.fileID, '\0', sizeof(metadata.fileID));
@@ -391,7 +394,7 @@ void writeMetaData(struct metaData metadata)
 		unsigned char input[input1.size()];
 		strncpy((char *)metadata.fileID, (char *)input1.c_str(), 20);
 //		strncpy((char *)input, (char *)input1+20, strlen((char *)input1)-20);
-		for(int i = 0 ; i < input1.size()-20 ; ++i)
+		for(int i = 0 ; i < (int)input1.size()-20 ; ++i)
 			input[i] = input1[i+20] ;
 
 		/*memset(metadata.fileID, '\0', sizeof(metadata.fileID));
