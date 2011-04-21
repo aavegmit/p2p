@@ -184,12 +184,26 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		return w;
 	}
 
+	void writeToFileFromData(unsigned char fileName[], int fileNumber)
+	{
+		unsigned char ch;
+		unsigned char fileName_temp[256];
+		sprintf((char *)fileName_temp, "%s/%d.data", filesDir, fileNumber);
 
+		FILE *f = fopen((char *)fileName_temp, "rb");
+		FILE *f1 = fopen((char *)fileName, "wb");
+		while(fread(&ch,1,1,f)!=0)
+			fwrite(&ch, 1,1, f1);
+		fclose(f);
+		fclose(f1);
+	}
+	
+	
 	struct metaData populateMetaData(int fileNumber)
 	{
 		struct metaData metadata;
 		memset(&metadata, 0, sizeof(metaData));
-		unsigned char fileName[10];
+		unsigned char fileName[256];
 		memset(fileName, '\0', sizeof(fileName));
 		unsigned char buffer[1024];
 		memset(buffer, '\0', sizeof(buffer));

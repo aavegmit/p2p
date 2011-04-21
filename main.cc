@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 	
 	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
 	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
-	
+	myInfo->cacheSize*=1024;
 	time_t localtime=(time_t)0;
 	
 	time(&localtime);
@@ -656,7 +656,7 @@ void init(){
 						}
 						//Shutdown initilazed to zero
 						cn.shutDown = 0 ;
-						cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
+						cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 						cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 						cn.isReady = 0;
 						cn.n = n;

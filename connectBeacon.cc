@@ -24,7 +24,7 @@ myConnectThread[myID] = 0;
 	int res = 0;
 	while(!shutDown){
 	
-	signal(SIGUSR2, my_handler);
+	//signal(SIGUSR2, my_handler);
 	
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		if (nodeConnectionMap.find(n)!=nodeConnectionMap.end()){
@@ -55,7 +55,7 @@ myConnectThread[myID] = 0;
 				}
 
 				cn.shutDown = 0 ;
-				cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
+				cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 				cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 				cn.isReady = 0;
 				cn.n = n;

@@ -52,7 +52,7 @@ void populatemyInfo()
 	myInfo->cacheSize = 500;
 	myInfo->isBeacon = false;
 	//myInfo->retry = 30;
-	myInfo->retry = 30;
+	myInfo->retry = 7;
 	memset(myInfo->node_id, '\0', 265) ;
 	memset(myInfo->node_instance_id, '\0', 300) ;
 

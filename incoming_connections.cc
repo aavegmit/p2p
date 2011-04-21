@@ -142,7 +142,7 @@ void *accept_connectionsT(void *){
 			}
 
 			cn.shutDown = 0 ;
-			cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
+			cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 			cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 			cn.isReady = 0;
 			pthread_mutex_lock(&connectionMapLock) ;

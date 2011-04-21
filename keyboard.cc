@@ -386,7 +386,7 @@ void *keyboard_thread(void *arg){
 			//determine nonce
 			unsigned char password[SHA_DIGEST_LENGTH] ;
 			GetUOID( const_cast<char *> ("password"), password, sizeof(password)) ;
-			unsigned char passwordFileName[10];
+			unsigned char passwordFileName[256];
 			sprintf((char *)passwordFileName, "%s/%d.pass", filesDir, globalFileNumber);
 		
 
@@ -529,9 +529,9 @@ void *keyboard_thread(void *arg){
 							break;
 						}
 						key = toHex(key, 20);
-						unsigned char passFile[10];
+						unsigned char passFile[256];
 						unsigned char tempPassword[20];
-						memset(tempPassword,0, sizeof(tempPassword));
+						memset(tempPassword,'\0', sizeof(tempPassword));
 						FILE *f;
 						for(list<int> ::iterator it = tempList.begin();it!=tempList.end();it++)
 						{
@@ -550,25 +550,25 @@ void *keyboard_thread(void *arg){
 
 							if(strncmp((char *)key,(char *)metadata.nonce, 20)==0)
 							{
-							memset(passFile,0, sizeof(passFile));
-							memset(tempPassword,0, sizeof(tempPassword));
-							sprintf((char *)passFile, "%s/%d.pass", filesDir, (*it));
-							f = fopen((char *)passFile, "r");
-							if(f!=NULL)
-							{
-								fread(tempPassword, 20, 1, f);
-								//fscanf(f, "%s", tempPassword);
-								unsigned char temp_str1[40];
-								memset(temp_str1, 0, 40);
-								for(int i=0;i<20;i++)
-									sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
-								sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
-								toFloodFlag = 1 ;
-								strcat((char *)message, (char *)temp_str);
-								fclose(f);
-								//printf("hi\n\n%s", message);
-							}
-							else
+								memset(passFile,'\0', sizeof(passFile));
+								memset(tempPassword,'\0', sizeof(tempPassword));
+								sprintf((char *)passFile, "%s/%d.pass", filesDir, (*it));
+								f = fopen((char *)passFile, "r");
+								if(f!=NULL)
+								{
+									fread(tempPassword, 20, 1, f);
+									//fscanf(f, "%s", tempPassword);
+									unsigned char temp_str1[40];
+									memset(temp_str1, 0, 40);
+									for(int i=0;i<20;i++)
+										sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
+									sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
+									toFloodFlag = 1 ;
+									strcat((char *)message, (char *)temp_str);
+									fclose(f);
+									//printf("hi\n\n%s", message);
+								}
+								else
 								{
 									//generate random password
 									unsigned char val[10];
@@ -578,7 +578,7 @@ void *keyboard_thread(void *arg){
 									val[9]='\0';
 									if(val[0]=='y' || val[0]=='Y')
 									{
-										memset(tempPassword,0, sizeof(tempPassword));
+										memset(tempPassword,'\0', sizeof(tempPassword));
 										unsigned char temp_str1[40];
 										memset(temp_str1, '\0', 40);
 										GetUOID( const_cast<char *> ("password"), tempPassword, sizeof(tempPassword)) ;
@@ -589,10 +589,42 @@ void *keyboard_thread(void *arg){
 										strcat((char *)message, (char *)temp_str);
 									}
 									else
+									{
+										contFlag = 1;
 										break;
+									}
 								}
 							}
 						}
+						
+						if(contFlag)
+							break;
+						if(strcmp((char *)tempPassword, "\0") == 0)
+						{
+							/*unsigned char val[10];
+							memset(val, '\0', 10);
+							printf("\nNo one-time password found.\nOkay to use a random password [yes/no]? ");
+							scanf("%s", val);
+							val[9]='\0';
+							if(val[0]=='y' || val[0]=='Y')
+							{
+								memset(tempPassword,'\0', sizeof(tempPassword));
+								unsigned char temp_str1[40];
+								memset(temp_str1, '\0', 40);
+								GetUOID( const_cast<char *> ("password"), tempPassword, sizeof(tempPassword)) ;
+								for(int i=0;i<20;i++)
+									sprintf((char *)&temp_str1[i*2], "%02x", tempPassword[i]);
+								sprintf((char *)temp_str, "Password=%s\r\n", temp_str1);
+								toFloodFlag = 1 ;
+								strcat((char *)message, (char *)temp_str);
+							}
+							else
+								continue;*/
+							printf("No such file present in the file system\n");
+							contFlag = 1;
+							break;
+						}
+						
 					}
 					else if (strstr((char *)value, "SHA1=")!=NULL)
 					{
@@ -627,6 +659,15 @@ void *keyboard_thread(void *arg){
 					continue;
 				}
 				struct metaData metadata = getFileIDMap[indexNumber];
+				
+				value = (unsigned char *)strtok(NULL, "\n");
+				memset(extFile, '\0', 256);
+				if(value == NULL)
+					strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));
+					//sprintf((char *)extFile, "%s/%s", myInfo->homeDir, metadata.fileName);
+				else
+					strncpy((char *)extFile, (char *)value, strlen((char *)value));
+					//sprintf((char *)extFile, "%s/%s", myInfo->homeDir, value);
 
 				map<string, int>::iterator result = fileIDMap.find(string((char *)metadata.fileID, 20));
 				if(result != fileIDMap.end())
@@ -637,16 +678,11 @@ void *keyboard_thread(void *arg){
 					{
 						cacheLRU.erase(result1);
 					}
+					if(fopen((char *)extFile, "rb") == NULL)
+						writeToFileFromData(extFile, (*result).second);
 					continue;
 				}
 
-				value = (unsigned char *)strtok(NULL, "\n");
-				if(value == NULL)
-					//strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));
-					sprintf((char *)extFile, "%s/%s", myInfo->homeDir, metadata.fileName);
-				else
-					//strncpy((char *)extFile, (char *)value, strlen((char *)value));
-					sprintf((char *)extFile, "%s/%s", myInfo->homeDir, value);
 				printf("You have found the entry and now flood to get it!!!\n");
 				checkFlag = 1;
 				initiateGet(metadata) ;
