@@ -43,14 +43,14 @@ void my_handler(int nSig)
 		close(nSocket_accept);
 		pthread_kill(k_thread, SIGUSR2);
 		
-		if(myInfo->isBeacon)
+		/*if(myInfo->isBeacon)
 		{
 			for (map<pthread_t, bool>::iterator it = myConnectThread.begin(); it != myConnectThread.end(); ++it)
 			{
 				if((*it).second)
 					pthread_kill((*it).first, SIGUSR2);
 			}
-		}
+		}*/
 		
 	}
 	if(nSig == SIGALRM)

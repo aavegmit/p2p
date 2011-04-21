@@ -656,7 +656,7 @@ void init(){
 						}
 						//Shutdown initilazed to zero
 						cn.shutDown = 0 ;
-						cn.keepAliveTimer = myInfo->keepAliveTimeOut/3;
+						cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
 						cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
 						cn.isReady = 0;
 						cn.n = n;

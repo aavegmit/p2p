@@ -591,7 +591,7 @@ void *write_thread(void *args){
 		if(connectionMap.find(sockfd)!=connectionMap.end())
 		{
 			pthread_mutex_lock(&connectionMapLock) ;
-			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/3;
+			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
 			pthread_mutex_unlock(&connectionMapLock) ;
 		}
 
