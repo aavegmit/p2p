@@ -275,7 +275,7 @@ memset(kwrd_index, '\0', sizeof(kwrd_index));
 
 sprintf((char *)kwrd_index, "%s/%s" ,myInfo->homeDir, "kwrd_index");
 FILE *f = fopen((char *)kwrd_index, "wb");*/
-FILE *f = fopen("kwrd_index", "wb");
+FILE *f = fopen("kwrd_index", "w");
 unsigned char bitVector_str[129];
 for (map<string, list<int > >::iterator it = bitVectorIndexMap.begin(); it != bitVectorIndexMap.end(); ++it){
 	//fwrite(&(*it).first,sizeof((*it).first), 1,f);
@@ -283,11 +283,12 @@ for (map<string, list<int > >::iterator it = bitVectorIndexMap.begin(); it != bi
 	//cout<<(*it).first<<endl;
 	//printf("\n\n");
 	fprintf(f," %d ",(int)((*it).second).size());
+	
 	for(int i=0;i<128;i++)
 	{
 		bitVector_str[i] = (((*it).first).c_str())[i];
-		//printf("%02x", bitVector_str[i]);
-		fprintf(f, "%c", bitVector_str[i]);
+		fprintf(f, "%02x", bitVector_str[i]);
+		//fprintf(f, "%c", bitVector_str[i]);
 	}
 	//bitVector_str[128]='\0';
 	
@@ -324,16 +325,23 @@ memset(sha1_index, '\0', sizeof(sha1_index));
 
 sprintf((char *)sha1_index, "%s/%s" ,myInfo->homeDir, "sha1_index");
 f = fopen((char *)sha1_index, "wb");*/
-f = fopen("sha1_index", "wb");
+unsigned char tempSha1[20];
+memset(tempSha1, 0, 20);
+f = fopen("sha1_index", "w");
 for (map<string, list<int> >::iterator it = sha1IndexMap.begin(); it != sha1IndexMap.end(); ++it){
 	//fwrite(&(*it).first,sizeof((*it).first), 1,f);
 	//fwrite(&(*it).second,sizeof((*it).second), 1,f);
 	fprintf(f,"%d ",(int)((*it).second).size());
 	for(int i=0;i<20;i++)
-		fprintf(f, "%c",((*it).first).c_str()[i]);
+	{
+		//fprintf(f, "%c",((*it).first).c_str()[i]);
+		tempSha1[i] = ((*it).first).c_str()[i];
+		fprintf(f, "%02x",tempSha1[i]);
+	}
 	for(list<int >::iterator it1 = (*it).second.begin(); it1 != (*it).second.end(); ++it1){
 		fprintf(f, " %d ", *it1);
 	}
+	memset(tempSha1, 0, 20);
 }
 //fwrite(&sha1IndexMap, sizeof(sha1IndexMap), 1,f);
 fclose(f);
@@ -349,7 +357,7 @@ memset(kwrd_index, '\0', sizeof(kwrd_index));
 sprintf((char *)kwrd_index, "%s/%s" ,myInfo->homeDir, "kwrd_index");
 FILE *f = fopen((char *)kwrd_index, "rb");*/
 
-FILE *f = fopen("kwrd_index", "rb");
+
 //fread(&bitVectorIndexMap,sizeof(bitVectorIndexMap), 1,f);
 /*for (map<string, list<int > >::iterator it = bitVectorIndexMap.begin(); it != bitVectorIndexMap.end(); ++it){
 
@@ -361,13 +369,35 @@ int ret = 1;
 int size;
 list<int > tempList;
 unsigned char str[129];
+unsigned char tempBitVector[256];
 memset(str, 0, sizeof(str));
+memset(tempBitVector, 0, 256);
+FILE *f = fopen("kwrd_index", "r");
 if(f!=NULL)
 {
 	while(fscanf(f, " %d ",&size)!=EOF)
 	{
+		/*for(int i=0;i<128;i++)
+			fscanf(f, "%c", &str[i]);*/
+		for(int i=0;i<256;i++)
+		{
+			fscanf(f, "%c", &tempBitVector[i]);
+			//printf("%c", tempBitVector[i]);
+		}
+		/*for(int i=0;i<128;i++)
+			printf("%02x",tempBitVector[i]);*/
+
+			//	printf("\n\n");
+		unsigned char *temp = (unsigned char *)toHex(tempBitVector, 128); 
+		
+		//strncpy((char *)str, , 128);
+		
 		for(int i=0;i<128;i++)
-			fscanf(f, "%c", &str[i]);
+		{
+			str[i] = temp[i];
+			//printf("%02x",temp[i]);
+		}
+
 		for(int i=0;i<size;i++)
 		{
 			fscanf(f," %d", &ret);
@@ -420,15 +450,20 @@ f = fopen((char *)sha1_index, "rb");*/
 ret=0;
 size=0;
 unsigned char sha1_str[20];
+unsigned char tempSha1[40];
 memset(sha1_str, 0, sizeof(sha1_str));
+memset(tempSha1, 0, 40);
 tempList.clear();
-f = fopen("sha1_index", "rb");
+f = fopen("sha1_index", "r");
 if(f!=NULL)
 {
 	while(fscanf(f, "%d ",&size)!=EOF)
 	{
-		for(int i=0;i<20;i++)
-			fscanf(f, "%c",&sha1_str[i]);
+		/*for(int i=0;i<20;i++)
+			fscanf(f, "%c",&sha1_str[i]);*/
+		for(int i=0;i<40;i++)
+			fscanf(f, "%c",&tempSha1[i]);
+		strncpy((char *)sha1_str, (char *)toHex(tempSha1, 20), 20);
 		for(int i=0;i<size;i++)
 		{
 			fscanf(f," %d ", &ret);
@@ -592,11 +627,10 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 		f_ext = fopen((char *)extFile, "wb");
 	}
 
-	updateGlobalFileNumber();
-	int temp = globalFileNumber;
+	
+	int temp = updateGlobalFileNumber();
 		
 	struct metaData metadata = populateMetaDataFromString(metadata_str);
-	writeMetaData(metadata);
 
 	//writeData(metadata);	
 	char ch;
@@ -613,7 +647,19 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 	fclose(f);
 	fclose(f1);
 	fclose(f_ext);
-		
+	
+	if(fclose(f1) != 0 || fclose(f_ext) != 0)
+	{
+		if(errno == EIO)
+		{
+			printf("\nDisk Quota Reached, could not save file\n");
+			writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
+			remove((char *)tempFileName);
+			remove((char *)extFile);
+			return;
+		}
+	}
+	writeMetaData(metadata, temp);
 	populateBitVectorIndexMap(metadata.bitVector, temp);
 	populateSha1IndexMap(metadata.sha1, temp);
 	populateFileNameIndexMap(metadata.fileName, temp);
@@ -621,14 +667,21 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 {
-	updateGlobalFileNumber();		
-	int temp = globalFileNumber;
 	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
+	
+	int ret_val = doesFileExist(metadata);
+	if(ret_val != -1)
+	{
+		updateLRU(ret_val);
+		return;
+	}
+	
+	int temp = updateGlobalFileNumber();
+	
 	int ret = storeInLRU(metadata, temp);
 	if(ret == -1)
 		return;
 		
-	writeMetaData(metadata);
 	
 	//writeData(metadata);
 	char ch;
@@ -640,10 +693,32 @@ void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 	while(fread(&ch,1,1,f)!=0)
 		fwrite(&ch, 1,1, f1);
 	fclose(f);
-	fclose(f1);
-		
+	if(fclose(f1) != 0)
+	{
+		if(errno == EIO)
+		{
+			printf("\nDisk Quota Reached, could not save file\n");
+			writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
+			cacheLRU.remove(temp);
+			remove((char *)tempFileName);
+			return;
+		}
+	}
+	writeMetaData(metadata, temp);
 	populateBitVectorIndexMap(metadata.bitVector, temp);
 	populateSha1IndexMap(metadata.sha1, temp);
 	populateFileNameIndexMap(metadata.fileName, temp);
 
+}
+
+int doesFileExist(struct metaData metadata)
+{
+	list<int > tempList = fileNameSearch(metadata.fileName);
+	for(list<int> ::iterator it = tempList.begin();it!=tempList.end();it++)
+	{
+		struct metaData metadata_temp = populateMetaData((*it));
+		if(strncmp((char *)metadata_temp.nonce, (char *)metadata.nonce, 20)==0)
+			return (*it);
+	}
+return -1;
 }

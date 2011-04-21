@@ -16,8 +16,9 @@
 #include <strings.h>
 #include <algorithm>
 
-void updateGlobalFileNumber()
+int updateGlobalFileNumber()
 {
+int globalFileNumber = 0;
 
 	FILE *f = fopen(".fileNumber", "r");
 	if(f==NULL)
@@ -38,10 +39,12 @@ void updateGlobalFileNumber()
 	}
 	fprintf(f, "%d", globalFileNumber);
 	fclose(f);
+	
+	return globalFileNumber;
 }
 
 
-void writeMetaData(struct metaData metadata)
+void writeMetaData(struct metaData metadata, int globalFileNumber)
 {
 	unsigned char dir[10] = "files/";
 
@@ -127,7 +130,7 @@ void writeMetaData(struct metaData metadata)
 
 
 
-	void writeData(struct metaData metadata)
+	void writeData(struct metaData metadata, int globalFileNumber)
 	{
 		char ch;
 		unsigned char fileName[10];
