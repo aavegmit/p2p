@@ -20,7 +20,10 @@ int updateGlobalFileNumber()
 {
 int globalFileNumber = 0;
 
-	FILE *f = fopen(".fileNumber", "r");
+	unsigned char fileNumber_file[256];
+	sprintf((char *)fileNumber_file, "%s/.fileNumber", myInfo->homeDir);
+
+	FILE *f = fopen((char *)fileNumber_file, "r");
 	if(f==NULL)
 	{
 		printf("'.fileNumber'...File Does not exist\n");
@@ -31,7 +34,7 @@ int globalFileNumber = 0;
 
 	globalFileNumber++;
 
-	f = fopen(".fileNumber", "w");
+	f = fopen((char *)fileNumber_file, "w");
 	if(f==NULL)
 	{
 		printf("'.fileNumber'...Error!!\n");
@@ -46,10 +49,10 @@ int globalFileNumber = 0;
 
 void writeMetaData(struct metaData metadata, int globalFileNumber)
 {
-	unsigned char dir[10] = "files/";
+	//unsigned char dir[10] = "files/";
 
 	unsigned char fileName[10];
-	sprintf((char *)fileName, "%s%d.meta", dir, globalFileNumber);
+	sprintf((char *)fileName, "%s/%d.meta", filesDir, globalFileNumber);
 
 	FILE *f = fopen((char *)fileName, "w");
 
@@ -134,7 +137,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 	{
 		char ch;
 		unsigned char fileName[10];
-		sprintf((char *)fileName, "%s%d.data", "files/", globalFileNumber);
+		sprintf((char *)fileName, "%s/%d.data", filesDir, globalFileNumber);
 
 		FILE *f = fopen((char *)metadata.fileName, "rb");
 		FILE *f1 = fopen((char *)fileName, "wb");
@@ -192,7 +195,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		memset(buffer, '\0', sizeof(buffer));
 		unsigned char *key;
 
-		sprintf((char *)fileName, "%s%d.meta", "files/", fileNumber);
+		sprintf((char *)fileName, "%s/%d.meta", filesDir, fileNumber);
 
 		memset(metadata.fileID, '\0', sizeof(metadata.fileID));
 		GetUOID( const_cast<char *> ("FileID"), metadata.fileID, sizeof(metadata.fileID)) ;
@@ -579,21 +582,24 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		unsigned char removeString[256];
 		
 		memset(removeString, '\0', 256);
-		sprintf((char *)removeString, "files/%d.data", (toBeRemoved));
+		sprintf((char *)removeString, "%s/%d.data", filesDir, (toBeRemoved));
 		remove((char *)removeString);
 	
 		memset(removeString, '\0', 256);
-		sprintf((char *)removeString, "files/%d.meta", toBeRemoved);
+		sprintf((char *)removeString, "%s/%d.meta", filesDir, toBeRemoved);
 		remove((char *)removeString);
 	
 		memset(removeString, '\0', 256);
-		sprintf((char *)removeString, "files/%d.pass", toBeRemoved);
+		sprintf((char *)removeString, "%s/%d.pass", filesDir, toBeRemoved);
 		remove((char *)removeString);
 	}
 
 	void writeLRUToFile()
 	{
-		FILE *f = fopen("cacheLRU", "w");
+		unsigned char cacheLRU_file[256];
+		sprintf((char *)cacheLRU_file, "%s/cacheLRU", myInfo->homeDir);
+
+		FILE *f = fopen((char *)cacheLRU_file, "w");
 		for(list<int > :: iterator it = cacheLRU.begin(); it!=cacheLRU.end();it++)
 		{
 			fprintf(f, "%d ", (*it));
@@ -604,7 +610,10 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 	void readLRUFromFile()
 	{
 		int temp;
-		FILE *f = fopen("cacheLRU", "r");
+		unsigned char cacheLRU_file[256];
+		sprintf((char *)cacheLRU_file, "%s/cacheLRU", myInfo->homeDir);
+
+		FILE *f = fopen((char *)cacheLRU_file, "r");
 		if(f!=NULL)
 		{
 			while(fscanf(f, "%d ", &temp)!=EOF)

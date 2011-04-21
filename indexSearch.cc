@@ -275,7 +275,9 @@ memset(kwrd_index, '\0', sizeof(kwrd_index));
 
 sprintf((char *)kwrd_index, "%s/%s" ,myInfo->homeDir, "kwrd_index");
 FILE *f = fopen((char *)kwrd_index, "wb");*/
-FILE *f = fopen("kwrd_index", "w");
+unsigned char kwrd_index_file[256];
+sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
+FILE *f = fopen((char *)kwrd_index_file, "w");
 unsigned char bitVector_str[129];
 for (map<string, list<int > >::iterator it = bitVectorIndexMap.begin(); it != bitVectorIndexMap.end(); ++it){
 	//fwrite(&(*it).first,sizeof((*it).first), 1,f);
@@ -307,7 +309,9 @@ memset(name_index, '\0', sizeof(name_index));
 
 sprintf((char *)name_index, "%s/%s" ,myInfo->homeDir, "name_index");
 f = fopen((char *)name_index, "wb");*/
-f = fopen("name_index", "w");
+unsigned char name_index_file[256];
+sprintf((char *)name_index_file, "%s/name_index", myInfo->homeDir);
+f = fopen((char *)name_index_file, "w");
 //fwrite(&fileNameIndexMap,sizeof(fileNameIndexMap), 1,f);
 for (map<string, list<int> >::iterator it = fileNameIndexMap.begin(); it != fileNameIndexMap.end(); ++it){
 	//fwrite(&(*it).first,sizeof((*it).first), 1,f);
@@ -327,7 +331,9 @@ sprintf((char *)sha1_index, "%s/%s" ,myInfo->homeDir, "sha1_index");
 f = fopen((char *)sha1_index, "wb");*/
 unsigned char tempSha1[20];
 memset(tempSha1, 0, 20);
-f = fopen("sha1_index", "w");
+unsigned char sha1_index_file[256];
+sprintf((char *)sha1_index_file, "%s/sha1_index", myInfo->homeDir);
+f = fopen((char *)sha1_index_file, "w");
 for (map<string, list<int> >::iterator it = sha1IndexMap.begin(); it != sha1IndexMap.end(); ++it){
 	//fwrite(&(*it).first,sizeof((*it).first), 1,f);
 	//fwrite(&(*it).second,sizeof((*it).second), 1,f);
@@ -372,7 +378,9 @@ unsigned char str[129];
 unsigned char tempBitVector[256];
 memset(str, 0, sizeof(str));
 memset(tempBitVector, 0, 256);
-FILE *f = fopen("kwrd_index", "r");
+unsigned char kwrd_index_file[256];
+sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
+FILE *f = fopen((char *)kwrd_index_file, "r");
 if(f!=NULL)
 {
 	while(fscanf(f, " %d ",&size)!=EOF)
@@ -425,7 +433,9 @@ size=0;
 unsigned char fileName_str[256];
 memset(fileName_str, 0, sizeof(fileName_str));
 tempList.clear();
-f = fopen("name_index", "r");
+unsigned char name_index_file[256];
+sprintf((char *)name_index_file, "%s/name_index", myInfo->homeDir);
+f = fopen((char *)name_index_file, "r");
 if(f!=NULL)
 {
 	while(fscanf(f, "%d %s ",&size,fileName_str)!=EOF)
@@ -454,7 +464,9 @@ unsigned char tempSha1[40];
 memset(sha1_str, 0, sizeof(sha1_str));
 memset(tempSha1, 0, 40);
 tempList.clear();
-f = fopen("sha1_index", "r");
+unsigned char sha1_index_file[256];
+sprintf((char *)sha1_index_file, "%s/sha1_index", myInfo->homeDir);
+f = fopen((char *)sha1_index_file, "r");
 if(f!=NULL)
 {
 	while(fscanf(f, "%d ",&size)!=EOF)
@@ -557,15 +569,15 @@ bool breakFlag = 0;
 	
 	unsigned char removeString[256];
 	memset(removeString, '\0', 256);
-	sprintf((char *)removeString, "files/%d.data", fileNumber);
+	sprintf((char *)removeString, "%s/%d.data", filesDir, fileNumber);
 	remove((char *)removeString);
 	
 	memset(removeString, '\0', 256);
-	sprintf((char *)removeString, "files/%d.meta", fileNumber);
+	sprintf((char *)removeString, "%s/%d.meta", filesDir, fileNumber);
 	remove((char *)removeString);
 	
 	memset(removeString, '\0', 256);
-	sprintf((char *)removeString, "files/%d.pass", fileNumber);
+	sprintf((char *)removeString, "%s/%d.pass", filesDir, fileNumber);
 	remove((char *)removeString);
 }
 
@@ -578,15 +590,15 @@ void deleteAllFiles()
 		for(list<int >::iterator it2 = (*it1).second.begin();it2!=(*it1).second.end();it2++)
 		{
 			memset(removeString, '\0', 256);
-			sprintf((char *)removeString, "files/%d.data", (*it2));
+			sprintf((char *)removeString, "%s/%d.data", filesDir, (*it2));
 			remove((char *)removeString);
 	
 			memset(removeString, '\0', 256);
-			sprintf((char *)removeString, "files/%d.meta", (*it2));
+			sprintf((char *)removeString, "%s/%d.meta", filesDir, (*it2));
 			remove((char *)removeString);
 	
 			memset(removeString, '\0', 256);
-			sprintf((char *)removeString, "files/%d.pass", (*it2));
+			sprintf((char *)removeString, "%s/%d.pass", filesDir, (*it2));
 			remove((char *)removeString);
 		}
 	}	
@@ -594,10 +606,19 @@ void deleteAllFiles()
 	sha1IndexMap.clear();
 	fileNameIndexMap.clear();
 	cacheLRU.clear();
-	remove("name_index");
-	remove("kwrd_index");
-	remove("sha1_index");
-	remove("cacheLRU");
+	unsigned char kwrd_index_file[256];
+	sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
+	unsigned char name_index_file[256];
+	sprintf((char *)name_index_file, "%s/name_index", myInfo->homeDir);
+	unsigned char sha1_index_file[256];
+	sprintf((char *)sha1_index_file, "%s/sha1_index", myInfo->homeDir);
+	unsigned char cacheLRU[256];
+	sprintf((char *)cacheLRU, "%s/cacheLRU", myInfo->homeDir);
+
+	remove((char *)kwrd_index_file);
+	remove((char *)name_index_file);
+	remove((char *)sha1_index_file);
+	remove((char *)cacheLRU);
 }
 
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
@@ -635,7 +656,7 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 	//writeData(metadata);	
 	char ch;
 	unsigned char tempFileName[10];
-	sprintf((char *)tempFileName, "%s%d.data", "files/", temp);
+	sprintf((char *)tempFileName, "%s/%d.data", filesDir, temp);
 
 	FILE *f = fopen((char *)fileName, "rb");
 	FILE *f1 = fopen((char *)tempFileName, "wb");
@@ -686,7 +707,7 @@ void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 	//writeData(metadata);
 	char ch;
 	unsigned char tempFileName[10];
-	sprintf((char *)tempFileName, "%s%d.data", "files/", temp);
+	sprintf((char *)tempFileName, "%s/%d.data", filesDir, temp);
 
 	FILE *f = fopen((char *)fileName, "rb");
 	FILE *f1 = fopen((char *)tempFileName, "wb");

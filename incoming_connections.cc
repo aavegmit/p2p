@@ -603,7 +603,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				m.status = 3;
 				m.ttl = 1 ;
 				m.fileName = (unsigned char *)malloc(20) ;
-				sprintf((char *)m.fileName, "files/%d.data", fileIDMap[string((const char *)fileID, 20  ) ] ) ;
+				sprintf((char *)m.fileName, "%s/%d.data", filesDir, fileIDMap[string((const char *)fileID, 20  ) ] ) ;
 				//				strncpy((char *)m.fileName, (char *)metadata.fileName, strlen((char *)metadata.fileName)) ;
 
 				m.metadata = (unsigned char *)malloc(metaStr.size()+1) ;

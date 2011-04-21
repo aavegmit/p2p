@@ -364,7 +364,7 @@ void *keyboard_thread(void *arg){
 			unsigned char password[SHA_DIGEST_LENGTH] ;
 			GetUOID( const_cast<char *> ("password"), password, sizeof(password)) ;
 			unsigned char passwordFileName[10];
-			sprintf((char *)passwordFileName, "%s%d.pass", "files/", globalFileNumber);
+			sprintf((char *)passwordFileName, "%s/%d.pass", filesDir, globalFileNumber);
 		
 			FILE *f1 = fopen((char *)passwordFileName, "w");
 			fprintf(f1,"%s",password);
@@ -527,7 +527,7 @@ void *keyboard_thread(void *arg){
 						{
 							memset(passFile,0, sizeof(passFile));
 							memset(tempPassword,0, sizeof(tempPassword));
-							sprintf((char *)passFile, "files/%d.pass", (*it));
+							sprintf((char *)passFile, "%s/%d.pass", filesDir, (*it));
 							f = fopen((char *)passFile, "r");
 							if(f!=NULL)
 							{
@@ -617,9 +617,11 @@ void *keyboard_thread(void *arg){
 
 			value = (unsigned char *)strtok(NULL, "\n");
 			if(value == NULL)
-				strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));
+				//strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));
+				sprintf((char *)extFile, "%s/%s", myInfo->homeDir, metadata.fileName);
 			else
-				strncpy((char *)extFile, (char *)value, strlen((char *)value));
+				//strncpy((char *)extFile, (char *)value, strlen((char *)value));
+				sprintf((char *)extFile, "%s/%s", myInfo->homeDir, value);
 			printf("You have found the entry and now flood to get it!!!\n");
 			checkFlag = 1;
 			initiateGet(metadata) ;

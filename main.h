@@ -131,6 +131,7 @@ extern int softRestartFlag ;
 extern int globalSearchCount ;
 extern int currentCacheSize;
 extern unsigned char extFile[256];
+extern unsigned char filesDir[256];
 extern FILE *f_log;
 extern map<int, struct connectionNode> connectionMap ;				// Stores all the info related to a connection
 extern list<pthread_t > childThreadList ;

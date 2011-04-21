@@ -29,6 +29,7 @@ int checkTimerFlag = 0 ;
 unsigned char *fileName = NULL;
 unsigned char tempLogFile[512], tempInitFile[512];
 unsigned char extFile[256];
+unsigned char filesDir[256];
 int softRestartFlag = 0 ;
 int globalSearchCount = 0 ;
 int currentCacheSize = 0;
@@ -217,8 +218,13 @@ int main(int argc, char *argv[])
 	/******************************************************/
 	
 	//creates the directory, homedirectory
-	mkdir((char *)myInfo->homeDir, 0777);
+
+//	memset(filesDir, 0, 256);
+	sprintf((char *)filesDir, "%s/files", myInfo->homeDir);
 	
+	mkdir((char *)myInfo->homeDir, 0777);
+	mkdir((char *)filesDir, 0777);
+
 	//Log file and init_neighbors_file
 	memset(&tempLogFile, '\0', 512);
 	memset(&tempInitFile, '\0', 512);
@@ -516,8 +522,8 @@ void init(){
 	
 			//checking if the init_neighbor_list exsits or not
 	
-			//f=fopen((char *)tempInitFile, "r");
-			f=fopen("init_neighbor_list", "r");
+			f=fopen((char *)tempInitFile, "r");
+			//f=fopen("init_neighbor_list", "r");
 			sigset_t new_t;
 			sigemptyset(&new_t);
 			sigaddset(&new_t, SIGUSR1);
