@@ -233,7 +233,7 @@ void *keyboard_thread(void *arg){
 			
 			bool contFlag1 = 0;
 			value = (unsigned char *)strtok(NULL, " "); //ttl value
-			for(int i=0;i<strlen((char *)value);i++)
+			for(int i=0;i<(int)strlen((char *)value);i++)
 				if(isdigit(value[i]) == 0)
 				{
 					contFlag1 = 1;
@@ -602,7 +602,7 @@ void *keyboard_thread(void *arg){
 				continue;
 			}
 			struct metaData metadata = getFileIDMap[indexNumber];
-			
+
 			map<string, int>::iterator result = fileIDMap.find(string((char *)metadata.fileID, 20));
 			if(result != fileIDMap.end())
 			{
@@ -614,7 +614,7 @@ void *keyboard_thread(void *arg){
 				}
 				continue;
 			}
-			
+
 			value = (unsigned char *)strtok(NULL, "\n");
 			if(value == NULL)
 				strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));

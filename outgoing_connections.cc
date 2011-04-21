@@ -527,7 +527,7 @@ void *write_thread(void *args){
 					//					memcpy(&buffer[len - len1 - 24], &len1, 4) ;
 					for(unsigned int h = (len-len1-20) ; h < (len - len1) ; ++h)
 						buffer[h] = metadata.fileID[h - (len-len1-20)] ;
-					for(int h = (len-len1) ; h < len ; ++h){
+					for(unsigned int h = (len-len1) ; h < len ; ++h){
 						buffer[h] = metaStr[h-len+len1] ;
 						//		printf("%c", buffer[h]) ;
 					}
@@ -614,7 +614,7 @@ void *write_thread(void *args){
 		else{
 			return_code = (int)write(sockfd, buffer, len) ;
 			if (return_code != (int)len){
-//				fprintf(stderr, "Socket Write Error") ;
+				//				fprintf(stderr, "Socket Write Error") ;
 			}
 		}
 
@@ -1139,7 +1139,7 @@ void joinNetwork(){
 			else if( (*it).second.size() == 1)
 				fprintf(fp, "%s:%d has 1 file\n", (*it).first.hostname,  (*it).first.portNo) ;
 			else
-				fprintf(fp, "%s:%d has %d files\n", (*it).first.hostname,  (*it).first.portNo, (*it).second.size()) ;
+				fprintf(fp, "%s:%d has %d files\n", (*it).first.hostname,  (*it).first.portNo, (int)(*it).second.size()) ;
 
 			for(list<string>::iterator it1 = (*it).second.begin(); it1 != (*it).second.end() ; ++it1){
 				fputs((*it1).c_str(), fp) ;
@@ -1214,22 +1214,25 @@ void joinNetwork(){
 		//sending the store message to all of it's neighbor
 		pthread_mutex_lock(&nodeConnectionMapLock) ;
 		for(map<struct node, int>::iterator it = nodeConnectionMap.begin(); it != nodeConnectionMap.end() ; ++it){
-			struct Message m ;
-			m.type = 0xcc ;
-			m.status = 3 ;
-			m.ttl = myInfo->ttl ;
-			m.metadata = (unsigned char *)malloc(metadata.size()+1) ;
-			strncpy((char *)m.metadata, metadata.c_str(), metadata.size()) ;
-			m.metadata[metadata.size()] = '\0' ;
-		
-			m.fileName = (unsigned char *)malloc(fileName.size()+1) ;
-			strncpy((char *)m.fileName, fileName.c_str(), fileName.size()) ;
-			m.fileName[fileName.size()] = '\0' ;
-			
+			if((double)drand48() <= myInfo->neighborStoreProb){
+				struct Message m ;
+				m.type = 0xcc ;
+				m.status = 3 ;
+				m.ttl = myInfo->ttl ;
+				m.metadata = (unsigned char *)malloc(metadata.size()+1) ;
+				strncpy((char *)m.metadata, metadata.c_str(), metadata.size()) ;
+				m.metadata[metadata.size()] = '\0' ;
 
-			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
-				m.uoid[i] = uoid[i] ;
-			pushMessageinQ( (*it).second, m) ;
+				m.fileName = (unsigned char *)malloc(fileName.size()+1) ;
+				strncpy((char *)m.fileName, fileName.c_str(), fileName.size()) ;
+				m.fileName[fileName.size()] = '\0' ;
+
+
+				for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+					m.uoid[i] = uoid[i] ;
+				pushMessageinQ( (*it).second, m) ;
+
+			}
 		}
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;
 
@@ -1243,7 +1246,7 @@ void joinNetwork(){
 
 		struct Packet pk;
 		pk.status = 0 ;
-		pk.msgLifeTime = myInfo->msgLifeTime;
+		pk.msgLifeTime = myInfo->getMsgLifeTime;
 
 
 		pthread_mutex_lock(&MessageDBLock) ;
@@ -1263,8 +1266,8 @@ void joinNetwork(){
 				m.metadata[i] = metadata.sha1[i] ;
 				m.query[i] = metadata.fileID[i] ;
 			}
-		
-			
+
+
 
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				m.uoid[i] = uoid[i] ;
