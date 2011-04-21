@@ -602,7 +602,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				m.type = 0xdb ;
 				m.status = 3;
 				m.ttl = 1 ;
-				m.fileName = (unsigned char *)malloc(20) ;
+				m.fileName = (unsigned char *)malloc(256) ;
 				sprintf((char *)m.fileName, "%s/%d.data", filesDir, fileIDMap[string((const char *)fileID, 20  ) ] ) ;
 				//				strncpy((char *)m.fileName, (char *)metadata.fileName, strlen((char *)metadata.fileName)) ;
 

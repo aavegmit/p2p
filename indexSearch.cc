@@ -663,7 +663,7 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 
 	//writeData(metadata);	
 	char ch;
-	unsigned char tempFileName[10];
+	unsigned char tempFileName[256];
 	sprintf((char *)tempFileName, "%s/%d.data", filesDir, temp);
 
 	FILE *f = fopen((char *)fileName, "rb");
@@ -714,7 +714,7 @@ void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 	
 	//writeData(metadata);
 	char ch;
-	unsigned char tempFileName[10];
+	unsigned char tempFileName[256];
 	sprintf((char *)tempFileName, "%s/%d.data", filesDir, temp);
 
 	FILE *f = fopen((char *)fileName, "rb");

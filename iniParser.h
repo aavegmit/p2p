@@ -19,7 +19,6 @@
 #include <string.h>
 #include <set>
 
-
 using namespace std;
 
 struct beaconList
