@@ -531,7 +531,7 @@ void *keyboard_thread(void *arg){
 				continue;
 			}
 			struct metaData metadata = getFileIDMap[indexNumber];
-			value = (unsigned char *)strtok(NULL, " ");
+			value = (unsigned char *)strtok(NULL, "\n");
 			if(value == NULL)
 				strncpy((char *)extFile, (char *)metadata.fileName, strlen((char *)metadata.fileName));
 			else

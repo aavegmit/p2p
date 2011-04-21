@@ -181,6 +181,10 @@ int main(int argc, char *argv[])
 	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
 	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
 	
+	time_t localtime=(time_t)0;
+	
+	time(&localtime);
+	srand48((long)localtime);
 	/******************************************************/
 	/*struct metaData metadata = populateMetaData(33);
 	metadataList.push_back(metadata);
