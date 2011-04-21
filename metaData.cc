@@ -51,7 +51,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 {
 	//unsigned char dir[10] = "files/";
 
-	unsigned char fileName[10];
+	unsigned char fileName[256];
 	sprintf((char *)fileName, "%s/%d.meta", filesDir, globalFileNumber);
 
 	FILE *f = fopen((char *)fileName, "w");
@@ -136,7 +136,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 	void writeData(struct metaData metadata, int globalFileNumber)
 	{
 		char ch;
-		unsigned char fileName[10];
+		unsigned char fileName[256];
 		sprintf((char *)fileName, "%s/%d.data", filesDir, globalFileNumber);
 
 		FILE *f = fopen((char *)metadata.fileName, "rb");
