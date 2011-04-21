@@ -1260,7 +1260,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 				// Pass the temp file name to mau function
 				// Do the prob thing here, else just pass
-				writeFileToCache((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn.c_str()) ;	
+//				writeFileToCache((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn.c_str()) ;	
 				// Pass the file pointer to process recd message
 			}
 			else if(message_type == 0xdb){
