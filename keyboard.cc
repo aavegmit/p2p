@@ -199,6 +199,7 @@ void *keyboard_thread(void *arg){
 			struct metaData metadata;
 			unsigned char *key;
 			memset(&metadata, 0, sizeof(metadata));
+			memset(&metadata.bitVector, 0, 128);
 			metadata.keywords =  new list<string >();
 
 			unsigned char *value = (unsigned char *)strtok((char *)inp, " ");
@@ -375,7 +376,10 @@ void *keyboard_thread(void *arg){
 				  printf("%02x", metadata.bitVector[i]);
 				  printf("\n\n");*/
 			}
-
+			/*	  printf("\n");
+			for(int i=0;i<128;i++)
+				  printf("%02x", metadata.bitVector[i]);
+			  printf("\n");*/
 			//Update the global file Number
 			int globalFileNumber = updateGlobalFileNumber();
 
