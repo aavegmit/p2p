@@ -66,6 +66,8 @@ void *write_thread(void *args){
 			pthread_mutex_lock(&MessageDBLock) ;
 			MessageDB[string((const char *)uoid, SHA_DIGEST_LENGTH) ] = pk ;
 			pthread_mutex_unlock(&MessageDBLock) ;
+			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
+				header[1+i] = uoid[i] ;	
 		} 
 		// Copy the uoid from the structure into the header
 		else if (mes.status == 1){
@@ -624,7 +626,7 @@ void *write_thread(void *args){
 		unsigned char *logEntry = NULL;
 		if(!(mes.type == 0xfa && (inJoinNetwork || connectionMap[sockfd].joinFlag == 1)))
 		{
-			pthread_mutex_lock(&logEntryLock) ;						
+			pthread_mutex_lock(&logEntryLock) ;
 			if(mes.status== 0 || mes.status == 2 )
 				logEntry = createLogEntry('s', sockfd, header, buffer);
 			else

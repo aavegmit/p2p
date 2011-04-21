@@ -918,7 +918,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 						//												for(unsigned int u = i ; u < (i + templen) ; ++u){
 						//													printf("%c", buffer[u]) ;
 						//												}
-												printf("here %d %d\n", strlen(metaStr.c_str()), metaStr.size() ) ;
+						printf("here %d %d\n", (int)strlen(metaStr.c_str()), (int)metaStr.size() ) ;
 						i = i +templen;
 						//						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
 						struct metaData newMeta = populateMetaDataFromCPPString(metaStr) ;
