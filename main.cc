@@ -133,7 +133,7 @@ void closeConnection(int sockfd){
 
 	//printf("This socket has been closed: %d\n", sockfd);
 	// Initiate a CHECK message
-	if (!myInfo->isBeacon && !shutDown && !inJoinNetwork){
+	if (!myInfo->isBeacon && !shutDown && !inJoinNetwork && !myInfo->noCheck){
 		//printf("Inititating CHECK message\n") ;
 				initiateCheck() ;
 	}

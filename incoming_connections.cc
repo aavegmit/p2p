@@ -6,11 +6,11 @@ using namespace std ;
 
 
 string returnTmpFp(){
-	char sfn[19];
+	char sfn[256];
 	FILE *sfp;
 	int fd;
 
-	strncpy(sfn, "./.tmp.XXXXXXX", sizeof(sfn));
+	sprintf(sfn, "%s/.tmp.XXXXXXX", myInfo->homeDir) ;
 	if ((fd = mkstemp(sfn)) == -1 ||
 			(sfp = fdopen(fd, "wb+")) == NULL) {
 		if (fd != -1) {
@@ -676,7 +676,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		string metaStr((char *)&buffer[4], metaLen) ;
 
 
-		if((double)drand48() <= myInfo->storeProb){
+		if((double)drand48() < (double)myInfo->storeProb){
 			writeFileToCache((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn   )  ;
 			// Push the request message in neighbors queue
 			if (ttl >= 1 && myInfo->ttl > 0){
