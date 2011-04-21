@@ -62,8 +62,11 @@ return md5_str;
 
 void createBitVector(unsigned char *bitVector, unsigned char *keyword)
 {
-unsigned short int sha1_int = 0;
-unsigned short int md5_int = 0;
+//unsigned short int sha1_int = 0;
+//unsigned short int md5_int = 0;
+
+uint16_t sha1_int = 0;
+uint16_t md5_int = 0;
 
 for(int i=0;keyword[i]!='\0';i++)
 	keyword[i]=tolower(keyword[i]);
@@ -82,17 +85,18 @@ unsigned char md5_str_temp[2];
 
 unsigned char temp = readBit(sha1_str, 151);
 
-sha1_str_temp[1] = temp;
-sha1_str_temp[0] = sha1_str[19];
+sha1_str_temp[0] = temp;
+sha1_str_temp[1] = sha1_str[19];
 
 temp = readBit(md5_str, 119);
-md5_str_temp[1] = temp;
-md5_str_temp[0] = md5_str[15];
+md5_str_temp[0] = temp;
+md5_str_temp[1] = md5_str[15];
 
 memcpy(&sha1_int, sha1_str_temp, 2);
 memcpy(&md5_int, md5_str_temp, 2);
 /*for(int i=0;i<2;i++)
-	printf("sha1: %02x, md5: %02x\n", sha1_str_temp[i], md5_str_temp[i]);*/
+	printf("sha1: %02x, md5: %02x\n", sha1_str_temp[i], md5_str_temp[i]);
+printf("Integer are sha1: %d, md5: %d\n", sha1_int, md5_int);*/
 //unsigned char *bitVector = (unsigned char *)malloc(sizeof(unsigned char)*128);
 //unsigned char bitVector[128];
 //memset(bitVector, 0, sizeof(bitVector));
@@ -102,6 +106,10 @@ bitVector = bitVector << sha1_int;*/
 writeBit(bitVector, 1023-(512 + sha1_int) , 0x01);
 writeBit(bitVector, 1023-md5_int  , 0x01);
 
+/* for(int i=0;i<128;i++)
+  printf("%02x", bitVector[i]);
+  printf("\n\n");
+*/
 //return bitVector;
 }
 

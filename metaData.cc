@@ -161,8 +161,8 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 				w[i] = str[i*2] - 87 ;
 			}
 			else{
-				fprintf(stderr, "Value not a hexstring\n") ;
-				exit(0) ;
+				/*fprintf(stderr, "Value not a hexstring\n") ;
+				exit(0) ;*/
 			}
 
 			w[i] = w[i] << 4 ;
@@ -174,8 +174,8 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 				w[i] = w[i] | (str[i*2+1] - 87) ;
 			}
 			else{
-				fprintf(stderr, "Value not a hexstring\n") ;
-				exit(0) ;
+				/*fprintf(stderr, "Value not a hexstring\n") ;
+				exit(0) ;*/
 			}
 
 		}

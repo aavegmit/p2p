@@ -258,9 +258,10 @@ int main(int argc, char *argv[])
 		deleteAllFiles();
 	}
 	//Opening the log file
-	//f_log = fopen((char *)tempLogFile, "a");
-	f_log = fopen((char *)myInfo->logFileName, "a");
-
+	f_log = fopen((char *)tempLogFile, "a");
+	
+	//f_log = fopen((char *)myInfo->logFileName, "a");
+	//printf("%s", myInfo->logFileName);
 	if(strcmp((char *)myInfo->homeDir, "\0")==0 || myInfo->portNo == 0 || myInfo->location == 0)
 	{
 		//Program should exit
