@@ -1093,7 +1093,7 @@ void joinNetwork(){
 			struct Message m ;
 			m.type = 0xac ;
 			m.status = 2 ;
-			m.ttl = myInfo->ttl ;
+			m.ttl = myInfo->status_ttl ;
 			m.status_type = 0x02 ;
 			for (int i=0 ; i < SHA_DIGEST_LENGTH ; i++)
 				m.uoid[i] = uoid[i] ;
@@ -1218,7 +1218,7 @@ void joinNetwork(){
 				struct Message m ;
 				m.type = 0xcc ;
 				m.status = 3 ;
-				m.ttl = myInfo->ttl ;
+				m.ttl = myInfo->status_ttl ;
 				m.metadata = (unsigned char *)malloc(metadata.size()+1) ;
 				strncpy((char *)m.metadata, metadata.c_str(), metadata.size()) ;
 				m.metadata[metadata.size()] = '\0' ;
@@ -1259,7 +1259,7 @@ void joinNetwork(){
 			struct Message m ;
 			m.type = 0xdc ;
 			m.status = 2 ;
-			m.ttl = myInfo->ttl ;
+			m.ttl = myInfo->status_ttl ;
 			m.metadata = (unsigned char *)malloc(20) ;
 			m.query = (unsigned char *)malloc(20) ;
 			for(int i = 0 ; i < 20 ; ++i){
