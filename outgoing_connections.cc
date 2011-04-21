@@ -1124,6 +1124,7 @@ void joinNetwork(){
 
 		struct metaData metadata ;
 		string metaStr("")  ;
+		statusResponseTypeFiles[own] ;
 		for(list<int>::iterator it = tempList.begin(); it != tempList.end(); it++){
 			metadata = populateMetaData(*it) ;
 			fileIDMap[string((char *)metadata.fileID, 20)] = (*it) ;
