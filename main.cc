@@ -224,7 +224,16 @@ int main(int argc, char *argv[])
 	
 	mkdir((char *)myInfo->homeDir, 0777);
 	mkdir((char *)filesDir, 0777);
-
+	unsigned char fileNumber_file[256];
+	sprintf((char *)fileNumber_file, "%s/.fileNumber", myInfo->homeDir);
+	FILE *f_fileNumber = fopen((char *)fileNumber_file, "r");
+	if(f_fileNumber == NULL)
+	{
+		f_fileNumber = fopen((char *)fileNumber_file, "w");	
+		fprintf(f_fileNumber, "%d", 0);
+	}
+	fclose(f_fileNumber);
+	
 	//Log file and init_neighbors_file
 	memset(&tempLogFile, '\0', 512);
 	memset(&tempInitFile, '\0', 512);
