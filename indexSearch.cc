@@ -265,6 +265,14 @@ void populateBitVectorIndexMap(unsigned char *bitVector, unsigned int fileNumber
 
 void populateSha1IndexMap(unsigned char *sha1, unsigned int fileNumber)
 {
+/*	printf("while populating: \n");
+	for(int i=0;i<20;i++)
+	{
+		printf("%02x", sha1[i]);
+		//bitVector[i]=((*it1).first).c_str()[i];
+	}
+	printf("\n");
+*/
 	string str((char *)sha1, 20);
 	sha1IndexMap[str].push_back((int)fileNumber);
 }
@@ -573,7 +581,13 @@ bool breakFlag = 0;
 	}
 	
 	//remove from cache
-	cacheLRU.remove((fileNumber));
+	list<int >::iterator result = find(cacheLRU.begin(), cacheLRU.end(), (int)fileNumber);
+	if(result!=cacheLRU.end())
+	{
+		struct metaData metadata = populateMetaData(fileNumber);
+		currentCacheSize -= metadata.fileSize;
+		cacheLRU.remove((fileNumber));	
+	}
 	
 	unsigned char removeString[256];
 	memset(removeString, '\0', 256);
@@ -614,6 +628,7 @@ void deleteAllFiles()
 	sha1IndexMap.clear();
 	fileNameIndexMap.clear();
 	cacheLRU.clear();
+	currentCacheSize = 0;
 	unsigned char kwrd_index_file[256];
 	sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
 	unsigned char name_index_file[256];
@@ -631,6 +646,16 @@ void deleteAllFiles()
 
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 {
+bool replaceFlag = 1;
+	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
+	int ret_val = doesFileExist(metadata);
+	if(ret_val != -1)
+	{
+		updateLRU(ret_val);
+		printf("File Exist already\n");
+		replaceFlag = 0;
+	}
+
 	FILE *f_ext = fopen((char *)extFile, "rb");
 	unsigned char input[10];
 	memset(input, '\0', 10);
@@ -657,48 +682,87 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 	}
 
 	
-	int temp = updateGlobalFileNumber();
+	int temp = 0;
+	if(replaceFlag)
+		temp = updateGlobalFileNumber();
 		
-	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
 	//struct metaData metadata = populateMetaDataFromCPPString(string((char *)metadata_str));
 
 	//writeData(metadata);	
 	char ch;
 	unsigned char tempFileName[256];
-	sprintf((char *)tempFileName, "%s/%d.data", filesDir, temp);
-
-	FILE *f = fopen((char *)fileName, "rb");
-	FILE *f1 = fopen((char *)tempFileName, "wb");
-	while(fread(&ch,1,1,f)!=0)
-	{
-		fwrite(&ch, 1,1, f1);
-		fwrite(&ch, 1,1, f_ext);
-	}
-	fclose(f);
-	fclose(f1);
-	fclose(f_ext);
 	
-	if(fclose(f1) != 0 || fclose(f_ext) != 0)
+	FILE *f, *f1;
+	if(replaceFlag)
 	{
-		if(errno == EIO)
+		sprintf((char *)tempFileName, "%s/%d.data", filesDir, temp);
+		f = fopen((char *)fileName, "rb");
+		f1 = fopen((char *)tempFileName, "wb");
+		while(fread(&ch,1,1,f)!=0)
 		{
-			printf("\nDisk Quota Reached, could not save file\n");
-			writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
-			remove((char *)tempFileName);
-			remove((char *)extFile);
-			return;
+			fwrite(&ch, 1,1, f1);
+			fwrite(&ch, 1,1, f_ext);
+		}
+		fclose(f);
+		fclose(f1);
+		fclose(f_ext);
+		
+		if(fclose(f1) != 0 || fclose(f_ext) != 0)
+		{
+			if(errno == EIO)
+			{
+				printf("\nDisk Quota Reached, could not save file\n");
+				writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
+				remove((char *)tempFileName);
+				remove((char *)extFile);
+				return;
+			}
+		}
+
+	}
+	else
+	{
+		f = fopen((char *)fileName, "rb");
+		while(fread(&ch,1,1,f)!=0)
+		{
+			fwrite(&ch, 1,1, f_ext);
+		}
+		fclose(f);
+		fclose(f_ext);
+		
+		if(fclose(f_ext) != 0)
+		{
+			if(errno == EIO)
+			{
+				printf("\nDisk Quota Reached, could not save file\n");
+				writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
+				remove((char *)tempFileName);
+				remove((char *)extFile);
+				return;
+			}
 		}
 	}
-	writeMetaData(metadata, temp);
-	populateBitVectorIndexMap(metadata.bitVector, temp);
-	populateSha1IndexMap(metadata.sha1, temp);
-	populateFileNameIndexMap(metadata.fileName, temp);
+		
+	
+	if(replaceFlag)
+	{
+		writeMetaData(metadata, temp);	
+		populateBitVectorIndexMap(metadata.bitVector, temp);
+		populateSha1IndexMap(metadata.sha1, temp);
+		populateFileNameIndexMap(metadata.fileName, temp);
+	}
 }
 
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 {
+
+	printf("%s", metadata_str);
 	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
-	
+
+	/*printf("After many things\n\n");
+	for(int i=0;i<20;i++)
+		printf("%02x", metadata.sha1[i]);
+	printf("\n\n");*/
 	int ret_val = doesFileExist(metadata);
 	if(ret_val != -1)
 	{

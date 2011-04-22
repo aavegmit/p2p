@@ -56,12 +56,16 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 
 	FILE *f = fopen((char *)fileName, "w");
 
+	printf("IN WRTIE TO FILE\n\n");
 	fprintf(f,"%s\n","[metadata]");
 	fprintf(f, "%s=%s\n", "FileName", metadata.fileName);
 	fprintf(f, "%s=%ld\n", "FileSize", metadata.fileSize);
 	fprintf(f, "%s=", "SHA1");
 	for(int i=0;i<20;i++)
+	{
 		fprintf(f, "%02x", metadata.sha1[i]);
+		//printf("%02x", metadata.sha1[i]);
+	}
 
 	fprintf(f, "\n%s=", "Nonce");
 	for(int i=0;i<20;i++)
@@ -217,6 +221,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		FILE *f = fopen((char *)fileName, "r");
 		if(f==NULL)
 		{
+			printf("FileName is : %s\n", fileName);
 			printf("File does not exist\n");
 			exit(0)	;
 		}
@@ -512,7 +517,16 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 				key = (unsigned char *)strtok_r((char *)buffer, "=", (char **)&saveptr2);
 				key = (unsigned char *)strtok_r(NULL, "\n", (char **)&saveptr2);
 				unsigned char *str = toHex(key, 20);
-				strncpy((char *)metadata.sha1, (char *)str, 20);
+				//strncpy((char *)metadata.sha1, (char *)str, 20);
+
+				//printf("\n\n%s\n\n",key);
+				for(int i=0;i<20;i++)
+				{
+					//printf("%02x", str[i]);
+					metadata.sha1[i] = str[i];
+				}
+				//printf("\n\n");
+
 				free(str);
 			}
 			else if(strstr((char *)buffer, "Nonce=")!=NULL)
@@ -581,21 +595,28 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 			return -1;
 		while((metadata.fileSize + currentCacheSize) > myInfo->cacheSize)
 		{
-			removeFromLRU();
-			printf("I am in here \n");
+			//removeFromLRU();
+			deleteFromIndex(cacheLRU.front());
+			//printf("I am in here \n");
 		}
+		//printf("Isereted into list: %d\n", fileNumber);
 		cacheLRU.push_back(fileNumber);
 		currentCacheSize+=metadata.fileSize;
-		printf("currentCacheSize is: %d\n", currentCacheSize);
+		//printf("currentCacheSize is: %d\n", currentCacheSize);
 		return 1;
 	}
 
 	void removeFromLRU()
 	{
-		int toBeRemoved = cacheLRU.front();
+		/*int toBeRemoved = cacheLRU.front();
+		printf("removed from list: %d\n", toBeRemoved);
 		struct metaData metadata = populateMetaData(toBeRemoved);
-		currentCacheSize -= metadata.fileSize;
-		cacheLRU.pop_front();
+		//currentCacheSize -= metadata.fileSize;
+		//cacheLRU.pop_front();
+		
+		deleteFromIndex(toBeRemoved);
+		
+		cacheLRU.remove(toBeRemoved);
 		unsigned char removeString[256];
 		
 		memset(removeString, '\0', 256);
@@ -608,7 +629,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 	
 		memset(removeString, '\0', 256);
 		sprintf((char *)removeString, "%s/%d.pass", filesDir, toBeRemoved);
-		remove((char *)removeString);
+		remove((char *)removeString);*/
 	}
 
 	void writeLRUToFile()

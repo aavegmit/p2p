@@ -223,8 +223,16 @@ int main(int argc, char *argv[])
 //	memset(filesDir, 0, 256);
 	sprintf((char *)filesDir, "%s/files", myInfo->homeDir);
 	
-	mkdir((char *)myInfo->homeDir, 0777);
-	mkdir((char *)filesDir, 0777);
+	
+	struct stat st;
+	if(stat((char *)myInfo->homeDir,&st) != 0)
+		mkdir((char *)myInfo->homeDir, 0777);
+
+	memset(&st, 0, sizeof(st));
+
+	if(stat((char *)filesDir,&st) != 0)
+		mkdir((char *)filesDir, 0777);
+		
 	unsigned char fileNumber_file[256];
 	sprintf((char *)fileNumber_file, "%s/.fileNumber", myInfo->homeDir);
 	FILE *f_fileNumber = fopen((char *)fileNumber_file, "r");

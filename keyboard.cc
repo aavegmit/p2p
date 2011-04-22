@@ -234,6 +234,10 @@ void *keyboard_thread(void *arg){
 			SHA1_Final(metadata.sha1, c);
 
 
+			printf("Sha1 calculated is: \n");
+			for(int i=0;i<20;i++)
+				printf("%02x", metadata.sha1[i]);
+			printf("\n\n");
 			free(c);
 			fclose(f);
 
@@ -434,7 +438,7 @@ void *keyboard_thread(void *arg){
 				}
 				else if(strcasecmp((char *)value, "sha1hash")==0)
 				{
-					value = (unsigned char *)strtok(NULL, "=");
+					value = (unsigned char *)strtok(NULL, "\n");
 					if(value == NULL)
 						continue;
 					unsigned char *str = toHex(value, 20);
@@ -444,7 +448,7 @@ void *keyboard_thread(void *arg){
 				else if(strcasecmp((char *)value, "keywords")==0)
 				{
 
-					value = (unsigned char *)strtok(NULL, "\0");
+					value = (unsigned char *)strtok(NULL, "\n");
 					if(value==NULL)
 						continue;
 					if(value[0] == '"')
@@ -464,10 +468,10 @@ void *keyboard_thread(void *arg){
 						checkFlag = 1;
 					}
 				}
-				/*pthread_mutex_lock(&searchMsgLock) ;
+				pthread_mutex_lock(&searchMsgLock) ;
 				pthread_cond_wait(&searchMsgCV, &searchMsgLock);
-				pthread_mutex_unlock(&searchMsgLock) ;*/
-				sleep(5);
+				pthread_mutex_unlock(&searchMsgLock) ;
+				//sleep(5);
 			}
 			/*else if(strstr((char *) inp, "find ")!=NULL)
 			  {
@@ -687,6 +691,10 @@ void *keyboard_thread(void *arg){
 				printf("You have found the entry and now flood to get it!!!\n");
 				checkFlag = 1;
 				initiateGet(metadata) ;
+				
+				pthread_mutex_lock(&searchMsgLock) ;
+				pthread_cond_wait(&searchMsgCV, &searchMsgLock);
+				pthread_mutex_unlock(&searchMsgLock) ;
 			}
 
 			memset(inp, '\0', 1024) ;
