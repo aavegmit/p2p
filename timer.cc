@@ -91,6 +91,7 @@ void *timer_thread(void *arg){
 
 		// Status timer flag
 		if (statusTimerFlag && !inJoinNetwork){
+		printf("value is now: %d\n", myInfo->statusResponseTimeout);
 			if(myInfo->statusResponseTimeout > 0)
 				--myInfo->statusResponseTimeout ;
 			else //if (myInfo->statusResponseTimeout == 0){

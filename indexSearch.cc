@@ -659,7 +659,8 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 	
 	int temp = updateGlobalFileNumber();
 		
-	struct metaData metadata = populateMetaDataFromString(metadata_str);
+	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
+	//struct metaData metadata = populateMetaDataFromCPPString(string((char *)metadata_str));
 
 	//writeData(metadata);	
 	char ch;

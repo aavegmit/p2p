@@ -1,0 +1,241 @@
+connectBeacon.cc:58:				cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+connectBeacon.cc:59:				cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+connectBeacon.cc:121:		sleep(myInfo->retry) ;
+incoming_connections.cc:13:	sprintf(sfn, "%s/.tmp.XXXXXXX", myInfo->homeDir) ;
+incoming_connections.cc:43:	sprintf((char *)portBuf, "%d", myInfo->portNo) ;
+incoming_connections.cc:145:			cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+incoming_connections.cc:146:			cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+incoming_connections.cc:249:			if (myInfo->portNo < n.portNo){
+incoming_connections.cc:255:			else if(myInfo->portNo > n.portNo){
+incoming_connections.cc:319:		pk.msgLifeTime = myInfo->msgLifeTime;
+incoming_connections.cc:334:		m.location = myInfo->location > location ?  myInfo->location - location : location - myInfo->location ;
+incoming_connections.cc:340:		if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:348:					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:451:		pk.msgLifeTime = myInfo->msgLifeTime;
+incoming_connections.cc:470:		if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:478:					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:515:		pk.msgLifeTime = myInfo->msgLifeTime;
+incoming_connections.cc:539:		if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:546:					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:581:		pk.msgLifeTime = myInfo->getMsgLifeTime;
+incoming_connections.cc:623:		if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:630:					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:665:		pk.msgLifeTime = myInfo->msgLifeTime;
+incoming_connections.cc:679:		if((double)drand48() < (double)myInfo->storeProb){
+incoming_connections.cc:682:			if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:685:					if( !((*it).second == sockfd) && ((double)drand48() <= myInfo->neighborStoreProb   ) ){
+incoming_connections.cc:689:						m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:728:		pk.msgLifeTime = myInfo->msgLifeTime;
+incoming_connections.cc:744:		if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:751:					m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:983:				if((double)drand48() <= myInfo->cacheProb )
+incoming_connections.cc:1026:		pk.msgLifeTime = myInfo->msgLifeTime;
+incoming_connections.cc:1032:		if (myInfo->isBeacon){
+incoming_connections.cc:1046:			if (ttl >= 1 && myInfo->ttl > 0){
+incoming_connections.cc:1054:						m.ttl = (unsigned int)(ttl) < (unsigned int)myInfo->ttl ? (ttl) : myInfo->ttl  ;
+incoming_connections.cc:1126:		connectionMap[sockfd].keepAliveTimeOut = myInfo->keepAliveTimeOut;
+incoming_connections.cc:1394:		for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+indexSearch.cc:284:sprintf((char *)kwrd_index, "%s/%s" ,myInfo->homeDir, "kwrd_index");
+indexSearch.cc:287:sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
+indexSearch.cc:318:sprintf((char *)name_index, "%s/%s" ,myInfo->homeDir, "name_index");
+indexSearch.cc:321:sprintf((char *)name_index_file, "%s/name_index", myInfo->homeDir);
+indexSearch.cc:338:sprintf((char *)sha1_index, "%s/%s" ,myInfo->homeDir, "sha1_index");
+indexSearch.cc:343:sprintf((char *)sha1_index_file, "%s/sha1_index", myInfo->homeDir);
+indexSearch.cc:371:sprintf((char *)kwrd_index, "%s/%s" ,myInfo->homeDir, "kwrd_index");
+indexSearch.cc:390:sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
+indexSearch.cc:437:sprintf((char *)name_index, "%s/%s" ,myInfo->homeDir, "name_index");
+indexSearch.cc:445:sprintf((char *)name_index_file, "%s/name_index", myInfo->homeDir);
+indexSearch.cc:466:sprintf((char *)sha1_index, "%s/%s" ,myInfo->homeDir, "sha1_index");
+indexSearch.cc:476:sprintf((char *)sha1_index_file, "%s/sha1_index", myInfo->homeDir);
+indexSearch.cc:618:	sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
+indexSearch.cc:620:	sprintf((char *)name_index_file, "%s/name_index", myInfo->homeDir);
+indexSearch.cc:622:	sprintf((char *)sha1_index_file, "%s/sha1_index", myInfo->homeDir);
+indexSearch.cc:624:	sprintf((char *)cacheLRU, "%s/cacheLRU", myInfo->homeDir);
+iniParser.cc:20:	sprintf((char *)myInfo->node_instance_id, "%s_%ld", myInfo->node_id, (long)sec) ;
+iniParser.cc:21://	printf("%s\n", myInfo->node_instance_id) ;
+iniParser.cc:30:	myInfo->myBeaconList = new list<struct beaconList *> ;
+iniParser.cc:31:	myInfo->portNo = 0;
+iniParser.cc:32:	gethostname((char *)myInfo->hostName, 256);
+iniParser.cc:33:	myInfo->location = 0;
+iniParser.cc:34:	memset(myInfo->homeDir, '\0', 512);
+iniParser.cc:35:	strncpy((char *)myInfo->logFileName, "servant.log", strlen("servant.log"));
+iniParser.cc:36:	myInfo->logFileName[strlen("servant.log")]='\0';
+iniParser.cc:37:	myInfo->autoShutDown = 900;
+iniParser.cc:38:	myInfo->autoShutDown_permanent = 900;
+iniParser.cc:39:	myInfo->ttl = 30;
+iniParser.cc:40:	myInfo->msgLifeTime = 30;
+iniParser.cc:41:	myInfo->getMsgLifeTime = 300;
+iniParser.cc:42:	myInfo->initNeighbor = 3;
+iniParser.cc:43:	myInfo->joinTimeOut = 15;
+iniParser.cc:44:	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
+iniParser.cc:45:	myInfo->checkResponseTimeout = 15;
+iniParser.cc:46:	myInfo->keepAliveTimeOut = 60;
+iniParser.cc:47:	myInfo->minNeighbor = 2;
+iniParser.cc:48:	myInfo->noCheck = 0;
+iniParser.cc:49:	myInfo->cacheProb = 0.1;
+iniParser.cc:50:	myInfo->storeProb = 0.1;
+iniParser.cc:51:	myInfo->neighborStoreProb = 0.2;
+iniParser.cc:52:	myInfo->cacheSize = 500;
+iniParser.cc:53:	myInfo->isBeacon = false;
+iniParser.cc:54:	//myInfo->retry = 30;
+iniParser.cc:55:	myInfo->retry = 7;
+iniParser.cc:56:	memset(myInfo->node_id, '\0', 265) ;
+iniParser.cc:57:	memset(myInfo->node_instance_id, '\0', 300) ;
+iniParser.cc:66:	printf("Port No: %d\n",myInfo->portNo);
+iniParser.cc:67:	printf("hostName: %s\n",myInfo->hostName);
+iniParser.cc:68:	printf("Location: %d\n",myInfo->location);
+iniParser.cc:69:	printf("HomeDir: %s\n",myInfo->homeDir);
+iniParser.cc:70:	printf("logFileName: %s\n",myInfo->logFileName);
+iniParser.cc:71:	printf("autoShutDown: %d\n",myInfo->autoShutDown);
+iniParser.cc:72:	printf("TTL: %d\n",myInfo->ttl);
+iniParser.cc:73:	printf("msgLifeTime: %d\n",myInfo->msgLifeTime);
+iniParser.cc:74:	printf("getMsgLifeTime: %d\n",myInfo->getMsgLifeTime);
+iniParser.cc:75:	printf("initNeighbor: %d\n",myInfo->initNeighbor);
+iniParser.cc:76:	printf("joinTimeOut: %d\n",myInfo->joinTimeOut);
+iniParser.cc:77:	printf("keepAliveTimeOut: %d\n",myInfo->keepAliveTimeOut);
+iniParser.cc:78:	printf("minNeighbor: %d\n",myInfo->minNeighbor);
+iniParser.cc:79:	printf("noCheck: %d\n",myInfo->noCheck);
+iniParser.cc:80:	printf("cacheProb: %lf\n",myInfo->cacheProb);
+iniParser.cc:81:	printf("storeProb: %lf\n",myInfo->storeProb);
+iniParser.cc:82:	printf("neighborStoreProb: %lf\n",myInfo->neighborStoreProb);
+iniParser.cc:83:	printf("cacheSize: %d\n",myInfo->cacheSize);
+iniParser.cc:84:	printf("retry: %d\n",myInfo->retry);
+iniParser.cc:85:	printf("isBeacon: %d\n",myInfo->isBeacon);
+iniParser.cc:205:						myInfo->portNo=atoi((char *)value);
+iniParser.cc:219:						myInfo->location=atol((char *)value);
+iniParser.cc:232:						strncpy((char *)myInfo->homeDir,(char *)value, strlen((char *)value));
+iniParser.cc:233:						myInfo->homeDir[strlen((char *)value)]='\0';
+iniParser.cc:246:						strncpy((char *)myInfo->logFileName,(char *)value, strlen((char *)value));
+iniParser.cc:247:						myInfo->logFileName[strlen((char *)value)]='\0';
+iniParser.cc:261:						myInfo->autoShutDown=atoi((char *)value);
+iniParser.cc:274:						myInfo->ttl=atoi((char *)value);
+iniParser.cc:287:						myInfo->msgLifeTime=atoi((char *)value);
+iniParser.cc:300:						myInfo->getMsgLifeTime=atoi((char *)value);
+iniParser.cc:313:						myInfo->initNeighbor=atoi((char *)value);
+iniParser.cc:326:						myInfo->joinTimeOut=atoi((char *)value);
+iniParser.cc:327:						myInfo->checkResponseTimeout=atoi((char *)value);
+iniParser.cc:340:						myInfo->keepAliveTimeOut=atoi((char *)value);
+iniParser.cc:353:						myInfo->minNeighbor=atoi((char *)value);
+iniParser.cc:366:						myInfo->noCheck=atoi((char *)value);
+iniParser.cc:379:						myInfo->cacheProb=atof((char *)value);
+iniParser.cc:392:						myInfo->storeProb=atof((char *)value);
+iniParser.cc:405:						myInfo->neighborStoreProb=atof((char *)value);
+iniParser.cc:418:						myInfo->cacheSize=atoi((char *)value);
+iniParser.cc:436:						myInfo->retry=atoi((char *)value);
+iniParser.cc:448:						myInfo->myBeaconList->push_back(beaconNode);
+keyboard.cc:42:	//alarm(myInfo->autoShutDown);
+keyboard.cc:47:		printf("\nservant:%d> ", myInfo->portNo) ;
+keyboard.cc:102:			myInfo->status_ttl = (uint8_t)atoi((char *)value);
+keyboard.cc:108:			strncpy((char *)myInfo->status_file, (char *)value, strlen((char *)value)) ;
+keyboard.cc:109:			myInfo->status_file[strlen((char *)myInfo->status_file)] = '\0';
+keyboard.cc:111:			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 10 ;
+keyboard.cc:112:			FILE *fp = fopen((char *)myInfo->status_file, "w") ;
+keyboard.cc:127:			//printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
+keyboard.cc:166:			myInfo->status_ttl = (uint8_t)atoi((char *)value);
+keyboard.cc:172:			strncpy((char *)myInfo->status_file, (char *)value, strlen((char *)value)) ;
+keyboard.cc:173:			myInfo->status_file[strlen((char *)myInfo->status_file)] = '\0';
+keyboard.cc:175:			myInfo->statusResponseTimeout = myInfo->msgLifeTime + 10 ;
+keyboard.cc:176:			FILE *fp = fopen((char *)myInfo->status_file, "w") ;
+keyboard.cc:183:			if(myInfo->status_ttl > 0)
+keyboard.cc:191:			//printf("WOW!!!! %d\n", myInfo->statusResponseTimeout);
+keyboard.cc:264:			myInfo->status_ttl = atoi((char *)value) ;
+keyboard.cc:404:			if(myInfo->status_ttl > 0)
+keyboard.cc:667:					//sprintf((char *)extFile, "%s/%s", myInfo->homeDir, metadata.fileName);
+keyboard.cc:670:					//sprintf((char *)extFile, "%s/%s", myInfo->homeDir, value);
+main.cc:137:	if (!myInfo->isBeacon && !shutDown && !inJoinNetwork && !myInfo->noCheck){
+main.cc:182:	myInfo->joinTimeOut_permanent = myInfo->joinTimeOut;
+main.cc:183:	myInfo->autoShutDown_permanent = myInfo->autoShutDown;
+main.cc:184:	myInfo->cacheSize*=1024;
+main.cc:223:	sprintf((char *)filesDir, "%s/files", myInfo->homeDir);
+main.cc:225:	mkdir((char *)myInfo->homeDir, 0777);
+main.cc:228:	sprintf((char *)fileNumber_file, "%s/.fileNumber", myInfo->homeDir);
+main.cc:240:	strncpy((char *)tempLogFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));
+main.cc:241:	strncpy((char *)tempInitFile, (char *)myInfo->homeDir, strlen((char*)myInfo->homeDir));	
+main.cc:242:	tempLogFile[strlen((char*)myInfo->homeDir)] = '\0';
+main.cc:243:	tempInitFile[strlen((char*)myInfo->homeDir)] = '\0';
+main.cc:245:	strcat((char *)tempLogFile, (char *)myInfo->logFileName);
+main.cc:256:		if(!myInfo->isBeacon)
+main.cc:263:	//f_log = fopen((char *)myInfo->logFileName, "a");
+main.cc:264:	//printf("%s", myInfo->logFileName);
+main.cc:265:	if(strcmp((char *)myInfo->homeDir, "\0")==0 || myInfo->portNo == 0 || myInfo->location == 0)
+main.cc:272://	printf("Created a directory %s\n", (char *)myInfo->homeDir);
+main.cc:276:	//strcpy((char *)n.hostname, (char *)myInfo->hostName);
+main.cc:277:	for(int i=0;i<(int)strlen((char *)myInfo->hostName);i++)
+main.cc:278:		n.hostname[i] = myInfo->hostName[i];
+main.cc:279:	n.hostname[strlen((char *)myInfo->hostName)] = '\0';
+main.cc:280:	n.portNo=myInfo->portNo;
+main.cc:281:	myInfo->isBeacon = isBeaconNode(n);
+main.cc:294:		sprintf((char *)myInfo->node_id, "%s_%d", host1, myInfo->portNo) ;
+main.cc:295:	//	printf("My node ID: %s\n", myInfo->node_id) ;
+main.cc:400:	myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
+main.cc:401:	myInfo->autoShutDown = myInfo->autoShutDown_permanent;
+main.cc:402:	myInfo->checkResponseTimeout = myInfo->joinTimeOut_permanent;
+main.cc:470:	if (myInfo->isBeacon){
+main.cc:486:		for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+main.cc:487:			if ( (*it)->portNo != myInfo->portNo){
+main.cc:560:				myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
+main.cc:564:			myInfo->joinTimeOut = -1;
+main.cc:585:				//for(unsigned int i=0;i < myInfo->minNeighbor; i++)
+main.cc:659:						cn.keepAliveTimer = myInfo->keepAliveTimeOut/2;
+main.cc:660:						cn.keepAliveTimeOut = myInfo->keepAliveTimeOut;
+main.cc:704:					if(nodeConnected == (int)myInfo->minNeighbor)
+main.cc:709:				if(nodeConnected == (int)myInfo->minNeighbor || shutDown)
+main.cc:745:					//myInfo->joinTimeOut = myInfo->joinTimeOut_permanent;
+metaData.cc:24:	sprintf((char *)fileNumber_file, "%s/.fileNumber", myInfo->homeDir);
+metaData.cc:580:		if(metadata.fileSize > myInfo->cacheSize)
+metaData.cc:582:		while((metadata.fileSize + currentCacheSize) > myInfo->cacheSize)
+metaData.cc:614:		sprintf((char *)cacheLRU_file, "%s/cacheLRU", myInfo->homeDir);
+metaData.cc:628:		sprintf((char *)cacheLRU_file, "%s/cacheLRU", myInfo->homeDir);
+outgoing_connections.cc:65:			pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:100:			memcpy((char *)buffer, &(myInfo->portNo), 2) ;
+outgoing_connections.cc:128:				memcpy((unsigned char *)buffer, &(myInfo->location), 4) ;
+outgoing_connections.cc:129:				memcpy((unsigned char *)&buffer[4], &(myInfo->portNo), 2) ;
+outgoing_connections.cc:167:				memcpy(&buffer[24], &(myInfo->portNo), 2) ;
+outgoing_connections.cc:414:				memcpy(&buffer[22], &(myInfo->portNo), 2) ;
+outgoing_connections.cc:596:			connectionMap[sockfd].keepAliveTimer = myInfo->keepAliveTimeOut/2;
+outgoing_connections.cc:694:	snprintf((char *)str_buf, sizeof(str_buf), "%s_%s_%1ld", myInfo->node_instance_id, obj_type, (long)seq_no++);
+outgoing_connections.cc:711:	for(list<struct beaconList *>::iterator it = myInfo->myBeaconList->begin(); it != myInfo->myBeaconList->end(); it++){
+outgoing_connections.cc:748:			m.ttl = myInfo->ttl ;
+outgoing_connections.cc:815:	if (joinResponse.size() < myInfo->initNeighbor){
+outgoing_connections.cc:825:		if(counter==myInfo->minNeighbor)
+outgoing_connections.cc:855:		pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:869:			m.ttl = myInfo->ttl ;
+outgoing_connections.cc:890:		pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:897:		//	myInfo->checkResponseTimeout = myInfo->joinTimeOut ;
+outgoing_connections.cc:908:			m.ttl = myInfo->ttl ;
+outgoing_connections.cc:934:		pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:968:			m.ttl = myInfo->ttl ;
+outgoing_connections.cc:990:		FILE *fp = fopen((char *)myInfo->status_file, "a") ;
+outgoing_connections.cc:1012:			sprintf((char *)portS, "%d", myInfo->portNo) ;
+outgoing_connections.cc:1015:			if (myInfo->isBeacon){
+outgoing_connections.cc:1084:		pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:1098:			m.ttl = myInfo->status_ttl ;
+outgoing_connections.cc:1112:		FILE *fp = fopen((char *)myInfo->status_file, "a") ;
+outgoing_connections.cc:1121:		own.portNo = myInfo->portNo ;
+outgoing_connections.cc:1123:			own.hostname[h] = myInfo->hostName[h] ;
+outgoing_connections.cc:1174:		pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:1187:			m.ttl = myInfo->ttl ;
+outgoing_connections.cc:1210:		pk.msgLifeTime = myInfo->msgLifeTime;
+outgoing_connections.cc:1220:			if((double)drand48() <= myInfo->neighborStoreProb){
+outgoing_connections.cc:1224:				m.ttl = myInfo->status_ttl ;
+outgoing_connections.cc:1252:		pk.msgLifeTime = myInfo->getMsgLifeTime;
+outgoing_connections.cc:1265:			m.ttl = myInfo->status_ttl ;
+signalHandler.cc:16:		if(myInfo->joinTimeOut == 0)
+signalHandler.cc:21:			myInfo->joinTimeOut--;
+signalHandler.cc:46:		/*if(myInfo->isBeacon)
+signalHandler.cc:65:			myInfo->statusResponseTimeout = 0;
+timer.cc:24:		if(!myInfo->isBeacon && inJoinNetwork)
+timer.cc:26:			if(myInfo->joinTimeOut > 0)
+timer.cc:27:				myInfo->joinTimeOut--;
+timer.cc:30:				if(myInfo->joinTimeOut > 0)
+timer.cc:31:					myInfo->joinTimeOut--;
+timer.cc:34:					if(myInfo->joinTimeOut==0)
+timer.cc:79:			if(myInfo->autoShutDown > 0)
+timer.cc:80:				myInfo->autoShutDown--;
+timer.cc:83:				if(!myInfo->autoShutDown)
+timer.cc:94:			if(myInfo->statusResponseTimeout > 0)
+timer.cc:95:				--myInfo->statusResponseTimeout ;
+timer.cc:96:			else //if (myInfo->statusResponseTimeout == 0){
+timer.cc:111:			--myInfo->checkResponseTimeout ;
+timer.cc:112:						//printf("Timer deducted %d\n", myInfo->checkResponseTimeout) ;
+timer.cc:113:			if (myInfo->checkResponseTimeout <= 0){
