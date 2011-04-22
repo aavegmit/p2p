@@ -160,6 +160,7 @@ uint8_t statusType = 0x00;
 					unsigned char *temp = (unsigned char *)malloc(sizeof(unsigned char )*(data_len-1));
 					for(unsigned int i=0;i<data_len-1;i++)
 						temp[i] = buffer[i+1];
+					temp[data_len-1] = '\0';
 					sprintf((char *)data, "%s %s", "filename", temp);
 					free(temp);
 				}
@@ -169,6 +170,7 @@ uint8_t statusType = 0x00;
 					for(unsigned int i=0;i<data_len-1;i++)
 						//temp[i] = buffer[i+1];
 						sprintf((char *)&temp[i*2], "%02x", buffer[i+1]);
+						temp[40] = '\0';
 						//sprintf((char *)data, "%02x", );
 					sprintf((char *)&data, "%s %s", "sha1hash", temp);
 					free(temp);
@@ -178,6 +180,7 @@ uint8_t statusType = 0x00;
 					unsigned char *temp = (unsigned char *)malloc(sizeof(unsigned char )*(data_len-1));
 					for(unsigned int i=0;i<data_len-1;i++)
 						temp[i] = buffer[i+1];
+						temp[data_len-1] = '\0';
 					sprintf((char *)data, "%s %s", "keywords", temp);
 					free(temp);
 				}
@@ -185,21 +188,21 @@ uint8_t statusType = 0x00;
 			}
 		case 0xeb : 	//strncpy((char *)msg_type, "STRS", 4);
 				//temp_msg_type ="SHRS";
-			for(unsigned int i=0;i<20;i++)
-				sprintf((char *)&data[i*2], "%02x", buffer[i]);
-				data[40]='\0';
+			for(unsigned int i=0;i<4;i++)
+				sprintf((char *)&data[i*2], "%02x", buffer[16+i]);
+				data[9]='\0';
 			break;
 		case 0xdc : 
 				//temp_msg_type = "GTRQ"
-			for(unsigned int i=0;i<20;i++)
-				sprintf((char *)&data[i*2], "%02x", buffer[i]);
-				data[40]='\0';
+			for(unsigned int i=0;i<4;i++)
+				sprintf((char *)&data[i*2], "%02x", buffer[i+16]);
+				data[9]='\0';
 			break;
 		case 0xdb : 
 				//temp_msg_type = "GTRS"
-			for(unsigned int i=0;i<20;i++)
-				sprintf((char *)&data[i*2], "%02x", buffer[i]);
-				data[40]='\0';
+			for(unsigned int i=0;i<4;i++)
+				sprintf((char *)&data[i*2], "%02x", buffer[i+16]);
+				data[9]='\0';
 			break;
 		case 0xcc : 
 				//temp_msg_type = "STOR"

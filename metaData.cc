@@ -64,7 +64,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 	for(int i=0;i<20;i++)
 	{
 		fprintf(f, "%02x", metadata.sha1[i]);
-		printf("%02x", metadata.sha1[i]);
+		//printf("%02x", metadata.sha1[i]);
 	}
 
 	fprintf(f, "\n%s=", "Nonce");
@@ -519,13 +519,13 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 				unsigned char *str = toHex(key, 20);
 				//strncpy((char *)metadata.sha1, (char *)str, 20);
 
-				printf("\n\n%s\n\n",key);
+				//printf("\n\n%s\n\n",key);
 				for(int i=0;i<20;i++)
 				{
-					printf("%02x", str[i]);
+					//printf("%02x", str[i]);
 					metadata.sha1[i] = str[i];
 				}
-				printf("\n\n");
+				//printf("\n\n");
 
 				free(str);
 			}
@@ -597,12 +597,12 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		{
 			//removeFromLRU();
 			deleteFromIndex(cacheLRU.front());
-			printf("I am in here \n");
+			//printf("I am in here \n");
 		}
-		printf("Isereted into list: %d\n", fileNumber);
+		//printf("Isereted into list: %d\n", fileNumber);
 		cacheLRU.push_back(fileNumber);
 		currentCacheSize+=metadata.fileSize;
-		printf("currentCacheSize is: %d\n", currentCacheSize);
+		//printf("currentCacheSize is: %d\n", currentCacheSize);
 		return 1;
 	}
 

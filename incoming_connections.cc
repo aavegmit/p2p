@@ -773,6 +773,8 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		//		memcpy((unsigned char *)original_uoid, buffer, SHA_DIGEST_LENGTH) ;
 		for (int i = 0 ; i < SHA_DIGEST_LENGTH ; i++)
 			original_uoid[i] = buffer[i] ;
+			
+		
 
 		unsigned short len1 = 0 ;
 		memcpy((unsigned short *)&len1, &buffer[20], 2) ;

@@ -438,7 +438,7 @@ void *keyboard_thread(void *arg){
 				}
 				else if(strcasecmp((char *)value, "sha1hash")==0)
 				{
-					value = (unsigned char *)strtok(NULL, "=");
+					value = (unsigned char *)strtok(NULL, "\n");
 					if(value == NULL)
 						continue;
 					unsigned char *str = toHex(value, 20);
@@ -448,7 +448,7 @@ void *keyboard_thread(void *arg){
 				else if(strcasecmp((char *)value, "keywords")==0)
 				{
 
-					value = (unsigned char *)strtok(NULL, "\0");
+					value = (unsigned char *)strtok(NULL, "\n");
 					if(value==NULL)
 						continue;
 					if(value[0] == '"')
@@ -691,6 +691,10 @@ void *keyboard_thread(void *arg){
 				printf("You have found the entry and now flood to get it!!!\n");
 				checkFlag = 1;
 				initiateGet(metadata) ;
+				
+				pthread_mutex_lock(&searchMsgLock) ;
+				pthread_cond_wait(&searchMsgCV, &searchMsgLock);
+				pthread_mutex_unlock(&searchMsgLock) ;
 			}
 
 			memset(inp, '\0', 1024) ;

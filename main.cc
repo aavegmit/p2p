@@ -224,12 +224,12 @@ int main(int argc, char *argv[])
 	
 	
 	struct stat st;
-	if(stat(myInfo->homeDir,&st) != 0)
+	if(stat((char *)myInfo->homeDir,&st) != 0)
 		mkdir((char *)myInfo->homeDir, 0777);
 
 	memset(&st, 0, sizeof(st));
 
-	if(stat(filesDir,&st) != 0)
+	if(stat((char *)filesDir,&st) != 0)
 		mkdir((char *)filesDir, 0777);
 		
 	unsigned char fileNumber_file[256];
