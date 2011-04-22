@@ -573,7 +573,13 @@ bool breakFlag = 0;
 	}
 	
 	//remove from cache
-	cacheLRU.remove((fileNumber));
+	list<int >::iterator result = find(cacheLRU.begin(), cacheLRU.end(), (int)fileNumber);
+	if(result!=cacheLRU.end())
+	{
+		struct metaData metadata = populateMetaData(fileNumber);
+		currentCacheSize -= metadata.fileSize;
+		cacheLRU.remove((fileNumber));	
+	}
 	
 	unsigned char removeString[256];
 	memset(removeString, '\0', 256);
@@ -614,6 +620,7 @@ void deleteAllFiles()
 	sha1IndexMap.clear();
 	fileNameIndexMap.clear();
 	cacheLRU.clear();
+	currentCacheSize = 0;
 	unsigned char kwrd_index_file[256];
 	sprintf((char *)kwrd_index_file, "%s/kwrd_index", myInfo->homeDir);
 	unsigned char name_index_file[256];
@@ -631,6 +638,16 @@ void deleteAllFiles()
 
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 {
+
+	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
+	int ret_val = doesFileExist(metadata);
+	if(ret_val != -1)
+	{
+		updateLRU(ret_val);
+		printf("File Exist already\n");
+		return;
+	}
+
 	FILE *f_ext = fopen((char *)extFile, "rb");
 	unsigned char input[10];
 	memset(input, '\0', 10);
@@ -659,7 +676,6 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 	
 	int temp = updateGlobalFileNumber();
 		
-	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
 	//struct metaData metadata = populateMetaDataFromCPPString(string((char *)metadata_str));
 
 	//writeData(metadata);	
@@ -697,8 +713,14 @@ void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 {
+
+	printf("%s", metadata_str);
 	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
-	
+
+	printf("After many things\n\n");
+	for(int i=0;i<20;i++)
+		printf("%02x", metadata.sha1[i]);
+	printf("\n\n");
 	int ret_val = doesFileExist(metadata);
 	if(ret_val != -1)
 	{

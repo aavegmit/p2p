@@ -234,6 +234,10 @@ void *keyboard_thread(void *arg){
 			SHA1_Final(metadata.sha1, c);
 
 
+			printf("Sha1 calculated is: \n");
+			for(int i=0;i<20;i++)
+				printf("%02x", metadata.sha1[i]);
+			printf("\n\n");
 			free(c);
 			fclose(f);
 
@@ -464,10 +468,10 @@ void *keyboard_thread(void *arg){
 						checkFlag = 1;
 					}
 				}
-				/*pthread_mutex_lock(&searchMsgLock) ;
+				pthread_mutex_lock(&searchMsgLock) ;
 				pthread_cond_wait(&searchMsgCV, &searchMsgLock);
-				pthread_mutex_unlock(&searchMsgLock) ;*/
-				sleep(5);
+				pthread_mutex_unlock(&searchMsgLock) ;
+				//sleep(5);
 			}
 			/*else if(strstr((char *) inp, "find ")!=NULL)
 			  {

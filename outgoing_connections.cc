@@ -1204,7 +1204,6 @@ void joinNetwork(){
 		unsigned char uoid[SHA_DIGEST_LENGTH] ;
 		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
 
-
 		struct Packet pk;
 		pk.status = 0 ;
 		pk.msgLifeTime = myInfo->msgLifeTime;
