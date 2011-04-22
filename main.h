@@ -149,6 +149,7 @@ extern pthread_mutex_t searchMsgLock ;
 extern pthread_mutex_t logEntryLock ;
 extern pthread_cond_t statusMsgCV;
 extern pthread_cond_t searchMsgCV;
+extern list<string> tmpFileNameList ;
 
 //pakcet structre stored in the cache at the nodes
 struct Packet{

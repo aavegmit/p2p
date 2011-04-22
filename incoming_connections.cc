@@ -20,6 +20,7 @@ string returnTmpFp(){
 		return (NULL);
 	}
 	fclose(sfp) ;
+	tmpFileNameList.push_front(string(sfn)) ;
 	return (string(sfn));
 }
 

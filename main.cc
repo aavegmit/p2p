@@ -51,6 +51,7 @@ map<string, list<int> > sha1IndexMap;
 map<string, int> fileIDMap;
 list<int > cacheLRU;
 map<int, struct metaData> getFileIDMap;
+list<string> tmpFileNameList;
 //list<struct metaData> metadataList;
 
 pthread_mutex_t connectionMapLock ;
@@ -253,8 +254,8 @@ int main(int argc, char *argv[])
 	{
 		//writeLogEntry((unsigned char *)"//Reset Option in command line is given, deleted Log file\n");
 		remove((char *)tempLogFile);
-		if(!myInfo->isBeacon)
-			remove((char *)tempInitFile);
+//		if(!myInfo->isBeacon)
+//			remove((char *)tempInitFile);
 		deleteAllFiles();
 	}
 	//Opening the log file
