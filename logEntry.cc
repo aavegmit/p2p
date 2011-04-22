@@ -186,19 +186,19 @@ uint8_t statusType = 0x00;
 		case 0xeb : 	//strncpy((char *)msg_type, "STRS", 4);
 				//temp_msg_type ="SHRS";
 			for(unsigned int i=0;i<20;i++)
-				sprintf((char *)data[i*2], "%02x", buffer[i]);
+				sprintf((char *)&data[i*2], "%02x", buffer[i]);
 				data[40]='\0';
 			break;
 		case 0xdc : 
 				//temp_msg_type = "GTRQ"
 			for(unsigned int i=0;i<20;i++)
-				sprintf((char *)data[i*2], "%02x", buffer[i]);
+				sprintf((char *)&data[i*2], "%02x", buffer[i]);
 				data[40]='\0';
 			break;
 		case 0xdb : 
 				//temp_msg_type = "GTRS"
 			for(unsigned int i=0;i<20;i++)
-				sprintf((char *)data[i*2], "%02x", buffer[i]);
+				sprintf((char *)&data[i*2], "%02x", buffer[i]);
 				data[40]='\0';
 			break;
 		case 0xcc : 
