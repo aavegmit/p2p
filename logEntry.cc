@@ -168,9 +168,9 @@ uint8_t statusType = 0x00;
 					unsigned char *temp = (unsigned char *)malloc(sizeof(unsigned char )*2*(data_len-1));
 					for(unsigned int i=0;i<data_len-1;i++)
 						//temp[i] = buffer[i+1];
-						sprintf((char *)temp[i*2], "%02x", buffer[i+1]);
+						sprintf((char *)&temp[i*2], "%02x", buffer[i+1]);
 						//sprintf((char *)data, "%02x", );
-					sprintf((char *)data, "%s %s", "sha1hash", temp);
+					sprintf((char *)&data, "%s %s", "sha1hash", temp);
 					free(temp);
 				}
 				else if(statusType == 0x03)

@@ -582,8 +582,11 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		while((metadata.fileSize + currentCacheSize) > myInfo->cacheSize)
 		{
 			removeFromLRU();
+			printf("I am in here \n");
 		}
 		cacheLRU.push_back(fileNumber);
+		currentCacheSize+=metadata.fileSize;
+		printf("currentCacheSize is: %d\n", currentCacheSize);
 		return 1;
 	}
 
@@ -633,6 +636,8 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 			while(fscanf(f, "%d ", &temp)!=EOF)
 			{
 				cacheLRU.push_back(temp);
+				struct metaData metadata = populateMetaData(temp);
+				currentCacheSize += metadata.fileSize;
 			}
 			fclose(f);
 		}
