@@ -1107,7 +1107,7 @@ void joinNetwork(){
 
 	//Writing the status response to the file, creating the nam file
 	void writeToStatusFile_TypeFiles(){
-		printf("Writing to the file\n") ;
+//		printf("Writing to the file\n") ;
 		pthread_mutex_lock(&statusMsgLock) ;
 		FILE *fp = fopen((char *)myInfo->status_file, "a") ;
 		if (fp == NULL){
@@ -1200,7 +1200,7 @@ void joinNetwork(){
 	}
 
 	void initiateStore(string metadata, string fileName){
-		printf("Initiating store method\n") ;
+//		printf("Initiating store method\n") ;
 		unsigned char uoid[SHA_DIGEST_LENGTH] ;
 		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
 
@@ -1241,7 +1241,7 @@ void joinNetwork(){
 	}
 
 	void initiateGet(struct metaData metadata){
-		printf("Initiating get method\n") ;
+//		printf("Initiating get method\n") ;
 		unsigned char uoid[SHA_DIGEST_LENGTH] ;
 		GetUOID( const_cast<char *> ("msg"), uoid, sizeof(uoid)) ;
 
