@@ -249,7 +249,7 @@ void *write_thread(void *args){
 				mes.status = 3 ;
 			}
 			else{
-				printf("Sending store request\n") ;
+			//	printf("Sending store request\n") ;
 				fp = fopen((char *)mes.fileName, "rb") ;
 				if(fp==NULL){
 					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
@@ -291,10 +291,10 @@ void *write_thread(void *args){
 				mes.status = 3 ;
 			}
 			else{
-				printf("Sending get response\n") ;
+			//	printf("Sending get response\n") ;
 				fp = fopen((char *)mes.fileName, "rb") ;
 				if(fp==NULL){
-					printf("Filename: %s\n", mes.fileName) ;
+				//	printf("Filename: %s\n", mes.fileName) ;
 					writeLogEntry((unsigned char *)"//File to be stored could not be opened\n") ;
 					continue ;
 				}
@@ -323,7 +323,7 @@ void *write_thread(void *args){
 		}
 		// get Message request
 		else if (mes.type == 0xdc){
-			printf("Sending get request\n") ;
+		//	printf("Sending get request\n") ;
 			if (mes.status == 1){
 				buffer = mes.buffer ;
 				len = mes.buffer_len ;
@@ -349,7 +349,7 @@ void *write_thread(void *args){
 		}
 		// Delete Message request
 		else if (mes.type == 0xbc){
-			printf("Sending delete message\n") ;
+		//	printf("Sending delete message\n") ;
 			if (mes.status == 1){
 				buffer = mes.buffer ;
 				len = mes.buffer_len ;
@@ -438,7 +438,7 @@ void *write_thread(void *args){
 					}
 				}
 				else if(mes.status_type == 0x02){
-					printf("Sending Status Files response\n") ;
+			//		printf("Sending Status Files response\n") ;
 					list<int> tempList ;
 					tempList  = getAllFiles() ;
 
@@ -503,7 +503,7 @@ void *write_thread(void *args){
 						break ;
 				}
 				if (tempList.size() == 0){
-					printf("No records found\n") ;
+			//		printf("No records found\n") ;
 					//					free(buffer) ;
 					continue;
 				}

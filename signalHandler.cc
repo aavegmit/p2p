@@ -44,7 +44,7 @@ void my_handler(int nSig)
 		pthread_kill(k_thread, SIGUSR2);
 		for(list<string>::iterator it = tmpFileNameList.begin(); it != tmpFileNameList.end() ; ++it){
 			remove((*it).c_str()) ;
-			printf("%s\n", (*it).c_str()) ;
+		//	printf("%s\n", (*it).c_str()) ;
 		}
 
 		/*if(myInfo->isBeacon)

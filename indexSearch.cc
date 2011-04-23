@@ -45,6 +45,7 @@ void writeBit(unsigned char *str, int location, unsigned char value){
     }
 }
 
+// Compute the SHA1
 unsigned char *toSHA1(unsigned char *str)
 {
 unsigned char *sha1_str = (unsigned char *)malloc(sizeof(unsigned char)*20);
@@ -52,6 +53,7 @@ unsigned char *sha1_str = (unsigned char *)malloc(sizeof(unsigned char)*20);
 return sha1_str;
 }
 
+// Compute the MD5
 unsigned char *toMD5(unsigned char *str)
 {
 unsigned char *md5_str = (unsigned char *)malloc(sizeof(unsigned char)*20);
@@ -60,6 +62,7 @@ return md5_str;
 }
 
 
+// Method creates a bit vector
 void createBitVector(unsigned char *bitVector, unsigned char *keyword)
 {
 //unsigned short int sha1_int = 0;
@@ -196,6 +199,7 @@ if(returnList.size()!=0)
 return returnList;
 }
 
+// Returns the list of indexes of files having this filename
 list<int> fileNameSearch(unsigned char *fileName)
 {
 	/*for(int i=0;i<(int)buf_len;i++)
@@ -505,6 +509,10 @@ if(f!=NULL)
 }
 }
 
+
+// Method returns the indexes of all the files present in the
+// filesystem. Used in status command to find all the files in 
+// the filesystem.
 list<int> getAllFiles()
 {
 list<int > fileSystemList;
@@ -522,7 +530,7 @@ return fileSystemList;
 void deleteFromIndex(int fileNumber)
 {
 bool breakFlag = 0;
-	printf("\nJust need to delete\n");
+//	printf("\nJust need to delete\n");
 	
 	//delete from the Indexes and also from LRU + from harddisk
 	for(map<string, list<int > >::iterator it1 = bitVectorIndexMap.begin();it1!=bitVectorIndexMap.end();it1++)
@@ -603,6 +611,8 @@ bool breakFlag = 0;
 	remove((char *)removeString);
 }
 
+// Clears all the filesystem. Used with reset command
+// option
 void deleteAllFiles()
 {
 	unsigned char removeString[256];
@@ -644,6 +654,8 @@ void deleteAllFiles()
 	remove((char *)cacheLRU);
 }
 
+
+// Save a tmp file in the permanent space of the filesystem
 void writeFileToPermanent(unsigned char *metadata_str, unsigned char *fileName)
 {
 bool replaceFlag = 1;
@@ -652,7 +664,7 @@ bool replaceFlag = 1;
 	if(ret_val != -1)
 	{
 		updateLRU(ret_val);
-		printf("File Exist already\n");
+//		printf("File Exist already\n");
 		replaceFlag = 0;
 	}
 
@@ -711,7 +723,7 @@ bool replaceFlag = 1;
 		{
 			if(errno == EIO)
 			{
-				printf("\nDisk Quota Reached, could not save file\n");
+//				printf("\nDisk Quota Reached, could not save file\n");
 				writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
 				remove((char *)tempFileName);
 				remove((char *)extFile);
@@ -734,7 +746,7 @@ bool replaceFlag = 1;
 		{
 			if(errno == EIO)
 			{
-				printf("\nDisk Quota Reached, could not save file\n");
+//				printf("\nDisk Quota Reached, could not save file\n");
 				writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
 				remove((char *)tempFileName);
 				remove((char *)extFile);
@@ -753,10 +765,12 @@ bool replaceFlag = 1;
 	}
 }
 
+
+// Save a file in the cache of the filesystem
 void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 {
 
-	printf("%s", metadata_str);
+//	printf("%s", metadata_str);
 	struct metaData metadata = populateMetaDataFromString_noFileID(metadata_str);
 
 	/*printf("After many things\n\n");
@@ -791,7 +805,7 @@ void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 	{
 		if(errno == EIO)
 		{
-			printf("\nDisk Quota Reached, could not save file\n");
+		//	printf("\nDisk Quota Reached, could not save file\n");
 			writeLogEntry((unsigned char *)"Disk Quota Reached, could not save file\n");
 			cacheLRU.remove(temp);
 			remove((char *)tempFileName);
@@ -805,6 +819,8 @@ void writeFileToCache(unsigned char *metadata_str, unsigned char *fileName)
 
 }
 
+
+// Returns true if the file exists in the filesystem
 int doesFileExist(struct metaData metadata)
 {
 	list<int > tempList = fileNameSearch(metadata.fileName);

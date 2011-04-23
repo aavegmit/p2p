@@ -5,6 +5,9 @@
 using namespace std ;
 
 
+// Function to return a tmp file name to
+// be used for storing the data if its more than
+// 8192 bytes
 string returnTmpFp(){
 	char sfn[256];
 	FILE *sfp;
@@ -564,7 +567,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 	}
 	else if(type == 0xdc){
-		printf("Get request received\n") ;
+//		printf("Get request received\n") ;
 
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
@@ -598,7 +601,6 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			struct metaData metadata = populateMetaData(fileIDMap[string((const char *)fileID, 20  ) ] ) ;
 			string metaStr = MetaDataToStr(metadata) ;
 			if(!strncmp((char *)sha1, (char *)metadata.sha1, 20)){
-				printf("File found, send it biatch\n") ;
 				struct Message m ;
 				m.type = 0xdb ;
 				m.status = 3;
@@ -653,7 +655,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		// Check if the message has already been received or not
 		pthread_mutex_lock(&MessageDBLock) ;
 		if (MessageDB.find(string ((const char *)uoid, SHA_DIGEST_LENGTH)   ) != MessageDB.end()){
-			printf("Message has already been received.\n") ;
+//			printf("Message has already been received.\n") ;
 			pthread_mutex_unlock(&MessageDBLock) ;
 			return ;
 		}
@@ -735,7 +737,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		//		string fileSpec((char *)buffer, buf_len) ;
 		unsigned char tempFileSpec[buf_len] ;
 		strncpy((char *)tempFileSpec, (char *)buffer, buf_len) ;
-		printf("%s\n", tempFileSpec) ;
+//		printf("%s\n", tempFileSpec) ;
 		struct parsedDeleteMessage pd = parseDeleteMessage( tempFileSpec) ;
 		deleteFile( pd ) ;
 
@@ -798,6 +800,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 		else{
 			//message origiated from here
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
+				// case of satus files
 				if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x02){
 					pthread_mutex_lock(&statusMsgLock) ;
 					if (statusTimerFlag){
@@ -830,6 +833,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 					}
 					pthread_mutex_unlock(&statusMsgLock) ;
 				}
+				// Case of status neighbors
 				else if(MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status_type == 0x01){
 					pthread_mutex_lock(&statusMsgLock) ;
 					if (statusTimerFlag){
@@ -921,7 +925,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 						//												for(unsigned int u = i ; u < (i + templen) ; ++u){
 						//													printf("%c", buffer[u]) ;
 						//												}
-						printf("here %d %d\n", (int)strlen(metaStr.c_str()), (int)metaStr.size() ) ;
+//						printf("here %d %d\n", (int)strlen(metaStr.c_str()), (int)metaStr.size() ) ;
 						i = i +templen;
 						//						struct metaData newMeta = populateMetaDataFromString((unsigned char *)metaStr.c_str()) ;
 						struct metaData newMeta = populateMetaDataFromCPPString(metaStr) ;
@@ -966,7 +970,7 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 
 
 		if (MessageDB.find(string((const char *)original_uoid, SHA_DIGEST_LENGTH)) == MessageDB.end()){
-			printf("Search request was never forwarded from this node.\n") ;
+//			printf("Search request was never forwarded from this node.\n") ;
 			return ;
 		}
 		else{
@@ -979,6 +983,9 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 			if (MessageDB[string((const char *)original_uoid, SHA_DIGEST_LENGTH)].status == 0){
 
 				writeFileToPermanent((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn) ;
+				pthread_mutex_lock(&getMsgLock) ;
+				pthread_cond_signal(&getMsgCV) ;
+				pthread_mutex_unlock(&getMsgLock) ;
 
 			}
 			else if(MessageDB[ string((const char *)original_uoid, SHA_DIGEST_LENGTH)   ].status == 1){	//Message originated from somewhere else, needs to be forwarded
@@ -1261,14 +1268,14 @@ void process_received_message(int sockfd,uint8_t type, uint8_t ttl, unsigned cha
 				data_len = metaStr.size() + 4 ;
 				return_code = data_len ;
 
-				// Pass the temp file name to mau function
+				// Pass the temp file name to function
 				// Do the prob thing here, else just pass
 //				writeFileToCache((unsigned char *)metaStr.c_str(), (unsigned char *)tempFn.c_str()) ;	
 				// Pass the file pointer to process recd message
 			}
 			else if(message_type == 0xdb){
 				// Read the first 4 bytes - length of metadata
-				printf("received get response\n") ;
+//				printf("received get response\n") ;
 				uint32_t metaLen = 0 ;
 				buffer = (unsigned char *)malloc(sizeof(unsigned char)*(24)) ;
 				return_code = read(nSocket, buffer, 24) ;

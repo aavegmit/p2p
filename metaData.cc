@@ -16,6 +16,9 @@
 #include <strings.h>
 #include <algorithm>
 
+
+// Function to update the global file number in
+// the filesystem
 int updateGlobalFileNumber()
 {
 int globalFileNumber = 0;
@@ -47,6 +50,7 @@ int globalFileNumber = 0;
 }
 
 
+// Write metadata in the filesystem
 void writeMetaData(struct metaData metadata, int globalFileNumber)
 {
 	//unsigned char dir[10] = "files/";
@@ -56,7 +60,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 
 	FILE *f = fopen((char *)fileName, "w");
 
-	printf("IN WRTIE TO FILE\n\n");
+//	printf("IN WRTIE TO FILE\n\n");
 	fprintf(f,"%s\n","[metadata]");
 	fprintf(f, "%s=%s\n", "FileName", metadata.fileName);
 	fprintf(f, "%s=%ld\n", "FileSize", metadata.fileSize);
@@ -137,6 +141,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 
 
 
+	// Method to write Data or the file content in the filesystem
 	void writeData(struct metaData metadata, int globalFileNumber)
 	{
 		char ch;
@@ -202,7 +207,8 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		fclose(f1);
 	}
 	
-	
+
+	// Populate the metadata data structure from the filesystem
 	struct metaData populateMetaData(int fileNumber)
 	{
 		struct metaData metadata;
@@ -221,7 +227,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		FILE *f = fopen((char *)fileName, "r");
 		if(f==NULL)
 		{
-			printf("FileName is : %s\n", fileName);
+//			printf("FileName is : %s\n", fileName);
 			printf("File does not exist\n");
 			exit(0)	;
 		}
@@ -314,6 +320,9 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 	}*/
 
 
+	// populate the metadata data structure from a string,
+	// usually used to populate the structure from the string received
+	// over the socket
 	struct metaData populateMetaDataFromString(unsigned char *input1)
 	{
 		struct metaData metadata;
@@ -407,6 +416,8 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 
 
 
+	// Does the same thing as above, just that the argument in this case
+	// is C++ string instead of pointer to memory
 	struct metaData populateMetaDataFromCPPString(string input1)
 	{
 		struct metaData metadata;
@@ -632,6 +643,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		remove((char *)removeString);*/
 	}
 
+	// Externalising the LRU
 	void writeLRUToFile()
 	{
 		unsigned char cacheLRU_file[256];
@@ -645,6 +657,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		fclose(f);
 	}
 
+	// Read the LRU from file, usually done at startup
 	void readLRUFromFile()
 	{
 		int temp;
@@ -664,6 +677,7 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		}
 	}
 
+	// Displays the metadata response in the required format
 	int searchResponseDisplay(list<struct metaData> metadataList, int count)
 	{
 		for(list<struct metaData>::iterator it = metadataList.begin(); it!=metadataList.end(); ++it, count++)

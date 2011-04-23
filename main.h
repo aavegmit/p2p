@@ -146,9 +146,11 @@ extern list<int > cacheLRU;
 extern pthread_mutex_t connectionMapLock ;
 extern pthread_mutex_t statusMsgLock ;
 extern pthread_mutex_t searchMsgLock ;
+extern pthread_mutex_t getMsgLock ;
 extern pthread_mutex_t logEntryLock ;
 extern pthread_cond_t statusMsgCV;
 extern pthread_cond_t searchMsgCV;
+extern pthread_cond_t getMsgCV;
 extern list<string> tmpFileNameList ;
 
 //pakcet structre stored in the cache at the nodes
