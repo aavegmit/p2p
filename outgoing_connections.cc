@@ -360,7 +360,7 @@ void *write_thread(void *args){
 				memset(buffer, '\0', len) ;
 				for (unsigned int i = 0 ; i < len ; ++i){
 					buffer[i] = mes.query[i] ;
-					printf("%c", buffer[i]) ;
+//					printf("%c", buffer[i]) ;
 				}
 			}
 
