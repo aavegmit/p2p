@@ -699,7 +699,7 @@ void *keyboard_thread(void *arg){
 
 			memset(inp, '\0', 1024) ;
 			//cin.clear() ;
-			fflush(stdin);
+//			fflush(stdin);
 		}
 
 		//printf("KeyBoardThread Halted\n");
