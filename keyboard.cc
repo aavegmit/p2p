@@ -234,10 +234,10 @@ void *keyboard_thread(void *arg){
 			SHA1_Final(metadata.sha1, c);
 
 
-			printf("Sha1 calculated is: \n");
-			for(int i=0;i<20;i++)
-				printf("%02x", metadata.sha1[i]);
-			printf("\n\n");
+//			printf("Sha1 calculated is: \n");
+//			for(int i=0;i<20;i++)
+//				printf("%02x", metadata.sha1[i]);
+//			printf("\n\n");
 			free(c);
 			fclose(f);
 
@@ -625,7 +625,7 @@ void *keyboard_thread(void *arg){
 							}
 							else
 								continue;*/
-							printf("No such file present in the file system\n");
+//							printf("No such file present in the file system\n");
 							contFlag = 1;
 							break;
 						}
@@ -642,7 +642,7 @@ void *keyboard_thread(void *arg){
 				if(contFlag)
 					continue;
 
-				printf("\nMessage to be passed is: \n%s", message);
+//				printf("\nMessage to be passed is: \n%s", message);
 				string tempMes((char *)message) ;
 				if (toFloodFlag)
 					initiateDelete((unsigned char *)tempMes.c_str()) ;
@@ -660,7 +660,7 @@ void *keyboard_thread(void *arg){
 				int indexNumber = atoi((char *)value);
 				if(getFileIDMap.find(indexNumber)==getFileIDMap.end())
 				{
-					printf("No such entry\n");
+//					printf("No such entry\n");
 					continue;
 				}
 				struct metaData metadata = getFileIDMap[indexNumber];
@@ -688,18 +688,18 @@ void *keyboard_thread(void *arg){
 					continue;
 				}
 
-				printf("You have found the entry and now flood to get it!!!\n");
+			//	printf("You have found the entry and now flood to get it!!!\n");
 				checkFlag = 1;
 				initiateGet(metadata) ;
 				
-				pthread_mutex_lock(&searchMsgLock) ;
-				pthread_cond_wait(&searchMsgCV, &searchMsgLock);
-				pthread_mutex_unlock(&searchMsgLock) ;
+				pthread_mutex_lock(&getMsgLock) ;
+				pthread_cond_wait(&getMsgCV, &getMsgLock);
+				pthread_mutex_unlock(&getMsgLock) ;
 			}
 
 			memset(inp, '\0', 1024) ;
 			//cin.clear() ;
-			fflush(stdin);
+//			fflush(stdin);
 		}
 
 		//printf("KeyBoardThread Halted\n");

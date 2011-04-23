@@ -51,6 +51,7 @@ map<string, list<int> > sha1IndexMap;
 map<string, int> fileIDMap;
 list<int > cacheLRU;
 map<int, struct metaData> getFileIDMap;
+list<string> tmpFileNameList;
 //list<struct metaData> metadataList;
 
 pthread_mutex_t connectionMapLock ;
@@ -58,9 +59,11 @@ pthread_mutex_t nodeConnectionMapLock ;
 pthread_mutex_t MessageDBLock ;
 pthread_mutex_t statusMsgLock ;
 pthread_mutex_t searchMsgLock ;
+pthread_mutex_t getMsgLock ;
 pthread_mutex_t logEntryLock ;
 pthread_cond_t statusMsgCV;
 pthread_cond_t searchMsgCV;
+pthread_cond_t getMsgCV;
 
 void my_handler(int nSig);
 void resetValues();
@@ -261,8 +264,8 @@ int main(int argc, char *argv[])
 	{
 		//writeLogEntry((unsigned char *)"//Reset Option in command line is given, deleted Log file\n");
 		remove((char *)tempLogFile);
-		if(!myInfo->isBeacon)
-			remove((char *)tempInitFile);
+//		if(!myInfo->isBeacon)
+//			remove((char *)tempInitFile);
 		deleteAllFiles();
 	}
 	//Opening the log file
@@ -350,6 +353,19 @@ int main(int argc, char *argv[])
 		//perror("CV initialization failed") ;
 		writeLogEntry((unsigned char *)"//CV initialization failed\n");		
 	}
+
+	lres = pthread_mutex_init(&getMsgLock, NULL) ;
+	if (lres != 0){
+		//perror("Mutex initialization failed") ;
+		writeLogEntry((unsigned char *)"//Mutex initialization failed\n");
+	}
+
+	cres = pthread_cond_init(&getMsgCV, NULL) ;
+	if (cres != 0){
+		//perror("CV initialization failed") ;
+		writeLogEntry((unsigned char *)"//CV initialization failed\n");		
+	}
+
 
 
 

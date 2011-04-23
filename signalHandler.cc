@@ -16,12 +16,12 @@ void my_handler(int nSig)
 		if(myInfo->joinTimeOut == 0)
 		{
 			joinTimeOutFlag = 1;
-			
+
 			closeConnection( (*nodeConnectionMap.begin()).second  ) ;
 			myInfo->joinTimeOut--;
 		}
-//		if(shutDown)
-			
+		//		if(shutDown)
+
 		//pthread_exit(0);
 	}
 
@@ -38,20 +38,24 @@ void my_handler(int nSig)
 			closeConnection((*it).second);
 		//nodeConnectionMap.clear();
 		pthread_mutex_unlock(&nodeConnectionMapLock) ;
-		
+
 		shutdown(nSocket_accept, SHUT_RDWR);
 		close(nSocket_accept);
 		pthread_kill(k_thread, SIGUSR2);
-		
+		for(list<string>::iterator it = tmpFileNameList.begin(); it != tmpFileNameList.end() ; ++it){
+			remove((*it).c_str()) ;
+		//	printf("%s\n", (*it).c_str()) ;
+		}
+
 		/*if(myInfo->isBeacon)
-		{
-			for (map<pthread_t, bool>::iterator it = myConnectThread.begin(); it != myConnectThread.end(); ++it)
-			{
-				if((*it).second)
-					pthread_kill((*it).first, SIGUSR2);
-			}
-		}*/
-		
+		  {
+		  for (map<pthread_t, bool>::iterator it = myConnectThread.begin(); it != myConnectThread.end(); ++it)
+		  {
+		  if((*it).second)
+		  pthread_kill((*it).first, SIGUSR2);
+		  }
+		  }*/
+
 	}
 	if(nSig == SIGALRM)
 	{
