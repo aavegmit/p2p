@@ -102,9 +102,14 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 		res.append("SHA1=") ;
 		len = res.size() ;
 		res.resize(len+40) ;
+//printf("\n\n");		
 		for(int i=0;i<20;i++)
+		{
 			sprintf(&res[len+i*2], "%02x", metadata.sha1[i]);
+			//printf("%02x", metadata.sha1[i]);
+		}
 
+//printf("\n\n");
 		res.append("\nNonce=") ;
 		len = res.size() ;
 		res.resize(len+40) ;
@@ -246,7 +251,14 @@ void writeMetaData(struct metaData metadata, int globalFileNumber)
 				key = (unsigned char *)strtok((char *)buffer, "=");
 				key = (unsigned char *)strtok(NULL, "\n");
 				unsigned char *str = toHex(key, 20);
-				strncpy((char *)metadata.sha1, (char *)str, 20);
+				//printf("In populate metadata:\n\n");
+				for(int i=0;i<20;i++)
+				{
+					metadata.sha1[i] = str[i];
+					//printf("%02x", metadata.sha1[i]);
+				}
+				//printf("\n\n");
+				//strncpy((char *)metadata.sha1, (char *)str, 20);
 				free(str);
 			}
 			else if(strstr((char *)buffer, "Nonce=")!=NULL)

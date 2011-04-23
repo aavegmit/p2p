@@ -607,9 +607,12 @@ void *write_thread(void *args){
 			write(sockfd, buffer, len - st.st_size) ;
 			unsigned char chunk[8192] ;
 			// read the content of the file and write on the socket
-			while(!feof(fp)){
-				memset(chunk, 0 , 8192) ;
+			//while(!feof(fp)){
+			while(1){
+				memset(chunk, '\0' , 8192) ;
 				int numBytes = fread(chunk, 1, 8192, fp) ;
+				if(numBytes == 0)
+					break;
 				write(sockfd, chunk, numBytes) ;
 			}
 		}
@@ -1130,8 +1133,16 @@ void joinNetwork(){
 		for(list<int>::iterator it = tempList.begin(); it != tempList.end(); it++){
 			metadata = populateMetaData(*it) ;
 			fileIDMap[string((char *)metadata.fileID, 20)] = (*it) ;
+	
+			/*printf("Before metadatatostr:\n\n");
+			for(int i=0;i<20;i++)
+			{
+				printf("%02x", metadata.sha1[i]);
+			}
+			printf("After metadatatostr:\n\n");*/
 			metaStr = MetaDataToStr(metadata) ;
 			statusResponseTypeFiles[own].push_front(metaStr) ;
+			//cout<<"String came from is: "<<metaStr<<endl;
 		}
 
 
