@@ -123,9 +123,18 @@ Below are the files in this prject, Part 2:-
 	
 	e.g
 	
-	3 e2d306e2b2000ebbe9060637d2a349b83c588b68 4 5 6
+	3 v.gif 4 5 6
 	
-	where, 3 is the number of files stored corresponding to the 40 char long sha1, and 4, 5 and 6 are the names of files in it's filesystem
+	where, 3 is the number of files stored corresponding to the 'v.gif' file name, and 4, 5 and 6 are the names of files in it's filesystem
+
+- More files created in 'files' directory in homeDir:-
+
+	- '.data'
+	- '.meta'
+	- '.pass'
+	
+	above files are created as the files are created or stored using 'store', 'get'. '.pass' is only created at the node which inititates the 'store' command. .pass file consist of 20 byte long password in binary mode.
+
 
 DESIGN DECISIONS :
 
@@ -143,5 +152,5 @@ Refrences abd Credits
 
 
 	- Refered to "Begining Linux programming" by Wrox, taken thread code from that book
-	- UOID code fragment used from: http://merlot.usc.edu/cs551-s11/projects/final.html#uoid   	
+	- UOID code fragment used from: http://merlot.usc.edu/cs551-s11/projects/final.html#uoid  
 
